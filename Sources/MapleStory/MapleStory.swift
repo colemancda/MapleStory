@@ -1,6 +1,5 @@
-public struct MapleStory {
-    public private(set) var text = "Hello, World!"
-
-    public init() {
-    }
+/// MapleStory server
+public final class MapleStoryServer {
+    
+    
 }
