@@ -36,17 +36,17 @@ public struct MapleStoryDecoder {
         
         let opcode = T.opcode
         guard packet.opcode == opcode else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode \(T.opcode) from \(packet.opcode) packet."))
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode \(type) from \(packet.opcode) packet."))
         }
         
-        log?("Will decode \(opcode) packet")
+        log?("Will decode \(type) packet")
         
         let decoder = Decoder(
             userInfo: userInfo,
             log: log,
             data: packet.data
         )
-        decoder.offset = 6
+        decoder.offset = 2
         
         if let decodableType = type as? MapleStoryDecodable.Type {
             let container = MapleStoryDecodingContainer(referencing: decoder)

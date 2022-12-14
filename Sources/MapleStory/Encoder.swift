@@ -24,11 +24,11 @@ public struct MapleStoryEncoder {
     
     // MARK: - Methods
     
-    public func encode<T>(
+    public func encodePacket<T>(
         _ value: T
     ) throws -> Packet where T: Encodable, T: MapleStoryPacket {
         let opcode = T.opcode
-        log?("Will encode \(opcode) packet")
+        log?("Will encode \(T.self) packet")
         // initialize encoder
         let encoder = PacketEncoder(
             userInfo: userInfo,
@@ -41,13 +41,13 @@ public struct MapleStoryEncoder {
         } else {
             try value.encode(to: encoder)
         }
-        // set size
-        //encoder.packet.size = numericCast(encoder.packet.data.count)
         // return value
         return encoder.packet
     }
     
-    public func encode<T>(_ value: T) throws -> Data where T: Encodable {
+    public func encode<T>(
+        _ value: T
+    ) throws -> Data where T: Encodable {
         log?("Will encode \(T.self)")
         // initialize encoder
         let encoder = Encoder(
