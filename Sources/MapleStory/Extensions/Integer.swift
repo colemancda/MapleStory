@@ -58,3 +58,28 @@ internal extension UInt64 {
         return unsafeBitCast(self, to: (UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8, UInt8).self)
     }
 }
+
+internal extension UInt8 {
+    
+    /// Performs a left rotation, shifting the bits in self to the left by n places and wrapping around any bits that are shifted past the leftmost bit.
+    mutating func rotatedLeft(by n: Int) -> UInt8 {
+        var msb: UInt8 = 0
+        for _ in 0 ..< n {
+            msb = (self & 0x80) != 0 ? 1 : 0
+            self <<= 1
+            self |= msb
+        }
+        return self
+    }
+    
+    /// Performs a left rotation, shifting the bits in self to the right by n places and wrapping around any bits that are shifted past the rightmost bit.
+    mutating func rotatedRight(by n: Int) -> UInt8 {
+        var lsb: UInt8 = 0
+        for _ in 0 ..< n {
+            lsb = (self & 1) != 0 ? 0x80 : 0
+            self >>= 1
+            self |= lsb
+        }
+        return self
+    }
+}
