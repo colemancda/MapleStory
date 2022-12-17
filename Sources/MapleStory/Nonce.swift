@@ -45,3 +45,16 @@ extension Nonce: CustomStringConvertible, CustomDebugStringConvertible {
         description
     }
 }
+
+// MARK: - MapleStoryCodable
+
+extension Nonce: MapleStoryCodable {
+    
+    public init(from container: MapleStoryDecodingContainer) throws {
+        self.rawValue = try container.decode(UInt32.self, isLittleEndian: false)
+    }
+    
+    public func encode(to container: MapleStoryEncodingContainer) throws {
+        try container.encode(rawValue, isLittleEndian: false)
+    }
+}

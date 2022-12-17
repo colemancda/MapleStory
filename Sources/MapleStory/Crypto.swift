@@ -7,12 +7,159 @@
 
 import Foundation
 import CMapleStory
+import CryptoSwift
+
+// MARK: - Packet
+
+public extension Packet {
+    
+    struct Encrypted: Equatable, Hashable {
+        
+        public internal(set) var data: Data
+        
+        internal init(_ data: Data) {
+            self.data = data
+            assert(data.count >= Self.minSize)
+        }
+        
+        public init?(data: Data) {
+            // validate size
+            guard data.count >= Self.minSize else {
+                return nil
+            }
+            self.data = data
+        }
+    }
+}
+
+public extension Packet.Encrypted {
+    
+    static var minSize: Int { 4 }
+    
+    var length: Int {
+        Self.length(header)
+    }
+    
+    /// Packet parameters
+    var parameters: Data {
+        withUnsafeParameters { Data($0) }
+    }
+    
+    var parametersSize: Int {
+        data.count - Self.minSize
+    }
+    
+    func withUnsafeParameters<ResultType>(_ body: ((UnsafeRawBufferPointer) throws -> ResultType)) rethrows -> ResultType {
+        return try data.withUnsafeBytes { pointer in
+            let parametersPointer = pointer.count > Packet.minSize ? pointer.baseAddress?.advanced(by: Packet.minSize) : nil
+            return try body(UnsafeRawBufferPointer(start: parametersPointer, count: parametersSize))
+        }
+    }
+}
+
+public extension Packet {
+    
+    /// Encrypt
+    func encrypt(
+        key: Key = .default,
+        nonce: Nonce = Nonce(),
+        version: Version = .v62
+    ) throws -> Packet.Encrypted {
+        let iv = nonce.iv
+        let length = self.data.count
+        var encrypted = self.data
+        Crypto.Maple.encrypt(&encrypted)
+        encrypted = try Crypto.AES.encrypt(
+            encrypted,
+            key: key.data,
+            iv: iv
+        )
+        let header = Packet.Encrypted.header(
+            length: length,
+            iv: iv,
+            version: version
+        )
+        return Packet.Encrypted(
+            header: header,
+            encrypted: encrypted
+        )
+    }
+}
+
+public extension Packet.Encrypted {
+    
+    /// Decrypt
+    func decrypt(
+        key: Key = .default,
+        nonce: Nonce,
+        version: Version = .v62
+    ) throws -> Packet {
+        let iv = nonce.iv
+        var decrypted = try Crypto.AES.decrypt(
+            self.parameters,
+            key: key.data,
+            iv: iv
+        )
+        Crypto.Maple.decrypt(&decrypted)
+        guard let packet = Packet(data: decrypted) else {
+            throw MapleStoryError.invalidData(decrypted)
+        }
+        return packet
+    }
+}
+
+internal extension Packet.Encrypted {
+    
+    static func header(
+        length: Int,
+        iv: Data,
+        version: Version
+    ) -> UInt32 {
+        let highIv = UInt16(iv[2]) << 8 | UInt16(iv[3])
+        var lowpart = highIv
+        let version = UInt16(version.rawValue)
+        lowpart ^= 0xFFFF - version
+        let hipart = lowpart ^ UInt16(length)
+        return UInt32(lowpart) | (UInt32(hipart) << 16)
+    }
+    
+    init(header: UInt32, encrypted: Data) {
+        let headerBytes = header.bigEndian.bytes
+        var data = Data()
+        data += [
+            headerBytes.0,
+            headerBytes.1,
+            headerBytes.2,
+            headerBytes.3
+        ]
+        data.append(encrypted)
+        self.init(data)
+    }
+    
+    var header: UInt32 {
+        UInt32(bigEndian: UInt32(bytes: (data[0], data[1], data[2], data[3])))
+    }
+    
+    static func length(_ header: UInt32) -> Int {
+        return Int((header & 0x0000FFFF) ^ (header >> 16))
+    }
+}
+
+// MARK: - Crypto Function
 
 internal enum Crypto {
     
     enum AES {
         
+        static func encrypt(_ data: Data, key: Data, iv: Data) throws -> Data {
+            let aes = try CryptoSwift.AES(key: .init(key), blockMode: OFB(iv: .init(iv)), padding: .noPadding)
+            return try Data(aes.encrypt(.init(data)))
+        }
         
+        static func decrypt(_ data: Data, key: Data, iv: Data) throws -> Data {
+            let aes = try CryptoSwift.AES(key: .init(key), blockMode: OFB(iv: .init(iv)), padding: .noPadding)
+            return try Data(aes.decrypt(.init(data)))
+        }
     }
     
     enum Maple {
@@ -32,5 +179,23 @@ internal enum Crypto {
                 maple_decrypt($0.baseAddress, length)
             }
         }
+    }
+}
+
+// MARK: - IV
+
+internal extension Nonce {
+    
+    var iv: Data {
+        var data = Data()
+        let bytes = self.rawValue.bigEndian.bytes
+        for _ in 0 ..< 4 {
+            withUnsafeBytes(of: bytes) {
+                $0.baseAddress?.withMemoryRebound(to: UInt8.self, capacity: 4) {
+                    data.append($0, count: 4)
+                }
+            }
+        }
+        return data
     }
 }

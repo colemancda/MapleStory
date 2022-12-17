@@ -22,12 +22,38 @@ final class MapleStoryTests: XCTestCase {
         
         let value = HelloPacket(
             version: .v62,
-            recieveNonce: Nonce(rawValue: UInt32(0x46727A18).bigEndian),
-            sendNonce: Nonce(rawValue: UInt32(0x52307814).bigEndian),
+            recieveNonce: 0x46727A18,
+            sendNonce: 0x52307814,
             region: .global
         )
         
         XCTAssertEncode(value, packet)
+    }
+    
+    func testPing() {
+        
+        /*
+         Ping packet
+         short 17
+         Packet to be sent:
+         11 00
+         
+         MaplePacketEncoder will write encrypted 11 00
+         MaplePacketEncoder header F8 11 FA 11
+         MapleCustomEncryption.encryptData(): input 11 00
+         MapleCustomEncryption.encryptData(): output 7C 89
+         MaplePacketEncoder output F8 11 FA 11 EC E5
+         */
+    }
+    
+    func testLoginRequest() {
+        
+        
+    }
+    
+    func testLoginResponse() {
+        
+        
     }
 }
 
@@ -64,7 +90,7 @@ func XCTAssertEncode<T>(
     encoder.log = { print("Encoder:", $0) }
     
     do {
-        var encodedPacket = try encoder.encodePacket(value)
+        let encodedPacket = try encoder.encodePacket(value)
         XCTAssertFalse(encodedPacket.data.isEmpty, file: file, line: line)
         XCTAssertEqual(encodedPacket.data, packet.data, "\(encodedPacket.data.hexString) is not equal to \(packet.data.hexString)", file: file, line: line)
     } catch {
@@ -72,5 +98,3 @@ func XCTAssertEncode<T>(
         dump(error)
     }
 }
-
-
