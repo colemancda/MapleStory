@@ -8,7 +8,7 @@
 import Foundation
 
 /// MapleStory Generic Packet
-public struct Packet {
+public struct Packet: Equatable, Hashable {
     
     public internal(set) var data: Data
     
