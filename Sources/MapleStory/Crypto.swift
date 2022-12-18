@@ -115,11 +115,12 @@ internal extension Packet.Encrypted {
         iv: Data,
         version: Version
     ) -> UInt32 {
-        return iv.withUnsafeBytes {
-            $0.baseAddress!.withMemoryRebound(to: UInt8.self, capacity: iv.count) {
-                maple_encrypted_hdr(.init(mutating: $0), UInt16(length), UInt16(version.rawValue))
-            }
-        }
+        let nbytes = UInt16(length)
+        var lowpart = UInt16(bytes: (iv[2], iv[3]))
+        let version = 0xffff - UInt16(version.rawValue)
+        lowpart ^= version
+        let hipart = lowpart ^ nbytes
+        return UInt32(lowpart) | (UInt32(hipart) << 16)
     }
     
     init(header: UInt32, encrypted: Data) {
