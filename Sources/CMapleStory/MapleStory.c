@@ -115,3 +115,15 @@ void maple_decrypt(uint8_t* buf, int32_t nbytes)
     }
 }
 
+uint32_t maple_encrypted_hdr(uint8_t* iv, uint16_t nbytes, uint16_t version)
+{
+    uint16_t* high_iv = (uint16_t*)(iv + 2);
+    uint16_t lowpart = *high_iv;
+    
+    version = 0xFFFF - version;
+    lowpart ^= version;
+
+    uint16_t hipart = lowpart ^ nbytes;
+
+    return (uint32_t)lowpart | ((uint32_t)hipart << 16);
+}

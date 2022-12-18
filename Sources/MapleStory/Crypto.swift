@@ -115,16 +115,15 @@ internal extension Packet.Encrypted {
         iv: Data,
         version: Version
     ) -> UInt32 {
-        var iiv: Int32 = Int32(iv[3]) & 0xFF
-        iiv |= (Int32(iv[2]) << 8) & 0xFF00
-        iiv ^= numericCast(version.rawValue)
-        let mlength = ((Int32(length) << 8) & 0xFF00) | (Int32(length) >> 8)
-        let xoredIv = iiv ^ mlength
-        return UInt32(bytes: ((UInt8(iiv >> 8) & 0xFF), (UInt8(iiv & 0xFF)), (UInt8(xoredIv >> 8) & 0xFF), (UInt8(xoredIv & 0xFF))))
+        return iv.withUnsafeBytes {
+            $0.baseAddress!.withMemoryRebound(to: UInt8.self, capacity: iv.count) {
+                maple_encrypted_hdr(.init(mutating: $0), UInt16(length), UInt16(version.rawValue))
+            }
+        }
     }
     
     init(header: UInt32, encrypted: Data) {
-        let headerBytes = header.bigEndian.bytes
+        let headerBytes = header.bytes
         var data = Data()
         data += [
             headerBytes.0,
@@ -137,7 +136,7 @@ internal extension Packet.Encrypted {
     }
     
     var header: UInt32 {
-        UInt32(bigEndian: UInt32(bytes: (data[0], data[1], data[2], data[3])))
+        UInt32(bytes: (data[0], data[1], data[2], data[3]))
     }
     
     static func length(_ header: UInt32) -> Int {
