@@ -13,7 +13,7 @@ final class CryptoTests: XCTestCase {
     
     func testEncryptedHeader() {
         
-        let header: UInt32 = 0x487D4A7D
+        let header = UInt32(bigEndian: 0x487D4A7D)
         let iv = Nonce(rawValue: 0x27568982).iv
         let length = 2
         

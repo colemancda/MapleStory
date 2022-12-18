@@ -74,8 +74,11 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(encrypted.data.suffix(2), encryptedParameters)
         XCTAssertEqual(encrypted.parametersSize, 2)
         XCTAssertEqual(encrypted.parameters, encryptedParameters)
-        XCTAssertEqual(encrypted.header, 0x487D4A7D)
+        XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x487D4A7D))
         XCTAssertEqual(encrypted.data, encryptedData, "\(encrypted.data.toHexadecimal()) is not equal to \(encryptedData.toHexadecimal())")
+        
+        let decrypted = try encrypted.decrypt(key: .default, nonce: nonce, version: .v62)
+        XCTAssertEqual(decrypted, packet)
     }
     
     func testLoginRequest() {
