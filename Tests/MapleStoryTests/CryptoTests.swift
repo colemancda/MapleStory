@@ -11,6 +11,21 @@ import XCTest
 
 final class CryptoTests: XCTestCase {
     
+    func testEncryptedHeader() {
+        
+        let header: UInt32 = 0x487D4A7D
+        let iv = Nonce(rawValue: 0x27568982).iv
+        let length = 2
+        
+        let output = Packet.Encrypted.header(
+            length: length,
+            iv: iv,
+            version: .v62
+        )
+        
+        XCTAssertEqual(output, header, "\(output.toHexadecimal()) should equal \(header.toHexadecimal())")
+    }
+    
     func testMapleEncrypt() {
         
         let data: [(input: Data, output: Data)] = [
@@ -57,7 +72,7 @@ final class CryptoTests: XCTestCase {
         // 0xFC, 0x7D, 0xC3, 0x40
         let iv = Data([0xFC, 0x7D, 0xC3, 0x40, 0xFC, 0x7D, 0xC3, 0x40, 0xFC, 0x7D, 0xC3, 0x40, 0xFC, 0x7D, 0xC3, 0x40])
         
-        let encrypted = try Crypto.AES.encrypt(input, key: key, iv: iv)
+        let encrypted = try Crypto.AES.encrypt(input, key: Key(key), iv: iv)
         
         XCTAssertEqual(encrypted, output, "\(encrypted.toHexadecimal()) should equal \(output.toHexadecimal())")
     }
@@ -73,7 +88,7 @@ final class CryptoTests: XCTestCase {
         // 0xFC, 0x7D, 0xC3, 0x40
         let iv = Data([0xFC, 0x7D, 0xC3, 0x40, 0xFC, 0x7D, 0xC3, 0x40, 0xFC, 0x7D, 0xC3, 0x40, 0xFC, 0x7D, 0xC3, 0x40])
         
-        let decrypted = try Crypto.AES.decrypt(input, key: key, iv: iv)
+        let decrypted = try Crypto.AES.decrypt(input, key: Key(key), iv: iv)
         
         XCTAssertEqual(decrypted, output, "\(decrypted.toHexadecimal()) should equal \(output.toHexadecimal())")
     }

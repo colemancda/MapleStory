@@ -28,22 +28,54 @@ final class MapleStoryTests: XCTestCase {
         )
         
         XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
     }
     
-    func testPing() {
+    func testPing() throws {
         
         /*
          Ping packet
          short 17
          Packet to be sent:
          11 00
-         
          MaplePacketEncoder will write encrypted 11 00
-         MaplePacketEncoder header F8 11 FA 11
+         MaplePacketEncoder header 48 7D 4A 7D
          MapleCustomEncryption.encryptData(): input 11 00
          MapleCustomEncryption.encryptData(): output 7C 89
-         MaplePacketEncoder output F8 11 FA 11 EC E5
+         MaplePacketEncoder custom encrypted 7C 89
+         MapleAESOFB.crypt() input: 7C 89
+         MapleAESOFB.crypt() iv: 27 56 89 82
+         MapleAESOFB.crypt() output: 01 5C
+         MaplePacketEncoder AES encrypted 01 5C
+         MaplePacketEncoder output 48 7D 4A 7D 01 5C
          */
+        
+        let encryptedData = Data([0x48, 0x7D, 0x4A, 0x7D, 0x01, 0x5C])
+        let encryptedParameters = Data([0x01, 0x5C])
+        let packetData = Data([0x11, 0x00])
+        let nonce: Nonce = 0x27568982
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = PingPacket()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data.suffix(2), encryptedParameters)
+        XCTAssertEqual(encrypted.parametersSize, 2)
+        XCTAssertEqual(encrypted.parameters, encryptedParameters)
+        XCTAssertEqual(encrypted.header, 0x487D4A7D)
+        XCTAssertEqual(encrypted.data, encryptedData, "\(encrypted.data.toHexadecimal()) is not equal to \(encryptedData.toHexadecimal())")
     }
     
     func testLoginRequest() {
@@ -93,6 +125,46 @@ func XCTAssertEncode<T>(
         let encodedPacket = try encoder.encodePacket(value)
         XCTAssertFalse(encodedPacket.data.isEmpty, file: file, line: line)
         XCTAssertEqual(encodedPacket.data, packet.data, "\(encodedPacket.data.hexString) is not equal to \(packet.data.hexString)", file: file, line: line)
+    } catch {
+        XCTFail(error.localizedDescription, file: file, line: line)
+        dump(error)
+    }
+}
+
+func XCTAssertEncrypt<T>(
+    _ value: T,
+    _ packet: Packet,
+    file: StaticString = #file,
+    line: UInt = #line
+) where T: Equatable, T: Encodable, T: MapleStoryPacket {
+    
+    var encoder = MapleStoryEncoder()
+    encoder.log = { print("Encoder:", $0) }
+    
+    do {
+        let encodedPacket = try encoder.encodePacket(value)
+        XCTAssertFalse(encodedPacket.data.isEmpty, file: file, line: line)
+        XCTAssertEqual(encodedPacket.data, packet.data, "\(encodedPacket.data.hexString) is not equal to \(packet.data.hexString)", file: file, line: line)
+    } catch {
+        XCTFail(error.localizedDescription, file: file, line: line)
+        dump(error)
+    }
+}
+
+
+func XCTAssertDecode<T>(
+    _ value: T,
+    _ packet: Packet,
+    file: StaticString = #file,
+    line: UInt = #line
+) where T: MapleStoryPacket, T: Equatable, T: Decodable {
+    
+    var decoder = MapleStoryDecoder()
+    decoder.log = { print("Decoder:", $0) }
+    
+    do {
+        let decodedValue = try decoder.decodePacket(T.self, from: packet.data)
+        XCTAssertEqual(decodedValue, value, file: file, line: line)
     } catch {
         XCTFail(error.localizedDescription, file: file, line: line)
         dump(error)
