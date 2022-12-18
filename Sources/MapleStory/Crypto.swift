@@ -115,12 +115,12 @@ internal extension Packet.Encrypted {
         iv: Data,
         version: Version
     ) -> UInt32 {
-        let highIv = UInt16(iv[2]) << 8 | UInt16(iv[3])
-        var lowpart = highIv
-        let version = UInt16(version.rawValue)
-        lowpart ^= 0xFFFF - version
-        let hipart = lowpart ^ UInt16(length)
-        return UInt32(lowpart) | (UInt32(hipart) << 16)
+        var iiv: Int32 = Int32(iv[3]) & 0xFF
+        iiv |= (Int32(iv[2]) << 8) & 0xFF00
+        iiv ^= numericCast(version.rawValue)
+        let mlength = ((Int32(length) << 8) & 0xFF00) | (Int32(length) >> 8)
+        let xoredIv = iiv ^ mlength
+        return UInt32(bytes: ((UInt8(iiv >> 8) & 0xFF), (UInt8(iiv & 0xFF)), (UInt8(xoredIv >> 8) & 0xFF), (UInt8(xoredIv & 0xFF))))
     }
     
     init(header: UInt32, encrypted: Data) {
