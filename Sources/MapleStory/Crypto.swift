@@ -51,7 +51,7 @@ public extension Packet.Encrypted {
     
     func withUnsafeParameters<ResultType>(_ body: ((UnsafeRawBufferPointer) throws -> ResultType)) rethrows -> ResultType {
         return try data.withUnsafeBytes { pointer in
-            let parametersPointer = pointer.count > Packet.minSize ? pointer.baseAddress?.advanced(by: Packet.minSize) : nil
+            let parametersPointer = pointer.count > Self.minSize ? pointer.baseAddress?.advanced(by: Self.minSize) : nil
             return try body(UnsafeRawBufferPointer(start: parametersPointer, count: parametersSize))
         }
     }
