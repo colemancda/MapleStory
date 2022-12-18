@@ -71,7 +71,7 @@ public extension Packet {
         Crypto.Maple.encrypt(&encrypted)
         encrypted = try Crypto.AES.encrypt(
             encrypted,
-            key: key.data,
+            key: key,
             iv: iv
         )
         let header = Packet.Encrypted.header(
@@ -97,7 +97,7 @@ public extension Packet.Encrypted {
         let iv = nonce.iv
         var decrypted = try Crypto.AES.decrypt(
             self.parameters,
-            key: key.data,
+            key: key,
             iv: iv
         )
         Crypto.Maple.decrypt(&decrypted)
@@ -151,13 +151,13 @@ internal enum Crypto {
     
     enum AES {
         
-        static func encrypt(_ data: Data, key: Data, iv: Data) throws -> Data {
-            let aes = try CryptoSwift.AES(key: .init(key), blockMode: OFB(iv: .init(iv)), padding: .noPadding)
+        static func encrypt(_ data: Data, key: Key, iv: Data) throws -> Data {
+            let aes = try CryptoSwift.AES(key: .init(key.data), blockMode: OFB(iv: .init(iv)), padding: .noPadding)
             return try Data(aes.encrypt(.init(data)))
         }
         
-        static func decrypt(_ data: Data, key: Data, iv: Data) throws -> Data {
-            let aes = try CryptoSwift.AES(key: .init(key), blockMode: OFB(iv: .init(iv)), padding: .noPadding)
+        static func decrypt(_ data: Data, key: Key, iv: Data) throws -> Data {
+            let aes = try CryptoSwift.AES(key: .init(key.data), blockMode: OFB(iv: .init(iv)), padding: .noPadding)
             return try Data(aes.decrypt(.init(data)))
         }
     }
