@@ -29,7 +29,7 @@ extension Opcode: ExpressibleByIntegerLiteral {
 extension Opcode: CustomStringConvertible, CustomDebugStringConvertible {
     
     public var description: String {
-        rawValue.description
+        "0x" + rawValue.toHexadecimal()
     }
     
     public var debugDescription: String {
