@@ -9,6 +9,7 @@
 #define MapleStory_h
 
 #include <stdio.h>
+#include <stdint.h>
 
 /// MapleStory Encryption
 void maple_encrypt(uint8_t* buf, int32_t nbytes);
