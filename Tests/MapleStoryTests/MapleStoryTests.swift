@@ -125,7 +125,7 @@ final class MapleStoryTests: XCTestCase {
         
         XCTAssertEqual(packet.opcode, LoginRequest.opcode)
         XCTAssertEqual(packet.data, decryptedData)
-        //XCTAssertEqual(packet, decryptedPacket)
+        XCTAssertEqual(packet, decryptedPacket)
         XCTAssertDecode(value, packet)
     }
     
@@ -168,6 +168,48 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(encrypted.length, packet.data.count)
         XCTAssertEqual(encrypted.parametersSize, 44)
         XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0xB9279527))
+    }
+    
+    func testPinOperationResponse() throws {
+        
+        /*
+         pinOperation: 0
+         MaplePacketEncoder will write encrypted 06 00 00
+         MaplePacketEncoder header 30 16 33 16
+         MaplePacketEncoder custom encrypted F1 81 4D
+         MapleAESOFB.crypt() input: F1 81 4D
+         MapleAESOFB.crypt() iv: 8A C3 F1 E9
+         MapleAESOFB.crypt() output: F5 E4 8F
+         MaplePacketEncoder AES encrypted F5 E4 8F
+         MaplePacketEncoder output 30 16 33 16 F5 E4 8F
+         */
+        
+        let encryptedData = Data([0x30, 0x16, 0x33, 0x16, 0xF5, 0xE4, 0x8F])
+        
+        let packetData = Data([0x06, 0x00, 0x00])
+        
+        let nonce: Nonce = 0x8AC3F1E9
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = PinOperationResponse.success
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.data, encryptedData)
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.parametersSize, 3)
+        XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x30163316))
     }
 }
 
