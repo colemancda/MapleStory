@@ -12,6 +12,7 @@ public enum LoginResponse: MapleStoryPacket, Equatable, Hashable {
     
     public static var opcode: Opcode { 0x00 }
     
+    /// Successful authentication and PIN Request packet.
     case success(username: String)
 }
 
