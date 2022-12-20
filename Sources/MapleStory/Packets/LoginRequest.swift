@@ -8,7 +8,7 @@
 import Foundation
 
 /// Login request
-public struct LoginRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct LoginRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
     public static var opcode: Opcode { 0x01 }
     
