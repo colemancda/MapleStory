@@ -81,9 +81,19 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(decrypted, packet)
     }
     
-    func testLoginRequest() {
+    func testLoginRequest() throws {
         
+        let decryptedData = Data([0x01, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDB, 0x97, 0xC5, 0xBE, 0x00, 0x00, 0x00, 0x00, 0x85, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+                
+        let value = LoginRequest(
+            username: "admin",
+            password: "admin"
+        )
         
+        let packet = Packet(decryptedData)
+        XCTAssertEqual(packet.opcode, LoginRequest.opcode)
+        XCTAssertEqual(packet.data, decryptedData)
+        XCTAssertDecode(value, packet)
     }
     
     func testLoginResponse() {
