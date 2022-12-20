@@ -253,11 +253,11 @@ private extension MapleStoryDecoder.Decoder {
     func readLengthPrefixString() throws -> String {
         
         let offset = self.offset
-        let length = try Int(read(UInt8.self))
+        let length = try Int(read(UInt16.self))
         let data = try read(length)
         
         // read data and parse string
-        guard let string = String(data: data, encoding: .utf8) else {
+        guard let string = String(data: data, encoding: .ascii) else {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: self.codingPath, debugDescription: "Invalid string at offset \(offset)"))
         }
         

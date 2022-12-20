@@ -211,8 +211,8 @@ private extension MapleStoryEncoder.Encoder {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: "String must be less than \(Int(UInt8.max) + 1) characters to be encoded."))
         }
         var encodedData = Data(capacity: 1 + stringData.count)
-        let length = UInt8(stringData.count)
-        encodedData.append(length)
+        let length = UInt16(stringData.count)
+        encodedData.append(boxInteger(length))
         encodedData.append(stringData)
         return encodedData
     }
