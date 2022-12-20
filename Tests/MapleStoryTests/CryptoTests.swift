@@ -23,7 +23,8 @@ final class CryptoTests: XCTestCase {
             version: .v62
         )
         
-        XCTAssertEqual(output, header, "\(output.toHexadecimal()) should equal \(header.toHexadecimal())")
+        XCTAssertEqual(output, header)
+        XCTAssertEqual(Packet.Encrypted.length(output), length)
     }
     
     func testMapleEncrypt() {
