@@ -5,7 +5,7 @@
 //  Created by Alsey Coleman Miller on 12/14/22.
 //
 
-import CMapleStory
+@_implementationOnly import CMapleStory
 
 /// MapleStory Cryptographic Nonce
 public struct Nonce: RawRepresentable, Equatable, Hashable, Codable {

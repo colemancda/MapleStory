@@ -6,7 +6,7 @@
 //
 
 import Foundation
-import CMapleStory
+@_implementationOnly import CMapleStory
 import CryptoSwift
 
 // MARK: - Packet
