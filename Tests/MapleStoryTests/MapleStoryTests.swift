@@ -75,9 +75,14 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(encrypted.parametersSize, 2)
         XCTAssertEqual(encrypted.parameters, encryptedParameters)
         XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x487D4A7D))
-        XCTAssertEqual(encrypted.data, encryptedData, "\(encrypted.data.toHexadecimal()) is not equal to \(encryptedData.toHexadecimal())")
+        XCTAssertEqual(encrypted.data, encryptedData)
         
-        let decrypted = try encrypted.decrypt(key: .default, nonce: nonce, version: .v62)
+        let decrypted = try encrypted.decrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
         XCTAssertEqual(decrypted, packet)
     }
     
@@ -97,27 +102,19 @@ final class MapleStoryTests: XCTestCase {
          Login: admin admin
          */
         
-        let encryptedData = Data([0x6f, 0x00, 0x44, 0x00,  0x44, 0x3C, 0xA1, 0x68, 0xDF, 0x99, 0xC4, 0x44, 0x9F, 0xF4, 0xC9, 0xC4, 0xB1, 0x62, 0xEE, 0xF5, 0x9D, 0x22, 0x7E, 0x29, 0xB4, 0x69, 0xB5, 0x4E, 0x06, 0xC6, 0x74, 0x72, 0xFF, 0x66, 0x6E, 0x02, 0xBD, 0xBA, 0x4B, 0x4F, 0xB6, 0xAF, 0x74, 0x0E, 0x73, 0x4B, 0xCA, 0x65, 0xA2])
+        let encryptedData = Data([0x41, 0xB4, 0x8A, 0x04, 0x55, 0x9A, 0xDE, 0x80, 0xD0, 0x58, 0x2C, 0x44, 0x64, 0x27, 0xA1, 0x22, 0x1A, 0x84, 0x14, 0x0F, 0xE5, 0xEE, 0xB7, 0xEC, 0x67, 0xA4, 0x68, 0x60, 0x15, 0x8A, 0x6F, 0xDF, 0xDA, 0x52, 0xFC, 0x04, 0x1F, 0xAF, 0x25, 0x7C, 0x62, 0x82, 0x5C])
         
         let decryptedData = Data([0x01, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xDB, 0x97, 0xC5, 0xBE, 0x00, 0x00, 0x00, 0x00, 0x85, 0xC6, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
         
-        let nonce = Nonce(rawValue: UInt32(bigEndian: 0x46727A00))
+        let nonce: Nonce = 0x46727AB3
         
-        guard let encryptedPacket = Packet.Encrypted(data: encryptedData) else {
-            XCTFail()
-            return
-        }
-        
-        XCTAssertEqual(encryptedPacket.length, decryptedData.count)
-        
-        let decryptedPacket = try encryptedPacket.decrypt(
+        let packet = try Packet.decrypt(
+            encryptedData,
             key: .default,
             nonce: nonce,
             version: .v62
         )
-        
-        let packet = Packet(decryptedData)
-        
+                
         let value = LoginRequest(
             username: "admin",
             password: "admin"
@@ -125,7 +122,7 @@ final class MapleStoryTests: XCTestCase {
         
         XCTAssertEqual(packet.opcode, LoginRequest.opcode)
         XCTAssertEqual(packet.data, decryptedData)
-        //XCTAssertEqual(packet, decryptedPacket)
+        XCTAssertEqual(packet, Packet(decryptedData))
         XCTAssertDecode(value, packet)
     }
     
@@ -286,10 +283,9 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testPinRequest() {
+    func testPinRequest() throws {
         
         /*
-         
          MaplePacketDecoder encrypted packet AE D7 B7 85 D7 56 9A BE 5E 1A
          Recieve IV 53 96 48 06
          MapleAESOFB.crypt() input: AE D7 B7 85 D7 56 9A BE 5E 1A
@@ -303,16 +299,19 @@ final class MapleStoryTests: XCTestCase {
         
         let packetData = Data([0x09, 0x00, 0x01, 0x01, 0xFF, 0x6A, 0x01, 0x00, 0x00, 0x00])
         
-        //let encryptedData = Data([0xAE, 0xD7, 0xB7, 0x85, 0xD7, 0x56, 0x9A, 0xBE, 0x5E, 0x1A])
+        let encryptedData = Data([0xAE, 0xD7, 0xB7, 0x85, 0xD7, 0x56, 0x9A, 0xBE, 0x5E, 0x1A])
         
-        //let nonce: Nonce = 0x53964806
+        let nonce: Nonce = 0x53964806
         
-        guard let packet = Packet(data: packetData) else {
-            XCTFail()
-            return
-        }
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
         
         let value = PinOperationRequest(value0: 1, value1: 1)
+        XCTAssertEqual(packet, Packet(packetData))
         XCTAssertEqual(packet.opcode, type(of: value).opcode)
         XCTAssertDecode(value, packet)
     }
