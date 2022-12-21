@@ -246,6 +246,7 @@ internal extension MapleStoryServer {
         private func registerHandlers() async {
             await register { [unowned self] in try await self.login($0) }
             await register { [unowned self] in try await self.pinOperation($0) }
+            await connection.register { [unowned self] in await self.serverList($0) }
         }
         
         /// Respond to a client-initiated PDU message.
@@ -329,5 +330,41 @@ internal extension MapleStoryServer {
             return PinOperationResponse.success
         }
         
+        private func serverList(_ request: ServerListRequest) async {
+            do {
+                let value = ServerListResponse.world(.init(
+                    id: 0,
+                    name: " World 0",
+                    flags: 0x02,
+                    eventMessage: "",
+                    rateModifier: 0x64,
+                    eventXP: 0x00,
+                    rateModifier2: 0x64,
+                    dropRate: 0x00,
+                    value0: 0x00,
+                    channels: [
+                        ServerListResponse.Channel(
+                            name: " World 0-1",
+                            load: 0,
+                            value0: 0x01,
+                            id: 0
+                        ),
+                        ServerListResponse.Channel(
+                            name: " World 0-2",
+                            load: 0,
+                            value0: 0x01,
+                            id: 1
+                        )
+                    ],
+                    value1: 0x00
+                ))
+                
+                try await respond(value)
+                try await respond(ServerListResponse.end)
+            }
+            catch {
+                await close(error)
+            }
+        }
     }
 }
