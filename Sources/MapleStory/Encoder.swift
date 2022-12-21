@@ -617,7 +617,6 @@ internal final class MapleStoryUnkeyedEncodingContainer: UnkeyedEncodingContaine
     
     func encode <T: Encodable> (_ value: T) throws {
         assert(count < Int(UInt8.max), "Cannot encode more than \(UInt8.max) elements")
-        encoder.write([UInt8(count)])
         try encoder.writeEncodable(value)
         count += 1
     }
@@ -638,7 +637,6 @@ internal final class MapleStoryUnkeyedEncodingContainer: UnkeyedEncodingContaine
     
     private func append(_ data: Data) {
         assert(count < Int(UInt8.max), "Cannot encode more than \(UInt8.max) elements")
-        encoder.write([UInt8(count)])
         // write element data
         encoder.write(data)
         count += 1
