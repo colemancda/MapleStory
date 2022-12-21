@@ -4,9 +4,13 @@ import PackageDescription
 let package = Package(
     name: "MapleStory",
     platforms: [
-        .macOS(.v12),
+        .macOS("13.0")
     ],
     products: [
+        .executable(
+            name: "MapleStoryServer",
+            targets: ["MapleStoryServer"]
+        ),
         .library(
             name: "MapleStory",
             targets: ["MapleStory"]
@@ -39,9 +43,18 @@ let package = Package(
                 )
             ]
         ),
+        .executableTarget(
+            name: "MapleStoryServer",
+            dependencies: [
+                "MapleStory",
+                .product(
+                    name: "ArgumentParser",
+                    package: "swift-argument-parser"
+                )
+            ]
+        ),
         .target(
-            name: "CMapleStory",
-            dependencies: []
+            name: "CMapleStory"
         ),
         .testTarget(
             name: "MapleStoryTests",
