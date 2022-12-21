@@ -9,7 +9,7 @@ import Foundation
 import Socket
 
 /// MapleStory Connection
-internal actor Connection <Socket: MapleStorySocketTCP> {
+internal actor Connection <Socket: MapleStorySocket> {
         
     let socket: Socket
     
