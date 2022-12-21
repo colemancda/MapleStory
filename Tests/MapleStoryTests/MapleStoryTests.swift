@@ -86,6 +86,37 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(decrypted, packet)
     }
     
+    func testPong() throws {
+        
+        /*
+         MaplePacketDecoder encrypted packet 05 28
+         Recieve IV 56 CF EC DD
+         MapleAESOFB.crypt() input: 05 28
+         MapleAESOFB.crypt() iv: 56 CF EC DD
+         MapleAESOFB.crypt() output: 0B 34
+         MaplePacketDecoder AES decrypted packet 0B 34
+         MaplePacketDecoder custom decrypted packet 18 00
+         Incoming packet 0x0018
+         */
+        
+        let encryptedData = Data([0x05, 0x28])
+        let packetData = Data([0x18, 0x00])
+        let nonce: Nonce = 0x56CFECDD
+                
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(packet.data, packetData)
+        
+        let value = PongPacket()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
     func testGuestLoginRequest() throws {
         
         /*
