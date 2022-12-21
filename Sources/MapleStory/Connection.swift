@@ -28,6 +28,8 @@ internal actor Connection <Socket: MapleStorySocket> {
     var sendNonce = Nonce()
     
     var key: Key = .default
+    
+    var username: String?
         
     let encoder = MapleStoryEncoder()
     
@@ -67,17 +69,6 @@ internal actor Connection <Socket: MapleStorySocket> {
     }
     
     // MARK: - Methods
-    
-    public func sendHandshake() async {
-        let packet = HelloPacket(
-            version: self.version,
-            recieveNonce: recieveNonce,
-            sendNonce: sendNonce,
-            region: region
-        )
-        didHandshake = true
-        // 
-    }
     
     private func run() {
         Task.detached(priority: .high) { [weak self] in

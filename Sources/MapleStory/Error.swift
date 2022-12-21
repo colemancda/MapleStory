@@ -12,5 +12,7 @@ public enum MapleStoryError: Error {
     
     case invalidData(Data)
     
+    case disconnected(MapleStoryAddress)
+    
     case notAuthenticated
 }
