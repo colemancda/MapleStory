@@ -12,5 +12,9 @@ public struct GuestLoginRequest: MapleStoryPacket, Codable, Equatable, Hashable 
     
     public static var opcode: Opcode { 0x02 }
     
+    internal let value: UInt16
     
+    public init() {
+        self.value = 0x0000
+    }
 }
