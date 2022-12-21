@@ -234,6 +234,34 @@ final class MapleStoryTests: XCTestCase {
             return
         }
         
+        let value = ServerListResponse(
+            id: 0,
+            name: " World 0",
+            flags: 0x02,
+            eventMessage: "",
+            rateModifier: 0x64,
+            eventXP: 0x00,
+            rateModifier2: 0x64,
+            dropRate: 0x00,
+            value0: 0x00,
+            channels: [
+                ServerListResponse.Channel(
+                    name: " World 0-1",
+                    load: 0,
+                    value0: 0x01,
+                    id: 0
+                ),
+                ServerListResponse.Channel(
+                    name: " World 0-2",
+                    load: 0,
+                    value0: 0x01,
+                    id: 1
+                )
+            ],
+            value1: 0x00
+        )
+        
+        XCTAssertEncode(value, packet)
         XCTAssertEqual(packet.opcode, ServerListResponse.opcode)
         
         let encrypted = try packet.encrypt(
