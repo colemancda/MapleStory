@@ -91,7 +91,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
         guard let connection = await self.storage.connections[address] else {
             throw MapleStoryError.disconnected(address)
         }
-        await connection.send(packet)
+        try await connection.send(packet)
     }
 }
 
@@ -220,18 +220,7 @@ internal extension MapleStoryServer {
         
         var state = ClientState()
         
-        private var sendContinuations = [UInt: @Sendable (Swift.Error) -> ()]()
-        
-        private var sendID: UInt = 0
-        
         // MARK: - Initialization
-        
-        deinit {
-            let continuations = self.sendContinuations.values
-            continuations.forEach { continuation in
-                continuation(CancellationError())
-            }
-        }
         
         init(
             socket: Socket,
@@ -249,11 +238,14 @@ internal extension MapleStoryServer {
                 await server.dataSource.didDisconnect(address, username: username)
             }
             await self.registerHandlers()
+            Task {
+                try await self.sendHandshake()
+            }
         }
         
         private func registerHandlers() async {
-            // server directory
-            //await register { [unowned self] in try await self.serverDirectory($0) }
+            await register { [unowned self] in try await self.login($0) }
+            await register { [unowned self] in try await self.pinOperation($0) }
         }
         
         /// Respond to a client-initiated PDU message.
@@ -262,39 +254,36 @@ internal extension MapleStoryServer {
             response: Response.Type
         ) async throws -> Response where Request: MapleStoryPacket, Request: Encodable, Response: MapleStoryPacket, Response: Decodable {
             log("Request: \(request)")
-            sendID += 1
-            let id = sendID
-            return try await withCheckedThrowingContinuation { [unowned self] continuation in
+            let responsePacket = try await withCheckedThrowingContinuation { continuation in
                 Task {
-                    let responseType: MapleStoryPacket.Type = response
-                    // callback if no I/O errors or disconnect
-                    let callback: (MapleStoryPacket) -> () = {
-                        self.log("Response: \($0)")
-                        self.sendContinuations[id] = nil
-                        continuation.resume(returning: $0 as! Response)
+                    guard let _ = await self.connection.queue(request, didWrite: nil, response: (continuation, response)) else {
+                        fatalError("Could not add PDU to queue: \(request)")
                     }
-                    guard let _ = await self.connection.queue(request, response: (callback, responseType))
-                        else { fatalError("Could not add PDU to queue: \(request)") }
-                    // store continuation in case it doesnt get called
-                    self.sendContinuations[id] = { error in
-                        continuation.resume(throwing: error)
-                    }
+                }
+            }
+            return responsePacket as! Response
+        }
+        
+        /// Respond to a client-initiated PDU message.
+        internal func respond <T> (_ response: T) async throws where T: MapleStoryPacket, T: Encodable {
+            log("Response: \(response)")
+            return try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    guard let _ = await self.connection.queue(response, didWrite: continuation)
+                        else { fatalError("Could not add PDU to queue: \(response)") }
                 }
             }
         }
         
-        /// Respond to a client-initiated PDU message.
-        internal func respond <T> (_ response: T) async where T: MapleStoryPacket, T: Encodable {
-            log("Response: \(response)")
-            guard let _ = await connection.queue(response)
-                else { fatalError("Could not add PDU to queue: \(response)") }
-        }
-        
         /// Send a server-initiated PDU message.
-        internal func send <T> (_ notification: T) async where T: MapleStoryPacket, T: Encodable  {
+        internal func send <T> (_ notification: T) async throws where T: MapleStoryPacket, T: Encodable  {
             log("Notification: \(notification)")
-            guard let _ = await connection.queue(notification)
-                else { fatalError("Could not add PDU to queue: \(notification)") }
+            return try await withCheckedThrowingContinuation { continuation in
+                Task {
+                    guard let _ = await self.connection.queue(notification, didWrite: continuation)
+                        else { fatalError("Could not add PDU to queue: \(notification)") }
+                }
+            }
         }
         
         internal func close(_ error: Error) async {
@@ -302,19 +291,43 @@ internal extension MapleStoryServer {
             await self.connection.socket.close()
         }
         
-        internal func sendHandshake() async {
+        @discardableResult
+        private func register <Request, Response> (
+            _ callback: @escaping (Request) async throws -> (Response)
+        ) async -> UInt where Request: MapleStoryPacket, Request: Decodable, Response: MapleStoryPacket, Response: Encodable {
+            await self.connection.register { [unowned self] request in
+                do {
+                    let response = try await callback(request)
+                    try await self.respond(response)
+                }
+                catch {
+                    await self.close(error)
+                }
+            }
+        }
+        
+        internal func sendHandshake() async throws {
             let packet = HelloPacket(
                 version: self.connection.version,
                 recieveNonce: await self.connection.recieveNonce,
                 sendNonce: await self.connection.sendNonce,
                 region: self.connection.region
             )
-            //didHandshake = true
-            await send(packet)
+            try await send(packet)
+            await connection.startEncryption()
         }
         
         // MARK: - Requests
         
+        private func login(_ request: LoginRequest) async throws -> LoginResponse {
+            log("Login - \(request.username)")
+            return LoginResponse.success(username: request.username)
+        }
+        
+        private func pinOperation(_ request: PinOperationRequest) async throws -> PinOperationResponse {
+            log("Pin Operation")
+            return PinOperationResponse.success
+        }
         
     }
 }

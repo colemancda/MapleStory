@@ -10,9 +10,11 @@ import Foundation
 /// MapleStory Error
 public enum MapleStoryError: Error {
     
-    case invalidData(Data)
+    case invalidAddress(String)
     
     case disconnected(MapleStoryAddress)
+        
+    case invalidData(Data)
     
     case notAuthenticated
 }

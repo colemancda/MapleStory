@@ -8,9 +8,9 @@
 /// MapleStory Version
 public struct Version: RawRepresentable, Equatable, Hashable, Codable {
     
-    public let rawValue: UInt32
+    public let rawValue: UInt16
     
-    public init(rawValue: UInt32) {
+    public init(rawValue: UInt16) {
         self.rawValue = rawValue
     }
 }
@@ -19,7 +19,7 @@ public struct Version: RawRepresentable, Equatable, Hashable, Codable {
 
 extension Version: ExpressibleByIntegerLiteral {
     
-    public init(integerLiteral value: UInt32) {
+    public init(integerLiteral value: UInt16) {
         self.init(rawValue: value)
     }
 }

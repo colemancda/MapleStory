@@ -35,10 +35,8 @@ internal actor Connection <Socket: MapleStorySocket> {
     
     let decoder = MapleStoryDecoder()
     
-    var didHandshake = false
-    
-    var didAuthenticate = false
-    
+    private var shouldEncrypt = false
+        
     /// IDs for registered callbacks.
     private var nextRegisterID: UInt = 0
     
@@ -69,6 +67,10 @@ internal actor Connection <Socket: MapleStorySocket> {
     }
     
     // MARK: - Methods
+    
+    internal func startEncryption() {
+        shouldEncrypt = true
+    }
     
     private func run() {
         Task.detached(priority: .high) { [weak self] in
@@ -115,11 +117,11 @@ internal actor Connection <Socket: MapleStorySocket> {
     internal func read() async throws {
         
         // read unencrypted packet or encrypted header
-        let bytesToRead = didHandshake ? Packet.Encrypted.minSize : Int(UInt16.max)
+        let bytesToRead = shouldEncrypt ? Packet.Encrypted.minSize : Int(UInt16.max)
         let recievedData = try await socket.recieve(bytesToRead)
         
         let packet: Packet
-        if didHandshake {
+        if shouldEncrypt {
             // parse encrypted header
             let encryptedHeader = UInt32(bytes: (recievedData[0], recievedData[1], recievedData[2], recievedData[3]))
             let length = Packet.Encrypted.length(encryptedHeader)
@@ -134,6 +136,7 @@ internal actor Connection <Socket: MapleStorySocket> {
                 nonce: recieveNonce,
                 version: version
             )
+            recieveNonce.shuffle()
         } else {
             // parse unencrypted packet
             guard let unencryptedPacket = Packet(data: recievedData) else {
@@ -168,7 +171,7 @@ internal actor Connection <Socket: MapleStorySocket> {
         
         // encrypt packet parameters
         let data: Data
-        if didHandshake {
+        if shouldEncrypt {
             data = try packet.encrypt(
                 key: key,
                 nonce: sendNonce,
@@ -177,6 +180,7 @@ internal actor Connection <Socket: MapleStorySocket> {
             #if DEBUG
             log?("Encrypted data: \(data.hexString)")
             #endif
+            sendNonce.shuffle()
         } else {
             data = packet.data
         }
@@ -185,6 +189,8 @@ internal actor Connection <Socket: MapleStorySocket> {
         try await socket.send(data)
         
         log?("Sent packet \(packet.opcode)")
+        sendOperation.didWrite?.resume()
+        sendOperation.didWrite = nil
         
         return true
     }
@@ -242,7 +248,8 @@ internal actor Connection <Socket: MapleStorySocket> {
     @discardableResult
     public func queue <T> (
         _ packet: T,
-        response: (callback: (MapleStoryPacket) -> (), MapleStoryPacket.Type)? = nil
+        didWrite: CheckedContinuation<Void, Error>? = nil,
+        response: (callback: CheckedContinuation<MapleStoryPacket, Error>, MapleStoryPacket.Type)? = nil
     ) -> UInt? where T: MapleStoryPacket, T: Encodable {
         
         // increment ID
@@ -252,6 +259,7 @@ internal actor Connection <Socket: MapleStorySocket> {
         let sendOpcode = SendOperation(
             id: id,
             packet: packet,
+            didWrite: didWrite,
             response: response
         )
         
@@ -306,18 +314,26 @@ internal final class SendOperation {
     /// The packet to send.
     let packet: any (MapleStoryPacket & Encodable)
     
+    fileprivate(set) var didWrite: CheckedContinuation<Void, Error>?
+    
     /// The response callback.
-    let response: (callback: (MapleStoryPacket) -> (), responseType: MapleStoryPacket.Type)?
+    fileprivate(set) var response: (callback: CheckedContinuation<MapleStoryPacket, Error>, responseType: MapleStoryPacket.Type)?
+    
+    deinit {
+        didWrite?.resume(throwing: CancellationError())
+        response?.callback.resume(throwing: CancellationError())
+    }
     
     fileprivate init(
         id: UInt,
         packet: any (MapleStoryPacket & Encodable),
-        response: (callback: (MapleStoryPacket) -> (),
-                   responseType: MapleStoryPacket.Type)? = nil
+        didWrite: CheckedContinuation<Void, Error>?,
+        response: (callback: CheckedContinuation<MapleStoryPacket, Error>, responseType: MapleStoryPacket.Type)?
     ) {
         self.id = id
         self.packet = packet
         self.response = response
+        self.didWrite = didWrite
     }
 }
 

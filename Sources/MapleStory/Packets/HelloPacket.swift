@@ -15,6 +15,8 @@ public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
     public static var opcode: Opcode { 0x000D }
     
     public var version: Version
+    
+    internal let value0: UInt16
         
     public var recieveNonce: Nonce
     
@@ -32,5 +34,6 @@ public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
         self.recieveNonce = recieveNonce
         self.sendNonce = sendNonce
         self.region = region
+        self.value0 = 0x0000
     }
 }
