@@ -296,7 +296,7 @@ final class MapleStoryTests: XCTestCase {
             return
         }
         
-        let value = ServerListResponse(
+        let value = ServerListResponse.world(.init(
             id: 0,
             name: " World 0",
             flags: 0x02,
@@ -321,7 +321,7 @@ final class MapleStoryTests: XCTestCase {
                 )
             ],
             value1: 0x00
-        )
+        ))
         
         XCTAssertEncode(value, packet)
         XCTAssertEqual(packet.opcode, ServerListResponse.opcode)
