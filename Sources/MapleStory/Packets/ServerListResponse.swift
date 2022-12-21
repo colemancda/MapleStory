@@ -31,10 +31,23 @@ public struct ServerListResponse: MapleStoryPacket, Encodable, Equatable, Hashab
     public var dropRate: UInt8
     
     public var value0: UInt8
-    
-    public var lastChannel: UInt8
-    
-    
+        
+    public var channels: [Channel]
     
     public var value1: UInt16
+}
+
+public extension ServerListResponse {
+    
+    /// Channel
+    struct Channel: Encodable, Equatable, Hashable {
+        
+        public let name: String
+        
+        public let load: UInt32
+        
+        public let value0: UInt8
+        
+        public let id: UInt16
+    }
 }
