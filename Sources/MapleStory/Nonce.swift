@@ -5,6 +5,8 @@
 //  Created by Alsey Coleman Miller on 12/14/22.
 //
 
+import CMapleStory
+
 /// MapleStory Cryptographic Nonce
 public struct Nonce: RawRepresentable, Equatable, Hashable, Codable {
     
@@ -21,6 +23,17 @@ public extension Nonce {
     init() {
         let randomValue = UInt32.random(in: .min ..< .max)
         self.init(rawValue: randomValue)
+    }
+    
+    /// Shuffle IV
+    mutating func shuffle() {
+        var iv = self.rawValue.bigEndian
+        withUnsafeMutableBytes(of: &iv) {
+            $0.baseAddress!.withMemoryRebound(to: UInt8.self, capacity: 4) {
+                maple_shuffle_iv($0)
+            }
+        }
+        self.rawValue = UInt32(bigEndian: iv)
     }
 }
 

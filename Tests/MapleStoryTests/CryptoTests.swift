@@ -11,6 +11,13 @@ import XCTest
 
 final class CryptoTests: XCTestCase {
     
+    func testIV() {
+        
+        var nonce: Nonce = 0x4C871D9D
+        nonce.shuffle()
+        XCTAssertEqual(nonce, 0xCF830100)
+    }
+    
     func testEncryptedHeader() {
         
         let header = UInt32(bigEndian: 0x487D4A7D)
