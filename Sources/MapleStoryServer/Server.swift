@@ -17,7 +17,8 @@ struct Server: AsyncParsableCommand {
         abstract: "MapleStory Server emulator",
         version: "1.0.0",
         subcommands: [
-            Login.self
+            Login.self,
+            Channel.self
         ]
     )
 }
