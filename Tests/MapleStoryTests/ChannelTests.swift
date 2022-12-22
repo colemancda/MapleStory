@@ -33,18 +33,7 @@ final class ChannelTests: XCTestCase {
         XCTAssertDecode(value, packet)
     }
     
-    func testServerMessageNotification() throws {
-        
-        /*
-         MaplePacketEncoder will write encrypted 41 00 04 01 00 00
-         MaplePacketEncoder header B9 BF BF BF
-         MaplePacketEncoder custom encrypted 37 FB 94 7C B4 1F
-         MapleAESOFB.crypt() input: 37 FB 94 7C B4 1F
-         MapleAESOFB.crypt() iv: 52 30 78 40
-         MapleAESOFB.crypt() output: CF 8E 16 C6 1D 79
-         MaplePacketEncoder AES encrypted CF 8E 16 C6 1D 79
-         MaplePacketEncoder output B9 BF BF BF CF 8E 16 C6 1D 79
-         */
+    func testServerMessageNotificationTopScrolling() throws {
         
         let encryptedData = Data([0xB9, 0xBF, 0xBF, 0xBF, 0xCF, 0x8E, 0x16, 0xC6, 0x1D, 0x79])
         let packetData = Data([0x41, 0x00, 0x04, 0x01, 0x00, 0x00])
@@ -78,17 +67,6 @@ final class ChannelTests: XCTestCase {
     
     func testNPCActionRequest() throws {
         
-        /*
-         MaplePacketDecoder encrypted packet D6 90 F0 82 73 B6 8C 57
-         Recieve IV DF 53 AC 5C
-         MapleAESOFB.crypt() input: D6 90 F0 82 73 B6 8C 57
-         MapleAESOFB.crypt() iv: DF 53 AC 5C
-         MapleAESOFB.crypt() output: FC 12 BF 5D C9 D6 0A 50
-         MaplePacketDecoder AES decrypted packet FC 12 BF 5D C9 D6 0A 50
-         MaplePacketDecoder custom decrypted packet A6 00 65 00 00 00 FF 00
-         Incoming packet 0x00A6
-         */
-        
         let encryptedData = Data([0xD6, 0x90, 0xF0, 0x82, 0x73, 0xB6, 0x8C, 0x57])
         let packetData = Data([0xA6, 0x00, 0x65, 0x00, 0x00, 0x00, 0xFF, 0x00])
         let nonce: Nonce = 0xDF53AC5C
@@ -108,17 +86,6 @@ final class ChannelTests: XCTestCase {
     }
     
     func testNPCActionResponse() throws {
-        
-        /*
-         MaplePacketEncoder will write encrypted C5 00 65 00 00 00 FF 00
-         MaplePacketEncoder header D5 D2 DD D2
-         MaplePacketEncoder custom encrypted A3 D6 B0 86 03 DC BF CD
-         MapleAESOFB.crypt() input: A3 D6 B0 86 03 DC BF CD
-         MapleAESOFB.crypt() iv: E7 F7 14 2D
-         MapleAESOFB.crypt() output: DA 01 35 32 4E 5C 3D D7
-         MaplePacketEncoder AES encrypted DA 01 35 32 4E 5C 3D D7
-         MaplePacketEncoder output D5 D2 DD D2 DA 01 35 32 4E 5C 3D D7
-         */
         
         let packetData = Data([0xC5, 0x00, 0x65, 0x00, 0x00, 0x00, 0xFF, 0x00])
         let encryptedData = Data([0xD5, 0xD2, 0xDD, 0xD2, 0xDA, 0x01, 0x35, 0x32, 0x4E, 0x5C, 0x3D, 0xD7])
@@ -144,17 +111,6 @@ final class ChannelTests: XCTestCase {
     }
     
     func testHealOverTimeRequest() throws {
-        
-        /*
-         MaplePacketDecoder encrypted packet CD 64 48 B0 98 20 37 CE 0D C0 73
-         Recieve IV 2E 37 48 D7
-         MapleAESOFB.crypt() input: CD 64 48 B0 98 20 37 CE 0D C0 73
-         MapleAESOFB.crypt() iv: 2E 37 48 D7
-         MapleAESOFB.crypt() output: 1C 86 1B 96 CA 3F 71 24 C9 09 67
-         MaplePacketDecoder AES decrypted packet 1C 86 1B 96 CA 3F 71 24 C9 09 67
-         MaplePacketDecoder custom decrypted packet 51 00 00 14 00 00 00 00 03 00 00
-         Incoming packet 0x0051
-         */
         
         let encryptedData = Data([0xCD, 0x64, 0x48, 0xB0, 0x98, 0x20, 0x37, 0xCE, 0x0D, 0xC0, 0x73])
         let packetData = Data([0x51, 0x00, 0x00, 0x14, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00])
@@ -198,5 +154,169 @@ final class ChannelTests: XCTestCase {
         
         XCTAssertEqual(encrypted.length, packet.data.count)
         XCTAssertEqual(encrypted.data, encryptedData)
+    }
+    
+    func testSpawnNPC() {
+        
+        /*
+         MaplePacketEncoder will write encrypted C2 00 64 00 00 00 34 08 00 00 5B FF 35 00 01 0B 00 2B FF 8D FF 01
+         MaplePacketEncoder header A5 05 B3 05
+         MaplePacketEncoder custom encrypted A8 F2 17 3F 7B 1E A7 9B E5 62 30 18 4E 04 9E CB B0 5C 39 16 E2 4D
+         MapleAESOFB.crypt() input: A8 F2 17 3F 7B 1E A7 9B E5 62 30 18 4E 04 9E CB B0 5C 39 16 E2 4D
+         MapleAESOFB.crypt() iv: A3 54 64 FA
+         MapleAESOFB.crypt() output: 5D 4C A6 72 D6 BE CF D1 1E DF A3 9F 2B C5 11 49 DB 89 F0 E3 2E 62
+         MaplePacketEncoder AES encrypted 5D 4C A6 72 D6 BE CF D1 1E DF A3 9F 2B C5 11 49 DB 89 F0 E3 2E 62
+         MaplePacketEncoder output A5 05 B3 05 5D 4C A6 72 D6 BE CF D1 1E DF A3 9F 2B C5 11 49 DB 89 F0 E3 2E 62
+         */
+    }
+    
+    func testSpawnNPCRequestController() {
+        
+        /*
+         MaplePacketEncoder will write encrypted C4 00 01 64 00 00 00 34 08 00 00 5B FF 35 00 01 0B 00 2B FF 8D FF 01
+         MaplePacketEncoder header 65 F8 72 F8
+         MaplePacketEncoder custom encrypted 31 1B C1 F4 8F 87 07 11 D0 1E EF A0 DF 01 61 53 B4 15 FB 79 A5 EC D7
+         MapleAESOFB.crypt() input: 31 1B C1 F4 8F 87 07 11 D0 1E EF A0 DF 01 61 53 B4 15 FB 79 A5 EC D7
+         MapleAESOFB.crypt() iv: 0A EB A4 07
+         MapleAESOFB.crypt() output: F5 AD 70 80 27 BE 70 A5 8D 09 76 2F 9F 58 84 07 67 4F AE EE 95 04 EF
+         MaplePacketEncoder AES encrypted F5 AD 70 80 27 BE 70 A5 8D 09 76 2F 9F 58 84 07 67 4F AE EE 95 04 EF
+         MaplePacketEncoder output 65 F8 72 F8 F5 AD 70 80 27 BE 70 A5 8D 09 76 2F 9F 58 84 07 67 4F AE EE 95 04 EF
+         */
+        
+        
+    }
+    
+    func testNPCTalkRequest() {
+        
+        /*
+         MaplePacketDecoder encrypted packet 77 90 12 3A 9F 7D 90 AE 8C D6
+         Recieve IV 7F B4 72 35
+         MapleAESOFB.crypt() input: 77 90 12 3A 9F 7D 90 AE 8C D6
+         MapleAESOFB.crypt() iv: 7F B4 72 35
+         MapleAESOFB.crypt() output: BE 29 BD 9E B9 76 5C 25 1E 65
+         MaplePacketDecoder AES decrypted packet BE 29 BD 9E B9 76 5C 25 1E 65
+         MaplePacketDecoder custom decrypted packet 36 00 64 00 00 00 F7 FF 35 00
+         Incoming packet 0x0036
+         readInt() 64000
+         readInt() f7ff350
+         */
+        
+        
+    }
+    
+    func testNPCTalkResponse() {
+        
+        /*
+         MaplePacketEncoder will write encrypted ED 00 04 34 08 00 00 04 9B 00 23 62 57 65 6C 63 6F 6D 65 20 74 6F 20 4D 61 70 6C 65 53 74 6F 72 79 2E 20 57 68 61 74 20 6A 6F 62 20 64 6F 20 79 6F 75 20 77 69 73 68 20 74 6F 20 62 65 3F 23 6B 20 0D 0A 23 4C 30 23 42 65 67 69 6E 6E 65 72 23 6C 20 0D 0A 20 23 4C 31 23 57 61 72 72 69 6F 72 23 6C 20 0D 0A 20 23 4C 32 23 4D 61 67 69 63 69 61 6E 23 6B 23 6C 20 0D 0A 20 23 4C 33 23 42 6F 77 6D 61 6E 23 6C 20 0D 0A 20 23 4C 34 23 54 68 69 65 66 23 6C 20 0D 0A 20 23 4C 35 23 50 69 72 61 74 65 23 6C
+         MaplePacketEncoder header FD 40 58 40
+         MaplePacketEncoder custom encrypted 4B 76 02 1F 15 50 54 13 C8 E6 C4 A0 3D 5C B3 F2 AC 01 37 23 E7 04 4C 28 1E 98 77 12 83 73 A1 C9 73 E8 9A 4F 2C BB 14 1B 5E 18 62 A7 A9 00 DF E3 43 94 C0 F0 BB FC 72 2D C8 CE 6C 76 06 F4 DA 4F E8 9E BC D3 15 AB B9 59 25 AA 5D 64 D3 D8 A7 BD C4 69 DA 3B D2 05 D7 AA 4F F4 5F 9B 78 7D 3C 6E 87 E9 90 51 93 57 AE 54 CB 3B AC 9C 3E 44 49 D5 79 EC E9 92 68 ED AE 95 F1 8C 35 7C A3 DE 81 D3 FB 24 1B B5 69 C5 08 25 01 A4 2F C2 D3 66 EF 9D B4 7A 55 C8 9F B6 4A 4E CD 82 5C 57 6C DE 3E AF 90 A8 E2 85 60
+         MapleAESOFB.crypt() input: 4B 76 02 1F 15 50 54 13 C8 E6 C4 A0 3D 5C B3 F2 AC 01 37 23 E7 04 4C 28 1E 98 77 12 83 73 A1 C9 73 E8 9A 4F 2C BB 14 1B 5E 18 62 A7 A9 00 DF E3 43 94 C0 F0 BB FC 72 2D C8 CE 6C 76 06 F4 DA 4F E8 9E BC D3 15 AB B9 59 25 AA 5D 64 D3 D8 A7 BD C4 69 DA 3B D2 05 D7 AA 4F F4 5F 9B 78 7D 3C 6E 87 E9 90 51 93 57 AE 54 CB 3B AC 9C 3E 44 49 D5 79 EC E9 92 68 ED AE 95 F1 8C 35 7C A3 DE 81 D3 FB 24 1B B5 69 C5 08 25 01 A4 2F C2 D3 66 EF 9D B4 7A 55 C8 9F B6 4A 4E CD 82 5C 57 6C DE 3E AF 90 A8 E2 85 60
+         MapleAESOFB.crypt() iv: D4 EA 3C BF
+         MapleAESOFB.crypt() output: AD 31 CA 1A 52 65 2E F8 1F A9 35 41 E7 33 89 FF 28 0C 2D 6B D1 94 15 2A FF 5F 90 A6 F9 23 C1 55 2E DA 97 92 E8 80 21 3F 80 86 A0 CF 3A C2 60 A2 02 5D 4C F7 BE B6 71 2A 9C 72 E5 36 93 77 7C 49 88 3E 0E 88 7E 2B 37 EF 3A 45 D3 1A B6 2D AC D6 3E C3 11 0F CF FC C1 D6 4E D2 0E 18 D4 CE 31 5D 40 04 92 28 6E DB 53 E2 82 AD FA 25 DE 77 86 9D AD 30 72 4E 9C 57 AF 5E 22 5E D9 A9 A1 4E A8 92 C4 15 69 E0 A5 18 75 42 CF FD 7B 57 44 67 8F D6 DC AA D2 F4 34 64 81 F9 26 39 8A 70 27 7D F6 F1 81 CD 0A 36 4F
+         MaplePacketEncoder AES encrypted AD 31 CA 1A 52 65 2E F8 1F A9 35 41 E7 33 89 FF 28 0C 2D 6B D1 94 15 2A FF 5F 90 A6 F9 23 C1 55 2E DA 97 92 E8 80 21 3F 80 86 A0 CF 3A C2 60 A2 02 5D 4C F7 BE B6 71 2A 9C 72 E5 36 93 77 7C 49 88 3E 0E 88 7E 2B 37 EF 3A 45 D3 1A B6 2D AC D6 3E C3 11 0F CF FC C1 D6 4E D2 0E 18 D4 CE 31 5D 40 04 92 28 6E DB 53 E2 82 AD FA 25 DE 77 86 9D AD 30 72 4E 9C 57 AF 5E 22 5E D9 A9 A1 4E A8 92 C4 15 69 E0 A5 18 75 42 CF FD 7B 57 44 67 8F D6 DC AA D2 F4 34 64 81 F9 26 39 8A 70 27 7D F6 F1 81 CD 0A 36 4F
+         MaplePacketEncoder output FD 40 58 40 AD 31 CA 1A 52 65 2E F8 1F A9 35 41 E7 33 89 FF 28 0C 2D 6B D1 94 15 2A FF 5F 90 A6 F9 23 C1 55 2E DA 97 92 E8 80 21 3F 80 86 A0 CF 3A C2 60 A2 02 5D 4C F7 BE B6 71 2A 9C 72 E5 36 93 77 7C 49 88 3E 0E 88 7E 2B 37 EF 3A 45 D3 1A B6 2D AC D6 3E C3 11 0F CF FC C1 D6 4E D2 0E 18 D4 CE 31 5D 40 04 92 28 6E DB 53 E2 82 AD FA 25 DE 77 86 9D AD 30 72 4E 9C 57 AF 5E 22 5E D9 A9 A1 4E A8 92 C4 15 69 E0 A5 18 75 42 CF FD 7B 57 44 67 8F D6 DC AA D2 F4 34 64 81 F9 26 39 8A 70 27 7D F6 F1 81 CD 0A 36 4F
+         */
+    }
+    
+    func testBuddyList() {
+        
+        /*
+         MaplePacketEncoder will write encrypted 3C 00 07 00
+         MaplePacketEncoder header 62 E3 66 E3
+         MaplePacketEncoder custom encrypted BC 6D 74 E8
+         MapleAESOFB.crypt() input: BC 6D 74 E8
+         MapleAESOFB.crypt() iv: 9D 83 A3 1C
+         MapleAESOFB.crypt() output: F0 9B C2 2E
+         MaplePacketEncoder AES encrypted F0 9B C2 2E
+         MaplePacketEncoder output 62 E3 66 E3 F0 9B C2 2E
+         */
+        
+        
+    }
+    
+    func testShowNotes() {
+        
+        /*
+         MaplePacketEncoder will write encrypted 26 00 02 00
+         MaplePacketEncoder header 0D 1A 09 1A
+         MaplePacketEncoder custom encrypted 2E 22 44 B7
+         MapleAESOFB.crypt() input: 2E 22 44 B7
+         MapleAESOFB.crypt() iv: EF 49 CC E5
+         MapleAESOFB.crypt() output: 44 F8 A6 27
+         MaplePacketEncoder AES encrypted 44 F8 A6 27
+         MaplePacketEncoder output 0D 1A 09 1A 44 F8 A6 27
+         */
+    }
+    
+    func testPlayerHint() {
+        
+        /*
+         MaplePacketEncoder will write encrypted A9 00 25 00 59 6F 75 20 63 61 6E 20 6D 6F 76 65 20 62 79 20 75 73 69 6E 67 20 74 68 65 20 61 72 72 6F 77 20 6B 65 79 73 2E FA 00 05 00 01
+         MaplePacketEncoder header 91 74 BF 74
+         MaplePacketEncoder custom encrypted C5 CC 08 6B A9 05 D4 50 4A 85 F2 7C 0A 0D E1 E9 2B 86 1C 08 45 DD 78 88 2B 1B 9D 9D 83 1C 61 07 0B 80 00 2C 40 41 43 D0 19 65 5C 0C 63 39
+         MapleAESOFB.crypt() input: C5 CC 08 6B A9 05 D4 50 4A 85 F2 7C 0A 0D E1 E9 2B 86 1C 08 45 DD 78 88 2B 1B 9D 9D 83 1C 61 07 0B 80 00 2C 40 41 43 D0 19 65 5C 0C 63 39
+         MapleAESOFB.crypt() iv: 4A 07 50 8B
+         MapleAESOFB.crypt() output: E4 4E 97 0E 79 29 EB 8C 5F 80 A0 AB C2 4C CA 8E 9C 6D 17 AD 96 C9 81 2C 92 9C 44 3A 38 99 AD B7 1E AB 73 E5 7E 06 94 B4 77 D3 EE 93 38 1F
+         MaplePacketEncoder AES encrypted E4 4E 97 0E 79 29 EB 8C 5F 80 A0 AB C2 4C CA 8E 9C 6D 17 AD 96 C9 81 2C 92 9C 44 3A 38 99 AD B7 1E AB 73 E5 7E 06 94 B4 77 D3 EE 93 38 1F
+         MaplePacketEncoder output 91 74 BF 74 E4 4E 97 0E 79 29 EB 8C 5F 80 A0 AB C2 4C CA 8E 9C 6D 17 AD 96 C9 81 2C 92 9C 44 3A 38 99 AD B7 1E AB 73 E5 7E 06 94 B4 77 D3 EE 93 38 1F
+         */
+    }
+    
+    func testKeyMap() {
+        
+        /*
+         MaplePacketEncoder will write encrypted 07 01 00 00 00 00 00 00 00 00 00 00 00 04 0A 00 00 00 04 0C 00 00 00 04 0D 00 00 00 04 12 00 00 00 04 18 00 00 00 04 15 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 08 00 00 00 04 05 00 00 00 04 00 00 00 00 04 04 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 04 01 00 00 00 00 00 00 00 00 04 13 00 00 00 04 0E 00 00 00 04 0F 00 00 00 00 00 00 00 00 05 34 00 00 00 00 00 00 00 00 04 02 00 00 00 00 00 00 00 00 00 00 00 00 00 04 11 00 00 00 04 0B 00 00 00 00 00 00 00 00 04 03 00 00 00 04 14 00 00 00 00 00 00 00 00 04 10 00 00 00 04 17 00 00 00 00 00 00 00 00 04 09 00 00 00 05 32 00 00 00 05 33 00 00 00 04 06 00 00 00 00 00 00 00 00 04 16 00 00 00 00 00 00 00 00 04 07 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 05 35 00 00 00 05 36 00 00 00 00 00 00 00 00 06 64 00 00 00 06 65 00 00 00 06 66 00 00 00 06 67 00 00 00 06 68 00 00 00 06 69 00 00 00 06 6A 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+         MaplePacketEncoder header 35 8A F0 8B
+         MaplePacketEncoder custom encrypted 14 53 08 78 80 03 00 82 A3 16 A9 A4 BE 02 80 77 38 CE EC A2 F2 1F 87 85 9F 86 3C A7 41 46 5B 29 09 B3 E0 FD 7C 27 5B 7F 1E E0 56 44 9A FF 4F 8C 42 D8 E6 1E F4 5E 1D 1C D3 DF E9 3D 77 4A 81 15 76 7F F9 20 84 7D 9E 52 36 47 D5 85 ED 3D 67 E1 9C 32 B4 E3 61 9D 75 D3 BC D0 F3 09 EC 8B A0 2B 18 E0 45 B0 2B 32 BF FA D2 9F 1B 01 55 28 47 25 BA 60 A6 CE 66 26 B1 7F 44 A6 6F B8 3B 6B AA 50 5A 3A EF 85 35 01 0B 61 AA 43 A8 FA 16 A8 FD D3 74 FD 95 2B 0A 0E A5 C2 E7 11 73 81 9F 93 6E 8D 65 BC 3B 89 BF 3C AB 2B B3 31 FC 45 34 7A 46 E1 73 31 B3 10 42 B4 19 19 BA 0C 7D 40 BA 4D 80 7D 37 6E 9B 37 A4 E3 86 D7 8F BC C2 16 D3 AA BC 56 08 55 DB DD 03 52 ED 18 50 E1 E2 40 DE 8C A6 34 87 A6 F5 67 AE DE 19 B5 25 EB C1 1F D5 B5 C3 59 C7 CD 87 73 C1 50 74 BD ED 86 3A 74 47 76 68 9E 9B EF 45 C7 BC 87 86 6E 77 7D F5 47 35 05 C8 9E 93 12 21 53 E2 26 DC 50 E2 AF F7 2C 9F 03 D1 FC F2 50 1F 28 54 F8 9A 67 A5 29 6C 17 77 4F 69 48 80 A8 40 E0 71 30 1D 67 0D 6A C2 D6 68 83 E3 25 A1 88 44 D5 11 F7 6A 66 A9 E6 10 31 0D 82 22 29 4E CB C2 42 1D 76 77 11 6F D7 C2 DB 3D 41 5F 22 B6 C0 D6 B4 80 5B 74 4F 49 FF 68 31 40 F5 9C ED D8 3F D3 8E 26 45 5A B9 32 D3 D1 B3 BE 43 79 25 DE 66 4C 3D 5B F0 08 9C 0B F6 B4 7C E9 98 26 6E A0 38 A0 05 98 6A ED 7B D1 E0 FE 81 31 99 DD 08 7C 60 22 F6 9C 22 94 76 FD 5E E2 E9 82 73 C4 F5 DB D4 C3 34 9E 21 0A 37 24 33 24 44 4E C5 09 8A 3A FC EE 54 69
+         MapleAESOFB.crypt() input: 14 53 08 78 80 03 00 82 A3 16 A9 A4 BE 02 80 77 38 CE EC A2 F2 1F 87 85 9F 86 3C A7 41 46 5B 29 09 B3 E0 FD 7C 27 5B 7F 1E E0 56 44 9A FF 4F 8C 42 D8 E6 1E F4 5E 1D 1C D3 DF E9 3D 77 4A 81 15 76 7F F9 20 84 7D 9E 52 36 47 D5 85 ED 3D 67 E1 9C 32 B4 E3 61 9D 75 D3 BC D0 F3 09 EC 8B A0 2B 18 E0 45 B0 2B 32 BF FA D2 9F 1B 01 55 28 47 25 BA 60 A6 CE 66 26 B1 7F 44 A6 6F B8 3B 6B AA 50 5A 3A EF 85 35 01 0B 61 AA 43 A8 FA 16 A8 FD D3 74 FD 95 2B 0A 0E A5 C2 E7 11 73 81 9F 93 6E 8D 65 BC 3B 89 BF 3C AB 2B B3 31 FC 45 34 7A 46 E1 73 31 B3 10 42 B4 19 19 BA 0C 7D 40 BA 4D 80 7D 37 6E 9B 37 A4 E3 86 D7 8F BC C2 16 D3 AA BC 56 08 55 DB DD 03 52 ED 18 50 E1 E2 40 DE 8C A6 34 87 A6 F5 67 AE DE 19 B5 25 EB C1 1F D5 B5 C3 59 C7 CD 87 73 C1 50 74 BD ED 86 3A 74 47 76 68 9E 9B EF 45 C7 BC 87 86 6E 77 7D F5 47 35 05 C8 9E 93 12 21 53 E2 26 DC 50 E2 AF F7 2C 9F 03 D1 FC F2 50 1F 28 54 F8 9A 67 A5 29 6C 17 77 4F 69 48 80 A8 40 E0 71 30 1D 67 0D 6A C2 D6 68 83 E3 25 A1 88 44 D5 11 F7 6A 66 A9 E6 10 31 0D 82 22 29 4E CB C2 42 1D 76 77 11 6F D7 C2 DB 3D 41 5F 22 B6 C0 D6 B4 80 5B 74 4F 49 FF 68 31 40 F5 9C ED D8 3F D3 8E 26 45 5A B9 32 D3 D1 B3 BE 43 79 25 DE 66 4C 3D 5B F0 08 9C 0B F6 B4 7C E9 98 26 6E A0 38 A0 05 98 6A ED 7B D1 E0 FE 81 31 99 DD 08 7C 60 22 F6 9C 22 94 76 FD 5E E2 E9 82 73 C4 F5 DB D4 C3 34 9E 21 0A 37 24 33 24 44 4E C5 09 8A 3A FC EE 54 69
+         MapleAESOFB.crypt() iv: BE A6 F4 75
+         MapleAESOFB.crypt() output: 0A 76 19 91 9B CD 8F 16 44 CE A0 27 7C 8C 86 9D 0A 86 50 33 28 C7 36 89 5B 40 C8 67 BD E8 06 A8 57 4A DE F6 85 AD 74 EA 27 FD 96 48 27 72 AD 70 3B 56 4C 86 78 9B 9E FB A2 C0 D7 D9 90 4C CB 6D 03 1E EB A2 77 CD 76 2C D4 A6 6D 79 DE 15 D7 51 8A 74 74 3B AF E6 76 36 E7 66 9A 0D 7A 2A ED BF 79 F8 9F FE E6 C1 79 85 94 58 B6 2A 3D 1D 44 80 8A 0B C5 6A AA 79 E7 DA CE 9D 84 02 53 B9 86 66 6B 8F CE FF 8F 6C 42 81 BF D6 21 4F C2 AF BD EC 80 B4 FB 82 80 60 CF F0 C8 AA C1 B6 1D DB 17 42 9E 69 7D 48 7C 7C 61 9A FC 5B CC CD EC AE 29 0A FB EF 8F B9 5C 1A D2 53 6F D3 09 95 67 9B 7D D9 81 A0 98 8B 28 E0 EF 74 33 5F 40 CB 8F 5A B0 DD 4E 47 F1 CA D2 C8 E9 56 02 2C 30 F3 1B DC E9 9E 41 D4 EF 73 5B 32 51 9E F1 C4 D7 8C 9B DE 6E 8D 38 A8 F4 B3 96 DB 13 9D F3 75 19 FE 31 44 95 0F 74 B8 78 3B A6 43 BB 6D D7 87 F0 68 CE 7C FE 25 0F 82 68 35 EB 2A 51 8E 1C E7 6D AF AA 16 95 FD 6F 63 AE 5E 63 A8 A2 BB 6C 29 66 51 7A 71 C0 45 02 C1 2C 08 A7 C3 9F 70 9D 87 A4 A6 B6 25 68 80 7B 2D D8 F0 E5 42 EE F5 E3 15 08 E4 8A 9F EC 11 3A 8F E2 1A BC C3 20 53 7B 30 73 78 DE C7 96 EB 64 C8 56 81 17 AD 1C 8E E0 13 26 8E 34 8E C8 FF 1B 1B E1 58 40 70 F8 FE E7 F2 69 99 9D 5C C4 35 7F 7F 94 20 01 A0 25 65 EC DF 89 83 A4 38 56 94 E9 E4 15 5A BD 29 97 36 FC B7 73 A6 C8 BD BC F7 2B 7F B0 80 8B AB 0C 4A C1 A0 D2 91 78 70 5C D0 96 6C B7 9F 1F D2 5F 2C 37 C6 23 5D D6 21 F3 54 92 D4 0F 4A CE
+         MaplePacketEncoder AES encrypted 0A 76 19 91 9B CD 8F 16 44 CE A0 27 7C 8C 86 9D 0A 86 50 33 28 C7 36 89 5B 40 C8 67 BD E8 06 A8 57 4A DE F6 85 AD 74 EA 27 FD 96 48 27 72 AD 70 3B 56 4C 86 78 9B 9E FB A2 C0 D7 D9 90 4C CB 6D 03 1E EB A2 77 CD 76 2C D4 A6 6D 79 DE 15 D7 51 8A 74 74 3B AF E6 76 36 E7 66 9A 0D 7A 2A ED BF 79 F8 9F FE E6 C1 79 85 94 58 B6 2A 3D 1D 44 80 8A 0B C5 6A AA 79 E7 DA CE 9D 84 02 53 B9 86 66 6B 8F CE FF 8F 6C 42 81 BF D6 21 4F C2 AF BD EC 80 B4 FB 82 80 60 CF F0 C8 AA C1 B6 1D DB 17 42 9E 69 7D 48 7C 7C 61 9A FC 5B CC CD EC AE 29 0A FB EF 8F B9 5C 1A D2 53 6F D3 09 95 67 9B 7D D9 81 A0 98 8B 28 E0 EF 74 33 5F 40 CB 8F 5A B0 DD 4E 47 F1 CA D2 C8 E9 56 02 2C 30 F3 1B DC E9 9E 41 D4 EF 73 5B 32 51 9E F1 C4 D7 8C 9B DE 6E 8D 38 A8 F4 B3 96 DB 13 9D F3 75 19 FE 31 44 95 0F 74 B8 78 3B A6 43 BB 6D D7 87 F0 68 CE 7C FE 25 0F 82 68 35 EB 2A 51 8E 1C E7 6D AF AA 16 95 FD 6F 63 AE 5E 63 A8 A2 BB 6C 29 66 51 7A 71 C0 45 02 C1 2C 08 A7 C3 9F 70 9D 87 A4 A6 B6 25 68 80 7B 2D D8 F0 E5 42 EE F5 E3 15 08 E4 8A 9F EC 11 3A 8F E2 1A BC C3 20 53 7B 30 73 78 DE C7 96 EB 64 C8 56 81 17 AD 1C 8E E0 13 26 8E 34 8E C8 FF 1B 1B E1 58 40 70 F8 FE E7 F2 69 99 9D 5C C4 35 7F 7F 94 20 01 A0 25 65 EC DF 89 83 A4 38 56 94 E9 E4 15 5A BD 29 97 36 FC B7 73 A6 C8 BD BC F7 2B 7F B0 80 8B AB 0C 4A C1 A0 D2 91 78 70 5C D0 96 6C B7 9F 1F D2 5F 2C 37 C6 23 5D D6 21 F3 54 92 D4 0F 4A CE
+         MaplePacketEncoder output 35 8A F0 8B 0A 76 19 91 9B CD 8F 16 44 CE A0 27 7C 8C 86 9D 0A 86 50 33 28 C7 36 89 5B 40 C8 67 BD E8 06 A8 57 4A DE F6 85 AD 74 EA 27 FD 96 48 27 72 AD 70 3B 56 4C 86 78 9B 9E FB A2 C0 D7 D9 90 4C CB 6D 03 1E EB A2 77 CD 76 2C D4 A6 6D 79 DE 15 D7 51 8A 74 74 3B AF E6 76 36 E7 66 9A 0D 7A 2A ED BF 79 F8 9F FE E6 C1 79 85 94 58 B6 2A 3D 1D 44 80 8A 0B C5 6A AA 79 E7 DA CE 9D 84 02 53 B9 86 66 6B 8F CE FF 8F 6C 42 81 BF D6 21 4F C2 AF BD EC 80 B4 FB 82 80 60 CF F0 C8 AA C1 B6 1D DB 17 42 9E 69 7D 48 7C 7C 61 9A FC 5B CC CD EC AE 29 0A FB EF 8F B9 5C 1A D2 53 6F D3 09 95 67 9B 7D D9 81 A0 98 8B 28 E0 EF 74 33 5F 40 CB 8F 5A B0 DD 4E 47 F1 CA D2 C8 E9 56 02 2C 30 F3 1B DC E9 9E 41 D4 EF 73 5B 32 51 9E F1 C4 D7 8C 9B DE 6E 8D 38 A8 F4 B3 96 DB 13 9D F3 75 19 FE 31 44 95 0F 74 B8 78 3B A6 43 BB 6D D7 87 F0 68 CE 7C FE 25 0F 82 68 35 EB 2A 51 8E 1C E7 6D AF AA 16 95 FD 6F 63 AE 5E 63 A8 A2 BB 6C 29 66 51 7A 71 C0 45 02 C1 2C 08 A7 C3 9F 70 9D 87 A4 A6 B6 25 68 80 7B 2D D8 F0 E5 42 EE F5 E3 15 08 E4 8A 9F EC 11 3A 8F E2 1A BC C3 20 53 7B 30 73 78 DE C7 96 EB 64 C8 56 81 17 AD 1C 8E E0 13 26 8E 34 8E C8 FF 1B 1B E1 58 40 70 F8 FE E7 F2 69 99 9D 5C C4 35 7F 7F 94 20 01 A0 25 65 EC DF 89 83 A4 38 56 94 E9 E4 15 5A BD 29 97 36 FC B7 73 A6 C8 BD BC F7 2B 7F B0 80 8B AB 0C 4A C1 A0 D2 91 78 70 5C D0 96 6C B7 9F 1F D2 5F 2C 37 C6 23 5D D6 21 F3 54 92 D4 0F 4A CE
+         */
+    }
+    
+    func testPlayerUpdate() {
+        
+        /*
+         MaplePacketDecoder encrypted packet D9 E5
+         Recieve IV 0A 65 35 B0
+         MapleAESOFB.crypt() input: D9 E5
+         MapleAESOFB.crypt() iv: 0A 65 35 B0
+         MapleAESOFB.crypt() output: 54 56
+         MaplePacketDecoder AES decrypted packet 54 56
+         MaplePacketDecoder custom decrypted packet C0 00
+         Incoming packet 0x00C0
+         */
+    }
+    
+    func testMovePlayer() {
+        
+        /*
+         MaplePacketDecoder encrypted packet 8C 08 25 73 B4 3D 89 76 61 15 F3 2B F6 C9 2E C3 C8 59 7F 5B 5B B2 87 77 3D F3 37 D0 67 B2 D9 D6 C4 ED DA 97 DB 07 D2 08 C5 EA 43 9D 3B DB 18 0F 31 BB 36 A3 AD 73 D8 0C 6C ED 53 A7 E1 EC E1 C9 55 6C F0 75
+         Recieve IV 9A 3B C4 2B
+         MapleAESOFB.crypt() input: 8C 08 25 73 B4 3D 89 76 61 15 F3 2B F6 C9 2E C3 C8 59 7F 5B 5B B2 87 77 3D F3 37 D0 67 B2 D9 D6 C4 ED DA 97 DB 07 D2 08 C5 EA 43 9D 3B DB 18 0F 31 BB 36 A3 AD 73 D8 0C 6C ED 53 A7 E1 EC E1 C9 55 6C F0 75
+         MapleAESOFB.crypt() iv: 9A 3B C4 2B
+         MapleAESOFB.crypt() output: 69 A4 B7 CE D3 F0 00 45 A7 77 60 13 F3 1E BD C0 31 21 57 30 25 53 D8 7F A3 D0 C3 51 81 66 99 A9 87 89 F5 38 49 E3 D2 72 89 CE 66 2A 6F 52 3E 09 42 E2 B9 96 FB E5 47 A8 6F 1C 05 81 E9 4C 5C F1 0E 58 DC B4
+         MaplePacketDecoder AES decrypted packet 69 A4 B7 CE D3 F0 00 45 A7 77 60 13 F3 1E BD C0 31 21 57 30 25 53 D8 7F A3 D0 C3 51 81 66 99 A9 87 89 F5 38 49 E3 D2 72 89 CE 66 2A 6F 52 3E 09 42 E2 B9 96 FB E5 47 A8 6F 1C 05 81 E9 4C 5C F1 0E 58 DC B4
+         MaplePacketDecoder custom decrypted packet 26 00 01 6C 00 1F 00 03 00 6C 00 2D 00 00 00 F0 00 00 00 06 78 00 00 6C 00 35 00 00 00 00 00 00 00 06 1A 00 00 6C 00 35 00 00 00 00 00 0B 00 04 6C 01 11 00 00 00 00 00 00 00 00 00 6C 00 1F 00 6C 00 35 00
+         Incoming packet 0x0026
+         */
+    }
+    
+    func testChangeMapSpecial() {
+        
+        /*
+         MaplePacketDecoder encrypted packet 42 69 01 92 BA E8 07 DA 91 2A 3B B9 9F 36 62 61 EC 03
+         Recieve IV DA F1 55 F7
+         MapleAESOFB.crypt() input: 42 69 01 92 BA E8 07 DA 91 2A 3B B9 9F 36 62 61 EC 03
+         MapleAESOFB.crypt() iv: DA F1 55 F7
+         MapleAESOFB.crypt() output: 91 E5 06 B8 A2 44 9B 82 D8 17 DA FE 50 96 79 CD 71 B8
+         MaplePacketDecoder AES decrypted packet 91 E5 06 B8 A2 44 9B 82 D8 17 DA FE 50 96 79 CD 71 B8
+         MaplePacketDecoder custom decrypted packet 5C 00 01 09 00 74 75 74 6F 72 69 61 6C 30 6C 00 35 00
+         Incoming packet 0x005C
+         */
+        
+        
     }
 }

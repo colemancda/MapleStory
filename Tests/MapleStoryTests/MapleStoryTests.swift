@@ -69,23 +69,6 @@ final class MapleStoryTests: XCTestCase {
     
     func testPing() throws {
         
-        /*
-         Ping packet
-         short 17
-         Packet to be sent:
-         11 00
-         MaplePacketEncoder will write encrypted 11 00
-         MaplePacketEncoder header 48 7D 4A 7D
-         MapleCustomEncryption.encryptData(): input 11 00
-         MapleCustomEncryption.encryptData(): output 7C 89
-         MaplePacketEncoder custom encrypted 7C 89
-         MapleAESOFB.crypt() input: 7C 89
-         MapleAESOFB.crypt() iv: 27 56 89 82
-         MapleAESOFB.crypt() output: 01 5C
-         MaplePacketEncoder AES encrypted 01 5C
-         MaplePacketEncoder output 48 7D 4A 7D 01 5C
-         */
-        
         let encryptedData = Data([0x48, 0x7D, 0x4A, 0x7D, 0x01, 0x5C])
         let encryptedParameters = Data([0x01, 0x5C])
         let packetData = Data([0x11, 0x00])
@@ -123,17 +106,6 @@ final class MapleStoryTests: XCTestCase {
     }
     
     func testPong() throws {
-        
-        /*
-         MaplePacketDecoder encrypted packet 05 28
-         Recieve IV 56 CF EC DD
-         MapleAESOFB.crypt() input: 05 28
-         MapleAESOFB.crypt() iv: 56 CF EC DD
-         MapleAESOFB.crypt() output: 0B 34
-         MaplePacketDecoder AES decrypted packet 0B 34
-         MaplePacketDecoder custom decrypted packet 18 00
-         Incoming packet 0x0018
-         */
         
         let encryptedData = Data([0x05, 0x28])
         let packetData = Data([0x18, 0x00])
