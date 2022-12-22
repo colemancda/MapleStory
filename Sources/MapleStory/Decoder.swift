@@ -457,15 +457,15 @@ public struct MapleStoryDecodingContainer {
         return try decodeMapleStory(type)
     }
     
-    public func decode(_ type: Int16.Type, isLittleEndian: Bool = false) throws -> Int16 {
+    public func decode(_ type: Int16.Type, isLittleEndian: Bool = true) throws -> Int16 {
         return try decodeNumeric(type, isLittleEndian: isLittleEndian)
     }
     
-    public func decode(_ type: Int32.Type, isLittleEndian: Bool = false) throws -> Int32 {
+    public func decode(_ type: Int32.Type, isLittleEndian: Bool = true) throws -> Int32 {
         return try decodeNumeric(type, isLittleEndian: isLittleEndian)
     }
     
-    public func decode(_ type: Int64.Type, isLittleEndian: Bool = false) throws -> Int64 {
+    public func decode(_ type: Int64.Type, isLittleEndian: Bool = true) throws -> Int64 {
         return try decodeNumeric(type, isLittleEndian: isLittleEndian)
     }
     
@@ -473,24 +473,24 @@ public struct MapleStoryDecodingContainer {
         return try decodeMapleStory(type)
     }
     
-    public func decode(_ type: UInt16.Type, isLittleEndian: Bool = false) throws -> UInt16 {
+    public func decode(_ type: UInt16.Type, isLittleEndian: Bool = true) throws -> UInt16 {
         return try decodeNumeric(type, isLittleEndian: isLittleEndian)
     }
     
-    public func decode(_ type: UInt32.Type, isLittleEndian: Bool = false) throws -> UInt32 {
+    public func decode(_ type: UInt32.Type, isLittleEndian: Bool = true) throws -> UInt32 {
         return try decodeNumeric(type, isLittleEndian: isLittleEndian)
     }
     
-    public func decode(_ type: UInt64.Type, isLittleEndian: Bool = false) throws -> UInt64 {
+    public func decode(_ type: UInt64.Type, isLittleEndian: Bool = true) throws -> UInt64 {
         return try decodeNumeric(type, isLittleEndian: isLittleEndian)
     }
     
-    public func decode(_ type: Float.Type, isLittleEndian: Bool = false) throws -> Float {
+    public func decode(_ type: Float.Type, isLittleEndian: Bool = true) throws -> Float {
         let bitPattern = try decodeNumeric(UInt32.self, isLittleEndian: isLittleEndian)
         return Float(bitPattern: bitPattern)
     }
     
-    public func decode(_ type: Double.Type, isLittleEndian: Bool = false) throws -> Double {
+    public func decode(_ type: Double.Type, isLittleEndian: Bool = true) throws -> Double {
         let bitPattern = try decodeNumeric(UInt64.self, isLittleEndian: isLittleEndian)
         return Double(bitPattern: bitPattern)
     }
@@ -572,7 +572,7 @@ public struct MapleStoryDecodingContainer {
         return try self.decoder.read(T.self)
     }
     
-    private func decodeNumeric <T: MapleStoryRawDecodable & FixedWidthInteger> (_ type: T.Type, isLittleEndian: Bool = false) throws -> T {
+    private func decodeNumeric <T: MapleStoryRawDecodable & FixedWidthInteger> (_ type: T.Type, isLittleEndian: Bool = true) throws -> T {
         
         self.decoder.log?("Will read \(T.self)")
         return try self.decoder.readNumeric(T.self, isLittleEndian: isLittleEndian)
