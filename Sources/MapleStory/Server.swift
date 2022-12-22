@@ -249,6 +249,10 @@ internal extension MapleStoryServer {
             await register { [unowned self] in try await self.pinOperation($0) }
             await connection.register { [unowned self] in await self.serverList($0) }
             await register { [unowned self] in try await self.serverStatus($0) }
+            await register { [unowned self] in try await self.characterList($0) }
+            await connection.register { [unowned self] in await self.allCharacters($0) }
+            await register { [unowned self] in try await self.selectCharacter($0) }
+            await register { [unowned self] in try await self.selectAllCharacter($0) }
         }
         
         /// Respond to a client-initiated PDU message.
@@ -356,12 +360,6 @@ internal extension MapleStoryServer {
                             load: 0,
                             value0: 0x01,
                             id: 0
-                        ),
-                        ServerListResponse.Channel(
-                            name: " World 0-2",
-                            load: 0,
-                            value0: 0x01,
-                            id: 1
                         )
                     ],
                     value1: 0x00
@@ -378,6 +376,152 @@ internal extension MapleStoryServer {
         private func serverStatus(_ request: ServerStatusRequest) async throws -> ServerStatusResponse {
             log("Server Status - World \(request.world) Channel \(request.channel)")
             return .normal
+        }
+        
+        private func characterList(_ request: CharacterListRequest) async throws -> CharacterListResponse {
+            log("Character List - World \(request.world) Channel \(request.channel)")
+            return CharacterListResponse(
+                value0: 0x00,
+                characters: [
+                    MapleStory.CharacterListResponse.Character(
+                        stats: MapleStory.CharacterListResponse.CharacterStats(
+                            id: 1,
+                            name: "Admin",
+                            gender: .male,
+                            skinColor: .normal,
+                            face: 20000,
+                            hair: 30030,
+                            value0: 0,
+                            value1: 0,
+                            value2: 0,
+                            level: 254,
+                            job: .buccaneer,
+                            str: 32767,
+                            dex: 32767,
+                            int: 32767,
+                            luk: 32767,
+                            hp: 30000,
+                            maxHp: 30000,
+                            mp: 26474,
+                            maxMp: 30000,
+                            ap: 0,
+                            sp: 0,
+                            exp: 0,
+                            fame: 13337,
+                            isMarried: 0,
+                            currentMap: 910000000,
+                            spawnPoint: 1,
+                            value3: 0
+                        ),
+                        appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                            gender: .male,
+                            skinColor: .normal,
+                            face: 20000,
+                            mega: true,
+                            hair: 30030,
+                            equipment: [5: 0x82DE0F00, 6: 0xA22C1000, 9: 0xD9D01000, 1: 0x754B0F00, 7: 0x815B1000, 11: 0x279D1600],
+                            maskedEquipment: [:],
+                            cashWeapon: 0,
+                            value0: 0,
+                            value1: 0
+                        ),
+                        rank: MapleStory.CharacterListResponse.Rank(
+                            worldRank: 1,
+                            rankMove: 0,
+                            jobRank: 1,
+                            jobRankMove: 0
+                        )
+                    )
+                ],
+                maxCharacters: 3
+            )
+        }
+        
+        private func allCharacters(_ request: AllCharactersRequest) async {
+            log("All Character List")
+            do {
+                let count = 1
+                let unk = count + (3 - count % 3)
+                let countPacket = AllCharactersResponse.count(characters: UInt32(count), value0: UInt32(unk))
+                let worldPacket = AllCharactersResponse.characters(world: 0, characters: [
+                    MapleStory.CharacterListResponse.Character(
+                        stats: MapleStory.CharacterListResponse.CharacterStats(
+                            id: 1,
+                            name: "Admin",
+                            gender: .male,
+                            skinColor: .normal,
+                            face: 20000,
+                            hair: 30030,
+                            value0: 0,
+                            value1: 0,
+                            value2: 0,
+                            level: 254,
+                            job: .buccaneer,
+                            str: 32767,
+                            dex: 32767,
+                            int: 32767,
+                            luk: 32767,
+                            hp: 30000,
+                            maxHp: 30000,
+                            mp: 26474,
+                            maxMp: 30000,
+                            ap: 0,
+                            sp: 0,
+                            exp: 0,
+                            fame: 13337,
+                            isMarried: 0,
+                            currentMap: 910000000,
+                            spawnPoint: 1,
+                            value3: 0
+                        ),
+                        appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                            gender: .male,
+                            skinColor: .normal,
+                            face: 20000,
+                            mega: true,
+                            hair: 30030,
+                            equipment: [5: 0x82DE0F00, 6: 0xA22C1000, 9: 0xD9D01000, 1: 0x754B0F00, 7: 0x815B1000, 11: 0x279D1600],
+                            maskedEquipment: [:],
+                            cashWeapon: 0,
+                            value0: 0,
+                            value1: 0
+                        ),
+                        rank: MapleStory.CharacterListResponse.Rank(
+                            worldRank: 1,
+                            rankMove: 0,
+                            jobRank: 1,
+                            jobRankMove: 0
+                        )
+                    )
+                ])
+                try await respond(countPacket)
+                try await respond(worldPacket)
+            }
+            catch {
+                await close(error)
+            }
+        }
+        
+        private func selectCharacter(_ request: CharacterSelectRequest) async throws -> ServerIPResponse {
+            log("Select Character - Client \(request.client)")
+            return ServerIPResponse(
+                value0: 0,
+                address: MapleStoryAddress(rawValue: "192.168.1.119:8484")!,
+                client: request.client,
+                value1: 0,
+                value2: 0
+            )
+        }
+        
+        private func selectAllCharacter(_ request: AllCharactersSelectRequest) async throws -> ServerIPResponse {
+            log("Select All Character - Client \(request.client)")
+            return ServerIPResponse(
+                value0: 0,
+                address: MapleStoryAddress(rawValue: "192.168.1.119:8484")!,
+                client: request.client,
+                value1: 0,
+                value2: 0
+            )
         }
     }
 }
