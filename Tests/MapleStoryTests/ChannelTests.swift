@@ -100,7 +100,7 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testRequest0x51() throws {
+    func testHealOverTimeRequest() throws {
         
         /*
          MaplePacketDecoder encrypted packet CD 64 48 B0 98 20 37 CE 0D C0 73
@@ -124,6 +124,8 @@ final class ChannelTests: XCTestCase {
             version: .v62
         )
         
+        let value = HealOverTimeRequest(value0: 0, value1: 0x14, value2: 0, hp: 0, mp: 3, value3: 0)
+        XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, 0x0051)
         XCTAssertEqual(packet.data, packetData)
     }
