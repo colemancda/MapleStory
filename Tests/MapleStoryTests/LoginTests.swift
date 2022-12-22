@@ -520,4 +520,102 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.length, packet.data.count)
         XCTAssertEqual(encrypted.data, encryptedData)
     }
+    
+    func testUnknownRequest() {
+        
+        /*
+         MaplePacketDecoder encrypted packet 11 C2 86 FB 91 E1 39 D9 05 01 A3
+         Recieve IV 25 C1 21 63
+         MapleAESOFB.crypt() input: 11 C2 86 FB 91 E1 39 D9 05 01 A3
+         MapleAESOFB.crypt() iv: 25 C1 21 63
+         MapleAESOFB.crypt() output: D2 D7 4E 76 8E C5 E9 98 72 91 15
+         MaplePacketDecoder AES decrypted packet D2 D7 4E 76 8E C5 E9 98 72 91 15
+         MaplePacketDecoder custom decrypted packet 1A 00 01 7D 5B D5 EE 00 00 00 00
+         Incoming packet 0x001A
+         */
+    }
+    
+    func testSelectCharacterRequest() throws {
+        
+        /*
+         MaplePacketDecoder encrypted packet E9 46 D1 A0 6F E7 E5 54 AF 6C 9C 45 55 8B DB 3F 7B CD 1D EB 4C B1 B4 82 19 E4 1A 36 8F 08 E6 24 9F CF 34 FC F6 1B B6 43 A8 0A 6F 27 4C 77 9E 5E 82 42 40 8F
+         Recieve IV 2E B6 1F E4
+         MapleAESOFB.crypt() input: E9 46 D1 A0 6F E7 E5 54 AF 6C 9C 45 55 8B DB 3F 7B CD 1D EB 4C B1 B4 82 19 E4 1A 36 8F 08 E6 24 9F CF 34 FC F6 1B B6 43 A8 0A 6F 27 4C 77 9E 5E 82 42 40 8F
+         MapleAESOFB.crypt() iv: 2E B6 1F E4
+         MapleAESOFB.crypt() output: D5 87 B7 70 51 55 3E 45 A8 D1 09 6C B9 82 AD E5 3E 61 A8 4A CE 77 50 A9 39 50 FD 36 BA 2C C9 68 D1 49 3A 99 21 EF 4E C5 26 79 14 03 04 7C 6C 42 E8 09 86 6C
+         MaplePacketDecoder AES decrypted packet D5 87 B7 70 51 55 3E 45 A8 D1 09 6C B9 82 AD E5 3E 61 A8 4A CE 77 50 A9 39 50 FD 36 BA 2C C9 68 D1 49 3A 99 21 EF 4E C5 26 79 14 03 04 7C 6C 42 E8 09 86 6C
+         MaplePacketDecoder custom decrypted packet 0E 00 01 00 00 00 00 00 00 00 11 00 30 30 2D 31 43 2D 34 32 2D 34 38 2D 30 37 2D 32 39 15 00 42 43 39 41 37 38 35 36 33 34 31 32 5F 44 42 39 37 43 35 42 45
+         Incoming packet 0x000E
+         */
+        
+        let packetData = Data([0x0E, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x11, 0x00, 0x30, 0x30, 0x2D, 0x31, 0x43, 0x2D, 0x34, 0x32, 0x2D, 0x34, 0x38, 0x2D, 0x30, 0x37, 0x2D, 0x32, 0x39, 0x15, 0x00, 0x42, 0x43, 0x39, 0x41, 0x37, 0x38, 0x35, 0x36, 0x33, 0x34, 0x31, 0x32, 0x5F, 0x44, 0x42, 0x39, 0x37, 0x43, 0x35, 0x42, 0x45])
+        let encryptedData = Data([0xE9, 0x46, 0xD1, 0xA0, 0x6F, 0xE7, 0xE5, 0x54, 0xAF, 0x6C, 0x9C, 0x45, 0x55, 0x8B, 0xDB, 0x3F, 0x7B, 0xCD, 0x1D, 0xEB, 0x4C, 0xB1, 0xB4, 0x82, 0x19, 0xE4, 0x1A, 0x36, 0x8F, 0x08, 0xE6, 0x24, 0x9F, 0xCF, 0x34, 0xFC, 0xF6, 0x1B, 0xB6, 0x43, 0xA8, 0x0A, 0x6F, 0x27, 0x4C, 0x77, 0x9E, 0x5E, 0x82, 0x42, 0x40, 0x8F])
+        let nonce: Nonce = 0x2EB61FE4
+        
+        let value = SelectCharacterRequest(
+            client: 1,
+            macAddresses: ""
+        )
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let decrypted = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(decrypted, packet)
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+    }
+    
+    func testServerIPResponse() throws {
+        
+        /*
+         getServerIP: /172.17.0.3 7575 1
+         MaplePacketEncoder will write encrypted 0C 00 00 00 AC 11 00 03 97 1D 01 00 00 00 00 00 00 00 00
+         MaplePacketEncoder header 40 87 53 87
+         MaplePacketEncoder custom encrypted 2F BA FA D3 82 53 0C CB D0 B5 E8 B9 B7 E3 C5 6F 8D 7A BE
+         MapleAESOFB.crypt() input: 2F BA FA D3 82 53 0C CB D0 B5 E8 B9 B7 E3 C5 6F 8D 7A BE
+         MapleAESOFB.crypt() iv: 96 27 81 78
+         MapleAESOFB.crypt() output: 51 66 E7 BF 46 CA EB B5 CA C2 D2 4D CD A0 25 60 B2 D9 3C
+         MaplePacketEncoder AES encrypted 51 66 E7 BF 46 CA EB B5 CA C2 D2 4D CD A0 25 60 B2 D9 3C
+         MaplePacketEncoder output 40 87 53 87 51 66 E7 BF 46 CA EB B5 CA C2 D2 4D CD A0 25 60 B2 D9 3C
+         */
+        
+        let packetData = Data([0x0C, 0x00, 0x00, 0x00, 0xAC, 0x11, 0x00, 0x03, 0x97, 0x1D, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        let encryptedData = Data([0x40, 0x87, 0x53, 0x87, 0x51, 0x66, 0xE7, 0xBF, 0x46, 0xCA, 0xEB, 0xB5, 0xCA, 0xC2, 0xD2, 0x4D, 0xCD, 0xA0, 0x25, 0x60, 0xB2, 0xD9, 0x3C])
+        let nonce: Nonce = 0x96278178
+        
+        let value = ServerIPResponse(
+            value0: 0,
+            address: MapleStoryAddress(rawValue: "172.17.0.3:7575")!,
+            client: 1,
+            value1: 0,
+            value2: 0
+        )
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
+    }
 }
