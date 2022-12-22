@@ -192,20 +192,41 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testSpawnNPCRequestController() {
+    func testSpawnNPCRequestController() throws {
         
-        /*
-         MaplePacketEncoder will write encrypted C4 00 01 64 00 00 00 34 08 00 00 5B FF 35 00 01 0B 00 2B FF 8D FF 01
-         MaplePacketEncoder header 65 F8 72 F8
-         MaplePacketEncoder custom encrypted 31 1B C1 F4 8F 87 07 11 D0 1E EF A0 DF 01 61 53 B4 15 FB 79 A5 EC D7
-         MapleAESOFB.crypt() input: 31 1B C1 F4 8F 87 07 11 D0 1E EF A0 DF 01 61 53 B4 15 FB 79 A5 EC D7
-         MapleAESOFB.crypt() iv: 0A EB A4 07
-         MapleAESOFB.crypt() output: F5 AD 70 80 27 BE 70 A5 8D 09 76 2F 9F 58 84 07 67 4F AE EE 95 04 EF
-         MaplePacketEncoder AES encrypted F5 AD 70 80 27 BE 70 A5 8D 09 76 2F 9F 58 84 07 67 4F AE EE 95 04 EF
-         MaplePacketEncoder output 65 F8 72 F8 F5 AD 70 80 27 BE 70 A5 8D 09 76 2F 9F 58 84 07 67 4F AE EE 95 04 EF
-         */
+        let packetData = Data([0xC4, 0x00, 0x01, 0x64, 0x00, 0x00, 0x00, 0x34, 0x08, 0x00, 0x00, 0x5B, 0xFF, 0x35, 0x00, 0x01, 0x0B, 0x00, 0x2B, 0xFF, 0x8D, 0xFF, 0x01])
+        let encryptedData = Data([0x65, 0xF8, 0x72, 0xF8, 0xF5, 0xAD, 0x70, 0x80, 0x27, 0xBE, 0x70, 0xA5, 0x8D, 0x09, 0x76, 0x2F, 0x9F, 0x58, 0x84, 0x07, 0x67, 0x4F, 0xAE, 0xEE, 0x95, 0x04, 0xEF])
+        let nonce: Nonce = 0x0AEBA407
         
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
         
+        let value = SpawnNPCRequestControllerNotification(
+            value0: 1,
+            objectId: 100,
+            id: 2100,
+            x: 65371,
+            cy: 53,
+            f: true,
+            fh: 11,
+            rx0: 65323,
+            rx1: 65421,
+            minimap: true
+        )
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0xC4)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
     }
     
     func testNPCTalkRequest() {
