@@ -659,7 +659,7 @@ final class LoginTests: XCTestCase {
         
         let value = CharacterSelectRequest(
             client: 1,
-            macAddresses: ""
+            macAddresses: "00-1C-42-48-07-29"
         )
         
         XCTAssertDecode(value, packet)
