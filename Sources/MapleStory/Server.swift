@@ -506,7 +506,7 @@ internal extension MapleStoryServer {
             log("Select Character - Client \(request.client)")
             return ServerIPResponse(
                 value0: 0,
-                address: MapleStoryAddress(rawValue: "192.168.1.119:8484")!,
+                address: MapleStoryAddress(rawValue: "192.168.1.119:7575")!,
                 client: request.client,
                 value1: 0,
                 value2: 0
@@ -517,7 +517,7 @@ internal extension MapleStoryServer {
             log("Select All Character - Client \(request.client)")
             return ServerIPResponse(
                 value0: 0,
-                address: MapleStoryAddress(rawValue: "192.168.1.119:8484")!,
+                address: MapleStoryAddress(rawValue: "192.168.1.119:7575")!,
                 client: request.client,
                 value1: 0,
                 value2: 0
