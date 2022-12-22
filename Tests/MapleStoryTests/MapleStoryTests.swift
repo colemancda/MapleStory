@@ -11,6 +11,41 @@ import XCTest
 
 final class MapleStoryTests: XCTestCase {
     
+    func testJob() {
+        XCTAssertEqual(Job.beginner.type, .beginner)
+        
+        XCTAssertEqual(Job.warrior.type, .warrior)
+        XCTAssertEqual(Job.fighter.type, .warrior)
+        XCTAssertEqual(Job.crusader.type, .warrior)
+        XCTAssertEqual(Job.darkknight.type, .warrior)
+        
+        XCTAssertEqual(Job.magician.type, .magician)
+        XCTAssertEqual(Job.fpWizard.type, .magician)
+        XCTAssertEqual(Job.fpMage.type, .magician)
+        XCTAssertEqual(Job.priest.type, .magician)
+        XCTAssertEqual(Job.bishop.type, .magician)
+        
+        XCTAssertEqual(Job.bowman.type, .bowman)
+        XCTAssertEqual(Job.hunter.type, .bowman)
+        XCTAssertEqual(Job.sniper.type, .bowman)
+        XCTAssertEqual(Job.marksman.type, .bowman)
+        
+        XCTAssertEqual(Job.thief.type, .thief)
+        XCTAssertEqual(Job.assassin.type, .thief)
+        XCTAssertEqual(Job.bandit.type, .thief)
+        XCTAssertEqual(Job.shadower.type, .thief)
+        
+        XCTAssertEqual(Job.pirate.type, .pirate)
+        XCTAssertEqual(Job.brawler.type, .pirate)
+        XCTAssertEqual(Job.buccaneer.type, .pirate)
+        XCTAssertEqual(Job.gunslinger.type, .pirate)
+        XCTAssertEqual(Job.outlaw.type, .pirate)
+        XCTAssertEqual(Job.corsair.type, .pirate)
+        
+        XCTAssertEqual(Job.gm.type, .gm)
+        XCTAssertEqual(Job.supergm.type, .gm)
+    }
+    
     func testHello() throws {
         
         let data = Data([0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08])
