@@ -33,6 +33,49 @@ final class ChannelTests: XCTestCase {
         XCTAssertDecode(value, packet)
     }
     
+    func testServerMessageNotification() throws {
+        
+        /*
+         MaplePacketEncoder will write encrypted 41 00 04 01 00 00
+         MaplePacketEncoder header B9 BF BF BF
+         MaplePacketEncoder custom encrypted 37 FB 94 7C B4 1F
+         MapleAESOFB.crypt() input: 37 FB 94 7C B4 1F
+         MapleAESOFB.crypt() iv: 52 30 78 40
+         MapleAESOFB.crypt() output: CF 8E 16 C6 1D 79
+         MaplePacketEncoder AES encrypted CF 8E 16 C6 1D 79
+         MaplePacketEncoder output B9 BF BF BF CF 8E 16 C6 1D 79
+         */
+        
+        let encryptedData = Data([0xB9, 0xBF, 0xBF, 0xBF, 0xCF, 0x8E, 0x16, 0xC6, 0x1D, 0x79])
+        let packetData = Data([0x41, 0x00, 0x04, 0x01, 0x00, 0x00])
+        let nonce: Nonce = 0x52307840
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = ServerMessageNotification(
+            type: .topScrolling,
+            isServer: true,
+            message: "",
+            channel: nil,
+            megaEarphone: nil
+        )
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x0041)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
+    }
+    
     func testNPCActionRequest() throws {
         
         /*
