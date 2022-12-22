@@ -123,6 +123,39 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0xB9279527))
     }
     
+    func testPinOperationRequest() throws {
+        
+        /*
+         MaplePacketDecoder encrypted packet AE D7 B7 85 D7 56 9A BE 5E 1A
+         Recieve IV 53 96 48 06
+         MapleAESOFB.crypt() input: AE D7 B7 85 D7 56 9A BE 5E 1A
+         MapleAESOFB.crypt() iv: 53 96 48 06
+         MapleAESOFB.crypt() output: 58 77 FA 70 F0 48 84 1C AD C7
+         MaplePacketDecoder AES decrypted packet 58 77 FA 70 F0 48 84 1C AD C7
+         MaplePacketDecoder custom decrypted packet 09 00 01 01 FF 6A 01 00 00 00
+         Incoming packet 0x0009
+         AfterLoginHandler 1 1
+         */
+        
+        let packetData = Data([0x09, 0x00, 0x01, 0x01, 0xFF, 0x6A, 0x01, 0x00, 0x00, 0x00])
+        
+        let encryptedData = Data([0xAE, 0xD7, 0xB7, 0x85, 0xD7, 0x56, 0x9A, 0xBE, 0x5E, 0x1A])
+        
+        let nonce: Nonce = 0x53964806
+        
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        let value = PinOperationRequest(value0: 1, value1: 1)
+        XCTAssertEqual(packet, Packet(packetData))
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        XCTAssertDecode(value, packet)
+    }
+    
     func testPinOperationResponse() throws {
         
         /*
@@ -255,6 +288,9 @@ final class LoginTests: XCTestCase {
             return
         }
         
+        let value = ServerListResponse.end
+        
+        XCTAssertEncode(value, packet)
         XCTAssertEqual(packet.opcode, ServerListResponse.opcode)
         
         let encrypted = try packet.encrypt(
@@ -267,43 +303,95 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testPinRequest() throws {
+    func testCharacterListResponse() throws {
         
         /*
-         MaplePacketDecoder encrypted packet AE D7 B7 85 D7 56 9A BE 5E 1A
-         Recieve IV 53 96 48 06
-         MapleAESOFB.crypt() input: AE D7 B7 85 D7 56 9A BE 5E 1A
-         MapleAESOFB.crypt() iv: 53 96 48 06
-         MapleAESOFB.crypt() output: 58 77 FA 70 F0 48 84 1C AD C7
-         MaplePacketDecoder AES decrypted packet 58 77 FA 70 F0 48 84 1C AD C7
-         MaplePacketDecoder custom decrypted packet 09 00 01 01 FF 6A 01 00 00 00
-         Incoming packet 0x0009
-         AfterLoginHandler 1 1
+         MaplePacketEncoder will write encrypted 0B 00 00 01 01 00 00 00 41 64 6D 69 6E 00 00 00 00 00 00 00 00 00 00 20 4E 00 00 4E 75 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 FE 00 02 FF 7F FF 7F FF 7F FF 7F 30 75 30 75 6A 67 30 75 00 00 00 00 00 00 00 00 19 34 00 00 00 00 80 7F 3D 36 01 00 00 00 00 00 00 20 4E 00 00 01 4E 75 00 00 05 82 DE 0F 00 06 A2 2C 10 00 09 D9 D0 10 00 01 75 4B 0F 00 07 81 5B 10 00 0B 27 9D 16 00 FF FF 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 01 01 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 06 00 00 00
+         MaplePacketEncoder header 60 59 D1 59
+         MaplePacketEncoder custom encrypted 82 1B 0B 3C 60 F0 FA 4F 8B 5E B6 A0 6D 71 03 E7 02 F1 0D 9E 52 C7 F1 20 22 63 9D FF 67 10 C0 F9 D2 AC C1 9D D7 72 07 96 D5 AB CA 91 36 9F C5 F0 6D DE EB DB 9F B7 0B 0D 4F 5B AA C0 5E 7E 46 AA 3A 8B 21 8D 5B E9 87 26 A3 28 B1 72 E4 1B D7 B5 B6 60 9E CB BD 9D B4 E7 2D 59 02 A7 8E 15 80 4A AF 18 65 D0 06 C4 92 40 06 5F 8E 85 5C E1 1E BB 9D B1 26 BD FA F4 1F 69 64 C6 63 5E 6F C6 B5 66 28 32 96 38 4B 3B E9 C5 5A 67 4A 51 82 59 7C 5C 68 96 2D 6A CE 69 18 0B 47 79 E7 D9 11 D3 65 83 56 AB 3B 40 F2 45 5F E6 71 A6 1F 1E 22 3A 39 69 23
+         MapleAESOFB.crypt() input: 82 1B 0B 3C 60 F0 FA 4F 8B 5E B6 A0 6D 71 03 E7 02 F1 0D 9E 52 C7 F1 20 22 63 9D FF 67 10 C0 F9 D2 AC C1 9D D7 72 07 96 D5 AB CA 91 36 9F C5 F0 6D DE EB DB 9F B7 0B 0D 4F 5B AA C0 5E 7E 46 AA 3A 8B 21 8D 5B E9 87 26 A3 28 B1 72 E4 1B D7 B5 B6 60 9E CB BD 9D B4 E7 2D 59 02 A7 8E 15 80 4A AF 18 65 D0 06 C4 92 40 06 5F 8E 85 5C E1 1E BB 9D B1 26 BD FA F4 1F 69 64 C6 63 5E 6F C6 B5 66 28 32 96 38 4B 3B E9 C5 5A 67 4A 51 82 59 7C 5C 68 96 2D 6A CE 69 18 0B 47 79 E7 D9 11 D3 65 83 56 AB 3B 40 F2 45 5F E6 71 A6 1F 1E 22 3A 39 69 23
+         MapleAESOFB.crypt() iv: 0C 5E A1 A6
+         MapleAESOFB.crypt() output: 7A BC 1A 42 35 1E 17 21 F0 BC 27 85 75 39 8A 00 DF FA C7 78 98 EB A8 C4 E1 89 B4 3B 70 FD FC EC 82 B0 C4 06 6C 2D DF 8A 16 40 15 BE 76 D2 4B F8 41 B7 13 E9 E2 55 23 7B C2 7D 2A E5 DB FC 77 1F A0 0F B7 2C CE 3E 86 9B A4 4A CC 07 38 F3 41 F3 AD 35 F5 3C F3 65 36 91 11 59 DE CE C4 5E AD 5A 58 3A 9B A6 2A 06 2A F9 C8 70 25 A6 66 D4 58 89 4E E6 52 BE 72 40 CA C7 74 0D 80 36 5D 56 2E E6 86 C0 50 F1 9F 70 02 03 CF A5 C7 A3 E0 A6 2B 67 B5 AA 8A 4C 5F 00 AD B3 B3 23 5B DD 29 0B 09 CE 71 33 02 2D 19 5D A3 8F B3 65 67 B7 7E B6 F7 E9 BD
+         MaplePacketEncoder AES encrypted 7A BC 1A 42 35 1E 17 21 F0 BC 27 85 75 39 8A 00 DF FA C7 78 98 EB A8 C4 E1 89 B4 3B 70 FD FC EC 82 B0 C4 06 6C 2D DF 8A 16 40 15 BE 76 D2 4B F8 41 B7 13 E9 E2 55 23 7B C2 7D 2A E5 DB FC 77 1F A0 0F B7 2C CE 3E 86 9B A4 4A CC 07 38 F3 41 F3 AD 35 F5 3C F3 65 36 91 11 59 DE CE C4 5E AD 5A 58 3A 9B A6 2A 06 2A F9 C8 70 25 A6 66 D4 58 89 4E E6 52 BE 72 40 CA C7 74 0D 80 36 5D 56 2E E6 86 C0 50 F1 9F 70 02 03 CF A5 C7 A3 E0 A6 2B 67 B5 AA 8A 4C 5F 00 AD B3 B3 23 5B DD 29 0B 09 CE 71 33 02 2D 19 5D A3 8F B3 65 67 B7 7E B6 F7 E9 BD
+         MaplePacketEncoder output 60 59 D1 59 7A BC 1A 42 35 1E 17 21 F0 BC 27 85 75 39 8A 00 DF FA C7 78 98 EB A8 C4 E1 89 B4 3B 70 FD FC EC 82 B0 C4 06 6C 2D DF 8A 16 40 15 BE 76 D2 4B F8 41 B7 13 E9 E2 55 23 7B C2 7D 2A E5 DB FC 77 1F A0 0F B7 2C CE 3E 86 9B A4 4A CC 07 38 F3 41 F3 AD 35 F5 3C F3 65 36 91 11 59 DE CE C4 5E AD 5A 58 3A 9B A6 2A 06 2A F9 C8 70 25 A6 66 D4 58 89 4E E6 52 BE 72 40 CA C7 74 0D 80 36 5D 56 2E E6 86 C0 50 F1 9F 70 02 03 CF A5 C7 A3 E0 A6 2B 67 B5 AA 8A 4C 5F 00 AD B3 B3 23 5B DD 29 0B 09 CE 71 33 02 2D 19 5D A3 8F B3 65 67 B7 7E B6 F7 E9 BD
          */
         
-        let packetData = Data([0x09, 0x00, 0x01, 0x01, 0xFF, 0x6A, 0x01, 0x00, 0x00, 0x00])
+        let packetData = Data([0x0B, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x41, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x4E, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFE, 0x00, 0x02, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0xFF, 0x7F, 0x30, 0x75, 0x30, 0x75, 0x6A, 0x67, 0x30, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x19, 0x34, 0x00, 0x00, 0x00, 0x00, 0x80, 0x7F, 0x3D, 0x36, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x01, 0x4E, 0x75, 0x00, 0x00, 0x05, 0x82, 0xDE, 0x0F, 0x00, 0x06, 0xA2, 0x2C, 0x10, 0x00, 0x09, 0xD9, 0xD0, 0x10, 0x00, 0x01, 0x75, 0x4B, 0x0F, 0x00, 0x07, 0x81, 0x5B, 0x10, 0x00, 0x0B, 0x27, 0x9D, 0x16, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00])
+        let encryptedData = Data([0x60, 0x59, 0xD1, 0x59, 0x7A, 0xBC, 0x1A, 0x42, 0x35, 0x1E, 0x17, 0x21, 0xF0, 0xBC, 0x27, 0x85, 0x75, 0x39, 0x8A, 0x00, 0xDF, 0xFA, 0xC7, 0x78, 0x98, 0xEB, 0xA8, 0xC4, 0xE1, 0x89, 0xB4, 0x3B, 0x70, 0xFD, 0xFC, 0xEC, 0x82, 0xB0, 0xC4, 0x06, 0x6C, 0x2D, 0xDF, 0x8A, 0x16, 0x40, 0x15, 0xBE, 0x76, 0xD2, 0x4B, 0xF8, 0x41, 0xB7, 0x13, 0xE9, 0xE2, 0x55, 0x23, 0x7B, 0xC2, 0x7D, 0x2A, 0xE5, 0xDB, 0xFC, 0x77, 0x1F, 0xA0, 0x0F, 0xB7, 0x2C, 0xCE, 0x3E, 0x86, 0x9B, 0xA4, 0x4A, 0xCC, 0x07, 0x38, 0xF3, 0x41, 0xF3, 0xAD, 0x35, 0xF5, 0x3C, 0xF3, 0x65, 0x36, 0x91, 0x11, 0x59, 0xDE, 0xCE, 0xC4, 0x5E, 0xAD, 0x5A, 0x58, 0x3A, 0x9B, 0xA6, 0x2A, 0x06, 0x2A, 0xF9, 0xC8, 0x70, 0x25, 0xA6, 0x66, 0xD4, 0x58, 0x89, 0x4E, 0xE6, 0x52, 0xBE, 0x72, 0x40, 0xCA, 0xC7, 0x74, 0x0D, 0x80, 0x36, 0x5D, 0x56, 0x2E, 0xE6, 0x86, 0xC0, 0x50, 0xF1, 0x9F, 0x70, 0x02, 0x03, 0xCF, 0xA5, 0xC7, 0xA3, 0xE0, 0xA6, 0x2B, 0x67, 0xB5, 0xAA, 0x8A, 0x4C, 0x5F, 0x00, 0xAD, 0xB3, 0xB3, 0x23, 0x5B, 0xDD, 0x29, 0x0B, 0x09, 0xCE, 0x71, 0x33, 0x02, 0x2D, 0x19, 0x5D, 0xA3, 0x8F, 0xB3, 0x65, 0x67, 0xB7, 0x7E, 0xB6, 0xF7, 0xE9, 0xBD])
+        let nonce: Nonce = 0x0C5EA1A6
         
-        let encryptedData = Data([0xAE, 0xD7, 0xB7, 0x85, 0xD7, 0x56, 0x9A, 0xBE, 0x5E, 0x1A])
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
         
-        let nonce: Nonce = 0x53964806
+        let value = CharacterListResponse(
+            value0: 0x00,
+            characters: [
+                MapleStory.CharacterListResponse.Character(
+                    stats: MapleStory.CharacterListResponse.CharacterStats(
+                        id: 1,
+                        name: "Admin",
+                        gender: .male,
+                        skinColor: .normal,
+                        face: 20000,
+                        hair: 30030,
+                        value0: 0,
+                        value1: 0,
+                        value2: 0,
+                        level: 254,
+                        job: .buccaneer,
+                        str: 32767,
+                        dex: 32767,
+                        int: 32767,
+                        luk: 32767,
+                        hp: 30000,
+                        maxHp: 30000,
+                        mp: 26474,
+                        maxMp: 30000,
+                        ap: 0,
+                        sp: 0,
+                        exp: 0,
+                        fame: 13337,
+                        isMarried: 0,
+                        currentMap: 910000000,
+                        spawnPoint: 1,
+                        value3: 0
+                    ),
+                    appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                        gender: .male,
+                        skinColor: .normal,
+                        face: 20000,
+                        mega: true,
+                        hair: 30030,
+                        equipment: [5: 0x82DE0F00, 6: 0xA22C1000, 9: 0xD9D01000, 1: 0x754B0F00, 7: 0x815B1000, 11: 0x279D1600],
+                        maskedEquipment: [:],
+                        cashWeapon: 0,
+                        value0: 0,
+                        value1: 0
+                    ),
+                    rank: MapleStory.CharacterListResponse.Rank(
+                        worldRank: 1,
+                        rankMove: 0,
+                        jobRank: 1,
+                        jobRankMove: 0
+                    )
+                )
+            ],
+            maxCharacters: 6
+        )
         
-        let packet = try Packet.decrypt(
-            encryptedData,
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, CharacterListResponse.opcode)
+        
+        let encrypted = try packet.encrypt(
             key: .default,
             nonce: nonce,
             version: .v62
         )
         
-        let value = PinOperationRequest(value0: 1, value1: 1)
-        XCTAssertEqual(packet, Packet(packetData))
-        XCTAssertEqual(packet.opcode, type(of: value).opcode)
-        XCTAssertDecode(value, packet)
-    }
-    
-    func testRequest() {
-        
-        let encryptedData = Data([0xC8, 0x63, 0xEE, 0x0E])
-        let packetData = Data([0x06, 0x00, 0x00, 0x00])
-        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
     }
 }

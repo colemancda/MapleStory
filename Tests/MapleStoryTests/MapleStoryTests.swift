@@ -12,6 +12,7 @@ import XCTest
 final class MapleStoryTests: XCTestCase {
     
     func testJob() {
+        
         XCTAssertEqual(Job.beginner.type, .beginner)
         
         XCTAssertEqual(Job.warrior.type, .warrior)
