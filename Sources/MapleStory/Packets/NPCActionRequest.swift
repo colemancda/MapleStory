@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum NPCActionRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public enum NPCActionRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
     public static var opcode: Opcode { 0xA6 }
     
@@ -20,7 +20,7 @@ public enum NPCActionRequest: MapleStoryPacket, Codable, Equatable, Hashable {
 
 // MARK: - MapleStoryDecoder
 
-extension NPCActionRequest: MapleStoryCodable {
+extension NPCActionRequest: MapleStoryDecodable {
     
     public init(from container: MapleStoryDecodingContainer) throws {
         let length = container.remainingBytes
@@ -33,16 +33,6 @@ extension NPCActionRequest: MapleStoryCodable {
             self = .move(data)
         } else {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.decoder.codingPath, debugDescription: "Not enough bytes"))
-        }
-    }
-    
-    public func encode(to container: MapleStoryEncodingContainer) throws {
-        switch self {
-        case let .talk(int, short):
-            try container.encode(int)
-            try container.encode(short)
-        case let .move(data):
-            try container.encode(data)
         }
     }
 }

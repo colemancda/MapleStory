@@ -61,7 +61,6 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(packet.data, packetData)
         
         let value = NPCActionRequest.talk(0x65, 0xFF)
-        XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
     }
     
@@ -87,8 +86,8 @@ final class ChannelTests: XCTestCase {
             return
         }
         
-        //XCTAssertEncode(value, packet)
-        //XCTAssertDecode(value, packet)
+        let value = NPCActionResponse.talk(0x65, 0xFF)
+        XCTAssertEncode(value, packet)
         XCTAssertEqual(packet.opcode, 0x00C5)
         
         let encrypted = try packet.encrypt(
