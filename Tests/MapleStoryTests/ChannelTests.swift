@@ -156,18 +156,40 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testSpawnNPC() {
+    func testSpawnNPC() throws {
         
-        /*
-         MaplePacketEncoder will write encrypted C2 00 64 00 00 00 34 08 00 00 5B FF 35 00 01 0B 00 2B FF 8D FF 01
-         MaplePacketEncoder header A5 05 B3 05
-         MaplePacketEncoder custom encrypted A8 F2 17 3F 7B 1E A7 9B E5 62 30 18 4E 04 9E CB B0 5C 39 16 E2 4D
-         MapleAESOFB.crypt() input: A8 F2 17 3F 7B 1E A7 9B E5 62 30 18 4E 04 9E CB B0 5C 39 16 E2 4D
-         MapleAESOFB.crypt() iv: A3 54 64 FA
-         MapleAESOFB.crypt() output: 5D 4C A6 72 D6 BE CF D1 1E DF A3 9F 2B C5 11 49 DB 89 F0 E3 2E 62
-         MaplePacketEncoder AES encrypted 5D 4C A6 72 D6 BE CF D1 1E DF A3 9F 2B C5 11 49 DB 89 F0 E3 2E 62
-         MaplePacketEncoder output A5 05 B3 05 5D 4C A6 72 D6 BE CF D1 1E DF A3 9F 2B C5 11 49 DB 89 F0 E3 2E 62
-         */
+        let packetData = Data([0xC2, 0x00, 0x64, 0x00, 0x00, 0x00, 0x34, 0x08, 0x00, 0x00, 0x5B, 0xFF, 0x35, 0x00, 0x01, 0x0B, 0x00, 0x2B, 0xFF, 0x8D, 0xFF, 0x01])
+        let encryptedData = Data([0xA5, 0x05, 0xB3, 0x05, 0x5D, 0x4C, 0xA6, 0x72, 0xD6, 0xBE, 0xCF, 0xD1, 0x1E, 0xDF, 0xA3, 0x9F, 0x2B, 0xC5, 0x11, 0x49, 0xDB, 0x89, 0xF0, 0xE3, 0x2E, 0x62])
+        let nonce: Nonce = 0xA35464FA
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = SpawnNPCNotification(
+            objectId: 100,
+            id: 2100,
+            x: 65371,
+            cy: 53,
+            f: true,
+            fh: 11,
+            rx0: 65323,
+            rx1: 65421,
+            value0: 1
+        )
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0xC2)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
     }
     
     func testSpawnNPCRequestController() {
