@@ -105,12 +105,12 @@ extension MapleStoryAddress: MapleStoryCodable {
     
     public init(from container: MapleStoryDecodingContainer) throws {
         self.ipAddress = try container.decode(IPv4Address.self, forKey: CodingKeys.ipAddress)
-        self.port = try container.decode(UInt16.self, isLittleEndian: false)
+        self.port = try container.decode(UInt16.self, isLittleEndian: true)
     }
     
     public func encode(to container: MapleStoryEncodingContainer) throws {
         try container.encode(ipAddress, forKey: CodingKeys.ipAddress)
-        try container.encode(port, isLittleEndian: false)
+        try container.encode(port, isLittleEndian: true)
     }
 }
 
