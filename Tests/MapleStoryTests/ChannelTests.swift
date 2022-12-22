@@ -125,6 +125,7 @@ final class ChannelTests: XCTestCase {
         
         let value = HealOverTimeRequest(value0: 0, value1: 0x14, value2: 0, hp: 0, mp: 3, value3: 0)
         XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
         XCTAssertEqual(packet.opcode, 0x0051)
         XCTAssertEqual(packet.data, packetData)
     }
@@ -229,22 +230,24 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testNPCTalkRequest() {
+    func testNPCTalkRequest() throws {
         
-        /*
-         MaplePacketDecoder encrypted packet 77 90 12 3A 9F 7D 90 AE 8C D6
-         Recieve IV 7F B4 72 35
-         MapleAESOFB.crypt() input: 77 90 12 3A 9F 7D 90 AE 8C D6
-         MapleAESOFB.crypt() iv: 7F B4 72 35
-         MapleAESOFB.crypt() output: BE 29 BD 9E B9 76 5C 25 1E 65
-         MaplePacketDecoder AES decrypted packet BE 29 BD 9E B9 76 5C 25 1E 65
-         MaplePacketDecoder custom decrypted packet 36 00 64 00 00 00 F7 FF 35 00
-         Incoming packet 0x0036
-         readInt() 64000
-         readInt() f7ff350
-         */
+        let encryptedData = Data([0x77, 0x90, 0x12, 0x3A, 0x9F, 0x7D, 0x90, 0xAE, 0x8C, 0xD6])
+        let packetData = Data([0x36, 0x00, 0x64, 0x00, 0x00, 0x00, 0xF7, 0xFF, 0x35, 0x00])
+        let nonce: Nonce = 0x7FB47235
         
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
         
+        let value = NPCTalkRequest(objectID: 0x64, value0: 0x0035FFF7)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x0036)
+        XCTAssertEqual(packet.data, packetData)
     }
     
     func testNPCTalkResponse() {
