@@ -60,6 +60,16 @@ public enum Job: UInt16, Codable, CaseIterable {
     case supergm            = 910
 }
 
+
+public extension Job {
+    
+    var type: Class {
+        return Class(rawValue: UInt8(self.rawValue / 100))!
+    }
+}
+
+// MARK: - Class
+
 public enum Class: UInt8 {
     
     case beginner = 0
@@ -77,9 +87,22 @@ public enum Class: UInt8 {
     case gm = 9
 }
 
-public extension Job {
+public extension Class {
     
-    var type: Class {
-        return Class(rawValue: UInt8(self.rawValue / 100))!
+    init(byte5Encoding value: UInt32) {
+        switch value {
+        case 2:
+            self = .warrior
+        case 4:
+            self = .magician
+        case 8:
+            self = .bowman
+        case 16:
+            self = .thief
+        case 32:
+            self = .pirate
+        default:
+            self = .beginner
+        }
     }
 }
