@@ -521,7 +521,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testUnknownRequest() {
+    func testUnknownRequest() throws {
         
         /*
          MaplePacketDecoder encrypted packet 11 C2 86 FB 91 E1 39 D9 05 01 A3
@@ -533,6 +533,26 @@ final class LoginTests: XCTestCase {
          MaplePacketDecoder custom decrypted packet 1A 00 01 7D 5B D5 EE 00 00 00 00
          Incoming packet 0x001A
          */
+        
+        let packetData = Data([0x0C, 0x00, 0x00, 0x00, 0xAC, 0x11, 0x00, 0x03, 0x97, 0x1D, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00])
+        let encryptedData = Data([0x1A, 0x00, 0x01, 0x7D, 0x5B, 0xD5, 0xEE, 0x00, 0x00, 0x00, 0x00])
+        let nonce: Nonce = 0x25C12163
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let decrypted = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        //XCTAssertDecode(value, packet)
+        XCTAssertEqual(decrypted, packet)
+        XCTAssertEqual(packet.opcode, 0x001A)
     }
     
     func testSelectCharacterRequest() throws {
