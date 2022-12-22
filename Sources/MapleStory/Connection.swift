@@ -129,6 +129,7 @@ internal actor Connection <Socket: MapleStorySocket> {
             let encryptedPacketData = try await socket.recieve(length)
             #if DEBUG
             log?("Encrypted data: \(encryptedPacketData.hexString)")
+            log?("Nonce: \(recieveNonce)")
             #endif
             packet = try Packet.decrypt(
                 encryptedPacketData,
@@ -179,6 +180,7 @@ internal actor Connection <Socket: MapleStorySocket> {
             ).data
             #if DEBUG
             log?("Encrypted data: \(data.hexString)")
+            log?("Nonce: \(sendNonce)")
             #endif
             sendNonce.shuffle()
         } else {
