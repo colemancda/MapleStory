@@ -20,7 +20,7 @@ public enum AllCharactersResponse: MapleStoryPacket, Equatable, Hashable {
     case characters(world: UInt8, characters: [Character])
 }
 
-extension AllCharactersResponse: Encodable {
+extension AllCharactersResponse: Codable {
     
     enum PacketType: UInt8, Codable {
         
@@ -35,6 +35,21 @@ extension AllCharactersResponse: Encodable {
         case count
         case value0
         case world
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let packetType = try container.decode(PacketType.self, forKey: .packetType)
+        switch packetType {
+        case .count:
+            let count = try container.decode(UInt32.self, forKey: .count)
+            let value0 = try container.decode(UInt32.self, forKey: .value0)
+            self = .count(characters: count, value0: value0)
+        case .characters:
+            let world = try container.decode(UInt8.self, forKey: .world)
+            let characters = try container.decode([Character].self, forKey: .characters)
+            self = .characters(world: world, characters: characters)
+        }
     }
     
     public func encode(to encoder: Encoder) throws {
