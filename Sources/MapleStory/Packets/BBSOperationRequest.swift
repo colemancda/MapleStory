@@ -23,12 +23,13 @@ public enum BBSOperationRequest: MapleStoryPacket, Equatable, Hashable {
 internal extension BBSOperationRequest {
     
     enum Mode: UInt8, Codable {
-        case new
-        case delete
-        case list
-        case listReply
-        case reply
-        case deleteReply
+        
+        case new                = 0
+        case delete             = 1
+        case list               = 2
+        case listReply          = 3
+        case reply              = 4
+        case deleteReply        = 5
     }
     
     var mode: Mode {
