@@ -735,12 +735,6 @@ final class LoginTests: XCTestCase {
     
     func testDeleteCharacterResponse() throws {
         
-        /*
-         MaplePacketEncoder input 0F 00 10 00 00 00 12
-         MapleAESOFB.crypt() iv: 67 09 91 6F
-         MaplePacketEncoder output 50 90 57 90 0B 83 F6 3A 41 9A F7
-         */
-        
         let packetData = Data([0x0F, 0x00, 0x10, 0x00, 0x00, 0x00, 0x12])
         let encryptedData = Data([0x50, 0x90, 0x57, 0x90, 0x0B, 0x83, 0xF6, 0x3A, 0x41, 0x9A, 0xF7])
         let nonce: Nonce = 0x6709916F
@@ -750,8 +744,13 @@ final class LoginTests: XCTestCase {
             return
         }
         
-        //XCTAssertEncode(value, packet)
-        //XCTAssertDecode(value, packet)
+        let value = DeleteCharacterResponse(
+            client: 16,
+            state: 18
+        )
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, 0x0F)
         
         let encrypted = try packet.encrypt(
