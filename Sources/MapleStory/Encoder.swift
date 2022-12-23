@@ -207,8 +207,8 @@ private extension MapleStoryEncoder.Encoder {
         guard let stringData = value.data(using: .ascii) else {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: "Cannot encode to ASCII."))
         }
-        guard stringData.count <= UInt8.max else {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: "String must be less than \(Int(UInt8.max) + 1) characters to be encoded."))
+        guard stringData.count <= UInt16.max else {
+            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: "String must be less than \(Int(UInt16.max) + 1) characters to be encoded."))
         }
         var encodedData = Data(capacity: 1 + stringData.count)
         let length = UInt16(stringData.count)
