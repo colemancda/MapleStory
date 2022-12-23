@@ -244,6 +244,8 @@ internal extension MapleStoryServer {
         }
         
         private func registerHandlers() async {
+            
+            // login
             await register { [unowned self] in try await self.login($0) }
             await register { [unowned self] in try await self.guestLogin($0) }
             await register { [unowned self] in try await self.pinOperation($0) }
@@ -253,6 +255,9 @@ internal extension MapleStoryServer {
             await connection.register { [unowned self] in await self.allCharacters($0) }
             await register { [unowned self] in try await self.selectCharacter($0) }
             await register { [unowned self] in try await self.selectAllCharacter($0) }
+            
+            // Channel
+            await connection.register { [unowned self] in await self.playerLogin($0) }
         }
         
         /// Respond to a client-initiated PDU message.
@@ -522,6 +527,59 @@ internal extension MapleStoryServer {
                 value1: 0,
                 value2: 0
             )
+        }
+        
+        private func playerLogin(_ request: PlayerLoginRequest) async {
+            log("Player Login - Client \(request.client)")
+            do {
+                let warpNotification = WarpToMapNotification.characterInfo(WarpToMapNotification.CharacterInfo(
+                    channel: 0,
+                    random0: .random(in: .min ..< .max),
+                    random1: .random(in: .min ..< .max),
+                    random2: .random(in: .min ..< .max),
+                    stats: WarpToMapNotification.CharacterStats(
+                        id: 1,
+                        name: "Admin",
+                        gender: .male,
+                        skinColor: .normal,
+                        face: 20000,
+                        hair: 30030,
+                        value0: 0,
+                        value1: 0,
+                        value2: 0,
+                        level: 1,
+                        job: .beginner,
+                        str: 6,
+                        dex: 9,
+                        int: 5,
+                        luk: 5,
+                        hp: 50,
+                        maxHp: 50,
+                        mp: 5,
+                        maxMp: 5,
+                        ap: 0,
+                        sp: 0,
+                        exp: 0,
+                        fame: 0,
+                        isMarried: 0,
+                        currentMap: 0,
+                        spawnPoint: 0,
+                        value3: 0
+                    ),
+                    buddyListSize: 1,
+                    meso: 0,
+                    equipSlots: 100,
+                    useSlots: 100,
+                    setupSlots: 100,
+                    etcSlots: 100,
+                    cashSlots: 100
+                ))
+                
+                try await send(warpNotification)
+            }
+            catch {
+                await close(error)
+            }
         }
     }
 }
