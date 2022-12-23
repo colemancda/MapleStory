@@ -539,7 +539,7 @@ internal extension MapleStoryServer {
                     random2: .random(in: .min ..< .max),
                     stats: WarpToMapNotification.CharacterStats(
                         id: 1,
-                        name: "Admin",
+                        name: "colemancda",
                         gender: .male,
                         skinColor: .normal,
                         face: 20000,
