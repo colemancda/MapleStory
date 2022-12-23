@@ -330,18 +330,33 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(encrypted.data, encryptedData)
     }
     
-    func testPlayerHint() {
+    func testPlayerHint() throws {
         
-        /*
-         MaplePacketEncoder will write encrypted A9 00 25 00 59 6F 75 20 63 61 6E 20 6D 6F 76 65 20 62 79 20 75 73 69 6E 67 20 74 68 65 20 61 72 72 6F 77 20 6B 65 79 73 2E FA 00 05 00 01
-         MaplePacketEncoder header 91 74 BF 74
-         MaplePacketEncoder custom encrypted C5 CC 08 6B A9 05 D4 50 4A 85 F2 7C 0A 0D E1 E9 2B 86 1C 08 45 DD 78 88 2B 1B 9D 9D 83 1C 61 07 0B 80 00 2C 40 41 43 D0 19 65 5C 0C 63 39
-         MapleAESOFB.crypt() input: C5 CC 08 6B A9 05 D4 50 4A 85 F2 7C 0A 0D E1 E9 2B 86 1C 08 45 DD 78 88 2B 1B 9D 9D 83 1C 61 07 0B 80 00 2C 40 41 43 D0 19 65 5C 0C 63 39
-         MapleAESOFB.crypt() iv: 4A 07 50 8B
-         MapleAESOFB.crypt() output: E4 4E 97 0E 79 29 EB 8C 5F 80 A0 AB C2 4C CA 8E 9C 6D 17 AD 96 C9 81 2C 92 9C 44 3A 38 99 AD B7 1E AB 73 E5 7E 06 94 B4 77 D3 EE 93 38 1F
-         MaplePacketEncoder AES encrypted E4 4E 97 0E 79 29 EB 8C 5F 80 A0 AB C2 4C CA 8E 9C 6D 17 AD 96 C9 81 2C 92 9C 44 3A 38 99 AD B7 1E AB 73 E5 7E 06 94 B4 77 D3 EE 93 38 1F
-         MaplePacketEncoder output 91 74 BF 74 E4 4E 97 0E 79 29 EB 8C 5F 80 A0 AB C2 4C CA 8E 9C 6D 17 AD 96 C9 81 2C 92 9C 44 3A 38 99 AD B7 1E AB 73 E5 7E 06 94 B4 77 D3 EE 93 38 1F
-         */
+        let packetData = Data([0xA9, 0x00, 0x25, 0x00, 0x59, 0x6F, 0x75, 0x20, 0x63, 0x61, 0x6E, 0x20, 0x6D, 0x6F, 0x76, 0x65, 0x20, 0x62, 0x79, 0x20, 0x75, 0x73, 0x69, 0x6E, 0x67, 0x20, 0x74, 0x68, 0x65, 0x20, 0x61, 0x72, 0x72, 0x6F, 0x77, 0x20, 0x6B, 0x65, 0x79, 0x73, 0x2E, 0xFA, 0x00, 0x05, 0x00, 0x01])
+        
+        let encryptedData = Data([0x91, 0x74, 0xBF, 0x74, 0xE4, 0x4E, 0x97, 0x0E, 0x79, 0x29, 0xEB, 0x8C, 0x5F, 0x80, 0xA0, 0xAB, 0xC2, 0x4C, 0xCA, 0x8E, 0x9C, 0x6D, 0x17, 0xAD, 0x96, 0xC9, 0x81, 0x2C, 0x92, 0x9C, 0x44, 0x3A, 0x38, 0x99, 0xAD, 0xB7, 0x1E, 0xAB, 0x73, 0xE5, 0x7E, 0x06, 0x94, 0xB4, 0x77, 0xD3, 0xEE, 0x93, 0x38, 0x1F])
+        
+        let nonce: Nonce = 0x4A07508B
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = PlayerHintNotification(hint: "You can move by using the arrow keys.", width: 250, height: 5)
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x00A9)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
     }
     
     func testKeyMap() {
