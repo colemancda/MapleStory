@@ -7,17 +7,17 @@
 
 import Foundation
 
-public struct ServerMessageNotification: MapleStoryPacket, Encodable, Equatable, Hashable {
+public struct ServerMessageNotification: MapleStoryPacket, Codable, Equatable, Hashable {
     
     public static var opcode: Opcode { 0x41 }
     
     public let type: ServerMessageType
     
-    public let isServer: Bool?
+    //public let isServer: Bool?
     
     public let message: String
     
-    public let channel: UInt8?
+    //public let channel: UInt8?
     
-    public let megaEarphone: Bool?
+    //public let megaEarphone: Bool?
 }
