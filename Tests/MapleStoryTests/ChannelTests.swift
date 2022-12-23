@@ -496,4 +496,54 @@ final class ChannelTests: XCTestCase {
         
         
     }
+    
+    func testBBSOperationRequest() throws {
+        
+        
+    }
+    
+    func testBBSOperationResponse() throws {
+        
+        let packetData = Data([0x38, 0x00, 0x04, 0x01, 0x0A, 0x00, 0x00, 0x00])
+        let encryptedData = Data([0x99, 0x26, 0x4E, 0x82, 0x5D, 0xC3, 0xC0, 0xF3])
+        let nonce: Nonce = 0x4A21C6BB
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+                
+        //XCTAssertEncode(value, packet)
+        //XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x38)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.parameters, encryptedData)
+    }
+    
+    func testUpdateStats() throws {
+        
+        let packetData = Data([0x1C, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x9E, 0x67])
+        let encryptedData = Data([0xBD, 0xB7, 0xB4, 0xB7, 0x09, 0x21, 0xDD, 0x98, 0xFC, 0x9B, 0x0A, 0x42, 0x51])
+        let nonce: Nonce = 0x2B6C7C48
+        
+        let encryptedPacket = Packet.Encrypted(encryptedData)
+        let packet = Packet(packetData)
+        let decrypted = try encryptedPacket.decrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(decrypted, packet)
+        XCTAssertEqual(try packet.encrypt(key: .default, nonce: nonce, version: .v62), encryptedPacket)
+        
+        
+    }
 }
