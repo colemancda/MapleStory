@@ -19,6 +19,8 @@ internal actor Connection <Socket: MapleStorySocket> {
     
     let region: Region
     
+    let timestamp = Date()
+    
     let didDisconnect: ((Error?) async -> ())?
     
     var isConnected = true
