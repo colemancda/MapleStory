@@ -600,9 +600,26 @@ final class LoginTests: XCTestCase {
             nonce: nonce,
             version: .v62
         )
-                
-        //XCTAssertEncode(value, packet)
-        //XCTAssertDecode(value, packet)
+        
+        let value = CreateCharacterRequest(
+            name: "cda1",
+            face: 20000,
+            hair: 30030,
+            hairColor: 0,
+            skinColor: 0,
+            top: 1040002,
+            bottom: 1060002,
+            shoes: 1072001,
+            weapon: 1302000,
+            gender: .male,
+            str: 6,
+            dex: 9,
+            int: 5,
+            luk: 5
+        )
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
         XCTAssertEqual(packet.opcode, 0x16)
     }
