@@ -218,9 +218,8 @@ private extension MapleStoryEncoder.Encoder {
     }
     
     func writeDate(_ value: Date) throws {
-        // FIXME: Korean Date
-        let timeInterval = UInt64(value.timeIntervalSince1970)
-        write(boxInteger(timeInterval))
+        let koreanDate = KoreanDate(value)
+        write(boxInteger(koreanDate.rawValue))
     }
 }
 

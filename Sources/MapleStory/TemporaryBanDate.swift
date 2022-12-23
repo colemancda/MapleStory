@@ -1,5 +1,5 @@
 //
-//  File.swift
+//  TemporaryBanDate.swift
 //  
 //
 //  Created by Alsey Coleman Miller on 12/14/22.
@@ -17,18 +17,14 @@ public struct TemporaryBanDate: MapleStoryDate {
     }
 }
 
-internal extension TemporaryBanDate {
-    
-    static var FT_UT_OFFSET: Int64 { 116444736000000000 }
-}
-
 public extension TemporaryBanDate {
     
-    var timeIntervalSince1970: Int64 {
-        ((rawValue * 10000) + Int64(Self.FT_UT_OFFSET)) / 1000
+    var timeIntervalSince1970: Double {
+        let offset: Int64 = 116444736000000000
+        return Double(((rawValue * 10000) + offset) / 1000)
     }
     
-    init(timeIntervalSince1970 timeInterval: Int64) {
+    init(timeIntervalSince1970 timeInterval: Double) {
         fatalError()
     }
 }

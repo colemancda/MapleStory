@@ -10,9 +10,9 @@ import Foundation
 /// MapleStory Date
 public protocol MapleStoryDate: RawRepresentable, Hashable, Codable, MapleStoryCodable where Self.RawValue: FixedWidthInteger, Self.RawValue: Codable {
     
-    var timeIntervalSince1970: Int64 { get }
+    var timeIntervalSince1970: Double { get }
     
-    init(timeIntervalSince1970: Int64)
+    init(timeIntervalSince1970: Double)
     
     init(rawValue: RawValue)
 }
@@ -70,13 +70,13 @@ public extension MapleStoryDate {
     }
     
     init(_ date: Date) {
-        self.init(timeIntervalSince1970: Int64(date.timeIntervalSince1970))
+        self.init(timeIntervalSince1970: date.timeIntervalSince1970)
     }
 }
 
 public extension Date {
     
     init<T: MapleStoryDate>(_ date: T) {
-        self.init(timeIntervalSince1970: TimeInterval(date.timeIntervalSince1970))
+        self.init(timeIntervalSince1970: date.timeIntervalSince1970)
     }
 }
