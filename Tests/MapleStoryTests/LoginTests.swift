@@ -637,10 +637,61 @@ final class LoginTests: XCTestCase {
             return
         }
         
-        //let value =
+        let value = CreateCharacterResponse(
+            didCreate: false,
+            character: MapleStory.CharacterListResponse.Character(
+                stats: MapleStory.CharacterListResponse.CharacterStats(
+                    id: 15,
+                    name: "cda1",
+                    gender: .male,
+                    skinColor: .normal,
+                    face: 20000,
+                    hair: 30030,
+                    value0: 0,
+                    value1: 0,
+                    value2: 0,
+                    level: 1,
+                    job: .beginner,
+                    str: 6,
+                    dex: 9,
+                    int: 5,
+                    luk: 5,
+                    hp: 50,
+                    maxHp: 50,
+                    mp: 5,
+                    maxMp: 5,
+                    ap: 0,
+                    sp: 0,
+                    exp: 0,
+                    fame: 0,
+                    isMarried: 0,
+                    currentMap: 0,
+                    spawnPoint: 0,
+                    value3: 0
+                ),
+                appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                    gender: .male,
+                    skinColor: .normal,
+                    face: 20000,
+                    mega: true,
+                    hair: 30030,
+                    equipment: [5: 0x82DE0F00, 6: 0xA22C1000, 7: 0x815B1000, 11: 0xF0DD1300],
+                    maskedEquipment: [:],
+                    cashWeapon: 0,
+                    value0: 0,
+                    value1: 0
+                ),
+                rank: MapleStory.CharacterListResponse.Rank(
+                    worldRank: 0,
+                    rankMove: 0,
+                    jobRank: 0,
+                    jobRankMove: 0
+                )
+            )
+        )
         
-        //XCTAssertEncode(value, packet)
-        //XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, 0x0E)
         
         let encrypted = try packet.encrypt(
