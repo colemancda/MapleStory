@@ -532,42 +532,42 @@ internal extension MapleStoryServer {
         private func playerLogin(_ request: PlayerLoginRequest) async {
             log("Player Login - Client \(request.client)")
             do {
-                let warpNotification = WarpToMapNotification.characterInfo(WarpToMapNotification.CharacterInfo(
+                let warpMap = WarpToMapNotification.characterInfo(WarpToMapNotification.CharacterInfo(
                     channel: 0,
-                    random0: .random(in: .min ..< .max),
-                    random1: .random(in: .min ..< .max),
-                    random2: .random(in: .min ..< .max),
-                    stats: WarpToMapNotification.CharacterStats(
-                        id: 1,
+                    random0: 2339392202,
+                    random1: 332863480,
+                    random2: 2024654285,
+                    stats: MapleStory.CharacterListResponse.CharacterStats(
+                        id: 14,
                         name: "colemancda",
                         gender: .male,
                         skinColor: .normal,
                         face: 20000,
-                        hair: 30030,
+                        hair: 30023,
                         value0: 0,
                         value1: 0,
                         value2: 0,
                         level: 1,
                         job: .beginner,
-                        str: 6,
-                        dex: 9,
-                        int: 5,
-                        luk: 5,
+                        str: 4,
+                        dex: 4,
+                        int: 4,
+                        luk: 4,
                         hp: 50,
                         maxHp: 50,
                         mp: 5,
                         maxMp: 5,
-                        ap: 0,
+                        ap: 9,
                         sp: 0,
-                        exp: 0,
+                        exp: 12,
                         fame: 0,
                         isMarried: 0,
-                        currentMap: 0,
-                        spawnPoint: 0,
+                        currentMap: 40000,
+                        spawnPoint: 2,
                         value3: 0
                     ),
-                    buddyListSize: 1,
-                    meso: 0,
+                    buddyListSize: 20,
+                    meso: 13,
                     equipSlots: 100,
                     useSlots: 100,
                     setupSlots: 100,
@@ -575,7 +575,7 @@ internal extension MapleStoryServer {
                     cashSlots: 100
                 ))
                 
-                try await send(warpNotification)
+                try await send(warpMap)
             }
             catch {
                 await close(error)
