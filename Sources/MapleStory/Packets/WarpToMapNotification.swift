@@ -129,7 +129,6 @@ extension WarpToMapNotification.CharacterInfo: MapleStoryCodable {
         self.setupSlots = try container.decode(UInt8.self, forKey: CodingKeys.setupSlots)
         self.etcSlots = try container.decode(UInt8.self, forKey: CodingKeys.etcSlots)
         self.cashSlots = try container.decode(UInt8.self, forKey: CodingKeys.cashSlots)
-        fatalError()
     }
     
     public func encode(to container: MapleStoryEncodingContainer) throws {
