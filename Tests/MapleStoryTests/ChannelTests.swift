@@ -546,4 +546,33 @@ final class ChannelTests: XCTestCase {
         
         
     }
+    
+    func testGeneralChatRequest() throws {
+        
+        let encryptedData = Data([0x2A, 0xD6, 0x78, 0xF3, 0x67, 0x9A, 0xA7, 0x35])
+        let packetData = Data([0x2E, 0x00, 0x03, 0x00, 0x68, 0x65, 0x79, 0x00])
+        let nonce: Nonce = 0x9842CEA1
+        
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        let value = GeneralChatRequest(
+            message: "hey",
+            show: false
+        )
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x002E)
+        XCTAssertEqual(packet.data, packetData)
+    }
+    
+    func testGeneralChatNotification() {
+        
+        
+    }
 }
