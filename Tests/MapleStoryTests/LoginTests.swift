@@ -722,8 +722,13 @@ final class LoginTests: XCTestCase {
             version: .v62
         )
         
-        //XCTAssertEncode(value, packet)
-        //XCTAssertDecode(value, packet)
+        let value = DeleteCharacterRequest(
+            date: 10141100,
+            client: 16
+        )
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
         XCTAssertEqual(packet.opcode, 0x0017)
     }
