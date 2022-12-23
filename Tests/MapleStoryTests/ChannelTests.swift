@@ -43,16 +43,12 @@ final class ChannelTests: XCTestCase {
             XCTFail()
             return
         }
-        /*
-        let value = ServerMessageNotification(
-            type: .topScrolling,
-            //isServer: true,
-            message: ""
-            //channel: nil,
-            //megaEarphone: nil
-        )
         
-        XCTAssertEncode(value, packet)*/
+        let value = ServerMessageNotification.topScrolling(message: "")
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(value.type, .topScrolling)
         XCTAssertEqual(packet.opcode, 0x0041)
         
         let encrypted = try packet.encrypt(
@@ -78,15 +74,13 @@ final class ChannelTests: XCTestCase {
             return
         }
         
-        let value = ServerMessageNotification(
-            type: .pinkText,
-            message: "[Tip] : The sum of the base-10 logarithms of the divisors of 10^n is 792. What is n?"
-            //channel: nil,
-            //megaEarphone: nil
-        )
+        let message = "[Tip] : The sum of the base-10 logarithms of the divisors of 10^n is 792. What is n?"
+        let value = ServerMessageNotification.pinkText(message: message)
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
+        XCTAssertEqual(value.type, .pinkText)
+        XCTAssertEqual(value.message, message)
         XCTAssertEqual(packet.opcode, 0x0041)
         
         let encrypted = try packet.encrypt(
