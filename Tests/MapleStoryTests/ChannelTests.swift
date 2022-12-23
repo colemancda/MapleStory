@@ -269,27 +269,38 @@ final class ChannelTests: XCTestCase {
             version: .v62
         )
         
-        let value = NPCTalkNotification.simple(npc: 2100, message: "#bWelcome to MapleStory. What job do you wish to be?#k \r\n#L0#Beginner#l \r\n #L1#Warrior#l \r\n #L2#Magician#k#l \r\n #L3#Bowman#l \r\n #L4#Thief#l \r\n #L5#Pirate#l")
+        let value = NPCTalkNotification.simple(
+            npc: 2100,
+            message: "#bWelcome to MapleStory. What job do you wish to be?#k \r\n#L0#Beginner#l \r\n #L1#Warrior#l \r\n #L2#Magician#k#l \r\n #L3#Bowman#l \r\n #L4#Thief#l \r\n #L5#Pirate#l"
+        )
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, 0xED)
         XCTAssertEqual(packet.data, packetData)
     }
     
-    func testBuddyList() {
+    func testEmptyBuddyList() throws {
         
-        /*
-         MaplePacketEncoder will write encrypted 3C 00 07 00
-         MaplePacketEncoder header 62 E3 66 E3
-         MaplePacketEncoder custom encrypted BC 6D 74 E8
-         MapleAESOFB.crypt() input: BC 6D 74 E8
-         MapleAESOFB.crypt() iv: 9D 83 A3 1C
-         MapleAESOFB.crypt() output: F0 9B C2 2E
-         MaplePacketEncoder AES encrypted F0 9B C2 2E
-         MaplePacketEncoder output 62 E3 66 E3 F0 9B C2 2E
-         */
+        let packetData = Data([0x3C, 0x00, 0x07, 0x00])
+        let encryptedData = Data([0x62, 0xE3, 0x66, 0xE3, 0xF0, 0x9B, 0xC2, 0x2E])
+        let nonce: Nonce = 0x9D83A31C
         
+        guard let encrypedPacket = Packet.Encrypted(data: encryptedData) else {
+            XCTFail()
+            return
+        }
         
+        let packet = try encrypedPacket.decrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        let value = BuddyListNotification.update([])
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x3C)
+        XCTAssertEqual(packet.data, packetData)
     }
     
     func testShowNotes() {
