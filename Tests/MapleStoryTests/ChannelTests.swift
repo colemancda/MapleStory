@@ -372,7 +372,7 @@ final class ChannelTests: XCTestCase {
             return
         }
         
-        let value = KeyMapNotification(keyMap: [17: MapleStory.KeyBinding(type: 4, action: 5), 35: MapleStory.KeyBinding(type: 4, action: 11), 40: MapleStory.KeyBinding(type: 4, action: 16), 5: MapleStory.KeyBinding(type: 4, action: 18), 64: MapleStory.KeyBinding(type: 6, action: 105), 19: MapleStory.KeyBinding(type: 4, action: 4), 29: MapleStory.KeyBinding(type: 5, action: 52), 34: MapleStory.KeyBinding(type: 4, action: 17), 50: MapleStory.KeyBinding(type: 4, action: 7), 61: MapleStory.KeyBinding(type: 6, action: 102), 18: MapleStory.KeyBinding(type: 4, action: 0), 57: MapleStory.KeyBinding(type: 5, action: 54), 56: MapleStory.KeyBinding(type: 5, action: 53), 60: MapleStory.KeyBinding(type: 6, action: 101), 6: MapleStory.KeyBinding(type: 4, action: 24), 25: MapleStory.KeyBinding(type: 4, action: 19), 31: MapleStory.KeyBinding(type: 4, action: 2), 45: MapleStory.KeyBinding(type: 5, action: 51), 26: MapleStory.KeyBinding(type: 4, action: 14), 3: MapleStory.KeyBinding(type: 4, action: 12), 65: MapleStory.KeyBinding(type: 6, action: 106), 7: MapleStory.KeyBinding(type: 4, action: 21), 63: MapleStory.KeyBinding(type: 6, action: 104), 27: MapleStory.KeyBinding(type: 4, action: 15), 2: MapleStory.KeyBinding(type: 4, action: 10), 62: MapleStory.KeyBinding(type: 6, action: 103), 4: MapleStory.KeyBinding(type: 4, action: 13), 23: MapleStory.KeyBinding(type: 4, action: 1), 59: MapleStory.KeyBinding(type: 6, action: 100), 16: MapleStory.KeyBinding(type: 4, action: 8), 48: MapleStory.KeyBinding(type: 4, action: 22), 41: MapleStory.KeyBinding(type: 4, action: 23), 46: MapleStory.KeyBinding(type: 4, action: 6), 43: MapleStory.KeyBinding(type: 4, action: 9), 38: MapleStory.KeyBinding(type: 4, action: 20), 44: MapleStory.KeyBinding(type: 5, action: 50), 37: MapleStory.KeyBinding(type: 4, action: 3)])
+        let value = KeyMapNotification(keyMap: [17: KeyBinding(type: 4, action: 5), 35: KeyBinding(type: 4, action: 11), 40: KeyBinding(type: 4, action: 16), 5: KeyBinding(type: 4, action: 18), 64: KeyBinding(type: 6, action: 105), 19: KeyBinding(type: 4, action: 4), 29: KeyBinding(type: 5, action: 52), 34: KeyBinding(type: 4, action: 17), 50: KeyBinding(type: 4, action: 7), 61: KeyBinding(type: 6, action: 102), 18: KeyBinding(type: 4, action: 0), 57: KeyBinding(type: 5, action: 54), 56: KeyBinding(type: 5, action: 53), 60: KeyBinding(type: 6, action: 101), 6: KeyBinding(type: 4, action: 24), 25: KeyBinding(type: 4, action: 19), 31: KeyBinding(type: 4, action: 2), 45: KeyBinding(type: 5, action: 51), 26: KeyBinding(type: 4, action: 14), 3: KeyBinding(type: 4, action: 12), 65: KeyBinding(type: 6, action: 106), 7: KeyBinding(type: 4, action: 21), 63: KeyBinding(type: 6, action: 104), 27: KeyBinding(type: 4, action: 15), 2: KeyBinding(type: 4, action: 10), 62: KeyBinding(type: 6, action: 103), 4: KeyBinding(type: 4, action: 13), 23: KeyBinding(type: 4, action: 1), 59: KeyBinding(type: 6, action: 100), 16: KeyBinding(type: 4, action: 8), 48: KeyBinding(type: 4, action: 22), 41: KeyBinding(type: 4, action: 23), 46: KeyBinding(type: 4, action: 6), 43: KeyBinding(type: 4, action: 9), 38: KeyBinding(type: 4, action: 20), 44: KeyBinding(type: 5, action: 50), 37: KeyBinding(type: 4, action: 3)])
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
@@ -402,18 +402,35 @@ final class ChannelTests: XCTestCase {
          */
     }
     
-    func testMovePlayer() {
+    func testMovePlayer() throws {
         
-        /*
-         MaplePacketDecoder encrypted packet 8C 08 25 73 B4 3D 89 76 61 15 F3 2B F6 C9 2E C3 C8 59 7F 5B 5B B2 87 77 3D F3 37 D0 67 B2 D9 D6 C4 ED DA 97 DB 07 D2 08 C5 EA 43 9D 3B DB 18 0F 31 BB 36 A3 AD 73 D8 0C 6C ED 53 A7 E1 EC E1 C9 55 6C F0 75
-         Recieve IV 9A 3B C4 2B
-         MapleAESOFB.crypt() input: 8C 08 25 73 B4 3D 89 76 61 15 F3 2B F6 C9 2E C3 C8 59 7F 5B 5B B2 87 77 3D F3 37 D0 67 B2 D9 D6 C4 ED DA 97 DB 07 D2 08 C5 EA 43 9D 3B DB 18 0F 31 BB 36 A3 AD 73 D8 0C 6C ED 53 A7 E1 EC E1 C9 55 6C F0 75
-         MapleAESOFB.crypt() iv: 9A 3B C4 2B
-         MapleAESOFB.crypt() output: 69 A4 B7 CE D3 F0 00 45 A7 77 60 13 F3 1E BD C0 31 21 57 30 25 53 D8 7F A3 D0 C3 51 81 66 99 A9 87 89 F5 38 49 E3 D2 72 89 CE 66 2A 6F 52 3E 09 42 E2 B9 96 FB E5 47 A8 6F 1C 05 81 E9 4C 5C F1 0E 58 DC B4
-         MaplePacketDecoder AES decrypted packet 69 A4 B7 CE D3 F0 00 45 A7 77 60 13 F3 1E BD C0 31 21 57 30 25 53 D8 7F A3 D0 C3 51 81 66 99 A9 87 89 F5 38 49 E3 D2 72 89 CE 66 2A 6F 52 3E 09 42 E2 B9 96 FB E5 47 A8 6F 1C 05 81 E9 4C 5C F1 0E 58 DC B4
-         MaplePacketDecoder custom decrypted packet 26 00 01 6C 00 1F 00 03 00 6C 00 2D 00 00 00 F0 00 00 00 06 78 00 00 6C 00 35 00 00 00 00 00 00 00 06 1A 00 00 6C 00 35 00 00 00 00 00 0B 00 04 6C 01 11 00 00 00 00 00 00 00 00 00 6C 00 1F 00 6C 00 35 00
-         Incoming packet 0x0026
-         */
+        let encryptedData = Data([0x8C, 0x08, 0x25, 0x73, 0xB4, 0x3D, 0x89, 0x76, 0x61, 0x15, 0xF3, 0x2B, 0xF6, 0xC9, 0x2E, 0xC3, 0xC8, 0x59, 0x7F, 0x5B, 0x5B, 0xB2, 0x87, 0x77, 0x3D, 0xF3, 0x37, 0xD0, 0x67, 0xB2, 0xD9, 0xD6, 0xC4, 0xED, 0xDA, 0x97, 0xDB, 0x07, 0xD2, 0x08, 0xC5, 0xEA, 0x43, 0x9D, 0x3B, 0xDB, 0x18, 0x0F, 0x31, 0xBB, 0x36, 0xA3, 0xAD, 0x73, 0xD8, 0x0C, 0x6C, 0xED, 0x53, 0xA7, 0xE1, 0xEC, 0xE1, 0xC9, 0x55, 0x6C, 0xF0, 0x75])
+        
+        let packetData = Data([0x26, 0x00, 0x01, 0x6C, 0x00, 0x1F, 0x00, 0x03, 0x00, 0x6C, 0x00, 0x2D, 0x00, 0x00, 0x00, 0xF0, 0x00, 0x00, 0x00, 0x06, 0x78, 0x00, 0x00, 0x6C, 0x00, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x06, 0x1A, 0x00, 0x00, 0x6C, 0x00, 0x35, 0x00, 0x00, 0x00, 0x00, 0x00, 0x0B, 0x00, 0x04, 0x6C, 0x01, 0x11, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6C, 0x00, 0x1F, 0x00, 0x6C, 0x00, 0x35, 0x00])
+        
+        let nonce: Nonce = 0x9A3BC42B
+        
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        let value = MovePlayerRequest(
+            value0: 1,
+            value1: 2031724,
+            movements: [
+                .absolute(Movement.Absolute(command: 0, xpos: 108, ypos: 45, xwobble: 0, ywobble: 240, value0: 0, newState: 6, duration: 120)),
+                .absolute(Movement.Absolute(command: 0, xpos: 108, ypos: 53, xwobble: 0, ywobble: 0, value0: 0, newState: 6, duration: 26)),
+                .absolute(Movement.Absolute(command: 0, xpos: 108, ypos: 53, xwobble: 0, ywobble: 0, value0: 11, newState: 4, duration: 364))
+            ]
+        )
+        
+        //XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x0026)
+        XCTAssertEqual(packet.data, packetData)
     }
     
     func testChangeMapSpecial() {
