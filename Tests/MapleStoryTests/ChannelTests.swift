@@ -486,20 +486,25 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(packet.data, packetData)
     }
     
-    func testChangeMapSpecial() {
+    func testChangeMapSpecial() throws {
         
-        /*
-         MaplePacketDecoder encrypted packet 42 69 01 92 BA E8 07 DA 91 2A 3B B9 9F 36 62 61 EC 03
-         Recieve IV DA F1 55 F7
-         MapleAESOFB.crypt() input: 42 69 01 92 BA E8 07 DA 91 2A 3B B9 9F 36 62 61 EC 03
-         MapleAESOFB.crypt() iv: DA F1 55 F7
-         MapleAESOFB.crypt() output: 91 E5 06 B8 A2 44 9B 82 D8 17 DA FE 50 96 79 CD 71 B8
-         MaplePacketDecoder AES decrypted packet 91 E5 06 B8 A2 44 9B 82 D8 17 DA FE 50 96 79 CD 71 B8
-         MaplePacketDecoder custom decrypted packet 5C 00 01 09 00 74 75 74 6F 72 69 61 6C 30 6C 00 35 00
-         Incoming packet 0x005C
-         */
+        let encryptedData = Data([0x42, 0x69, 0x01, 0x92, 0xBA, 0xE8, 0x07, 0xDA, 0x91, 0x2A, 0x3B, 0xB9, 0x9F, 0x36, 0x62, 0x61, 0xEC, 0x03])
+        let packetData = Data([0x5C, 0x00, 0x01, 0x09, 0x00, 0x74, 0x75, 0x74, 0x6F, 0x72, 0x69, 0x61, 0x6C, 0x30, 0x6C, 0x00, 0x35, 0x00])
+        let nonce: Nonce = 0xDAF155F7
         
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
         
+        //let value =
+        
+        //XCTAssertEncode(value, packet)
+        //XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x005C)
+        XCTAssertEqual(packet.data, packetData)
     }
     
     func testBBSOperationRequest() throws {
