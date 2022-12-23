@@ -554,12 +554,30 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet.opcode, 0x0015)
     }
     
-    func testCheckNameResponse() {
+    func testCheckNameResponse() throws {
         
-        /*
-         MaplePacketEncoder input 0D 00 04 00 63 64 61 31 00
-         MapleAESOFB.crypt() iv: 21 22 E6 86
-         MaplePacketEncoder output 27 79 2E 79 E4 F8 C7 C2 9C 9B A7 FE DF
-         */
+        let packetData = Data([0x0D, 0x00, 0x04, 0x00, 0x63, 0x64, 0x61, 0x31, 0x00])
+        let encryptedData = Data([0x27, 0x79, 0x2E, 0x79, 0xE4, 0xF8, 0xC7, 0xC2, 0x9C, 0x9B, 0xA7, 0xFE, 0xDF])
+        let nonce: Nonce = 0x2122E686
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = CheckNameResponse(name: "cda1", isUsed: false)
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
     }
 }
