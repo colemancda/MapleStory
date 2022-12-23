@@ -16,4 +16,10 @@ public struct MovePlayerRequest: MapleStoryPacket, Codable, Equatable, Hashable 
     internal let value1: UInt32
     
     public let movements: [Movement]
+    
+    internal let value2: UInt64
+    
+    internal let value3: UInt64
+    
+    internal let value4: UInt16
 }

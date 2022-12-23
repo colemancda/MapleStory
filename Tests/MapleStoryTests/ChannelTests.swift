@@ -424,10 +424,13 @@ final class ChannelTests: XCTestCase {
                 .absolute(Movement.Absolute(command: 0, xpos: 108, ypos: 45, xwobble: 0, ywobble: 240, value0: 0, newState: 6, duration: 120)),
                 .absolute(Movement.Absolute(command: 0, xpos: 108, ypos: 53, xwobble: 0, ywobble: 0, value0: 0, newState: 6, duration: 26)),
                 .absolute(Movement.Absolute(command: 0, xpos: 108, ypos: 53, xwobble: 0, ywobble: 0, value0: 11, newState: 4, duration: 364))
-            ]
+            ],
+            value2: 0x11,
+            value3: 30399430635814912,
+            value4: 0x35
         )
         
-        //XCTAssertEncode(value, packet)
+        XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, 0x0026)
         XCTAssertEqual(packet.data, packetData)
