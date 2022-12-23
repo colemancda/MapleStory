@@ -334,7 +334,14 @@ final class ChannelTests: XCTestCase {
         
         let packet = Packet(Data([0x3C, 0x00, 0x07, 0x01, 0x01, 0x00, 0x00, 0x00, 0x41, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFE, 0xFF, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00]))
         
-        let value = BuddyListNotification.update([])
+        let value = BuddyListNotification.update([
+            BuddyListNotification.Buddy(
+                id: 1,
+                name: "Admin",
+                value0: 0,
+                channel: -2
+            )
+        ])
         
         XCTAssertEncode(value, packet)
     }
@@ -541,8 +548,6 @@ final class ChannelTests: XCTestCase {
         
         XCTAssertEqual(decrypted, packet)
         XCTAssertEqual(try packet.encrypt(key: .default, nonce: nonce, version: .v62), encryptedPacket)
-        
-        
     }
     
     func testGeneralChatRequest() throws {
