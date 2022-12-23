@@ -499,10 +499,15 @@ final class ChannelTests: XCTestCase {
             version: .v62
         )
         
-        //let value =
+        let value = ChangeMapSpecialRequest(
+            value0: 1,
+            startwp: "tutorial0",
+            value1: 0x6C,
+            value2: 0x35
+        )
         
-        //XCTAssertEncode(value, packet)
-        //XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, 0x005C)
         XCTAssertEqual(packet.data, packetData)
     }
