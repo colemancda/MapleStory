@@ -303,18 +303,31 @@ final class ChannelTests: XCTestCase {
         XCTAssertEqual(packet.data, packetData)
     }
     
-    func testShowNotes() {
+    func testShowNotesEmpty() throws {
         
-        /*
-         MaplePacketEncoder will write encrypted 26 00 02 00
-         MaplePacketEncoder header 0D 1A 09 1A
-         MaplePacketEncoder custom encrypted 2E 22 44 B7
-         MapleAESOFB.crypt() input: 2E 22 44 B7
-         MapleAESOFB.crypt() iv: EF 49 CC E5
-         MapleAESOFB.crypt() output: 44 F8 A6 27
-         MaplePacketEncoder AES encrypted 44 F8 A6 27
-         MaplePacketEncoder output 0D 1A 09 1A 44 F8 A6 27
-         */
+        let packetData = Data([0x26, 0x00, 0x02, 0x00])
+        let encryptedData = Data([0x0D, 0x1A, 0x09, 0x1A, 0x44, 0xF8, 0xA6, 0x27])
+        
+        let nonce: Nonce = 0xEF49CCE5
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = ShowNotesNotification(value0: 2, notes: [])
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, 0x0026)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data, encryptedData)
     }
     
     func testPlayerHint() {

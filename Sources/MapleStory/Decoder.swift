@@ -224,9 +224,9 @@ private extension MapleStoryDecoder.Decoder {
     }
     
     func readDate() throws -> Date {
-        
-        let timeInterval = try readNumeric(Int32.self)
-        return Date(timeIntervalSince1970: TimeInterval(timeInterval))
+        // FIXME: Korean Date
+        let koreanTimeStamp = try readNumeric(UInt64.self)
+        return Date(timeIntervalSince1970: .init(koreanTimeStamp))
     }
     
     func readNullTerminatedString() throws -> String {
