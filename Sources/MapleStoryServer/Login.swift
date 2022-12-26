@@ -40,6 +40,7 @@ struct Login: AsyncParsableCommand {
             address: address,
             backlog: backlog
         )
+        /*
         let dataSource = InMemoryMapleStoryServerDataSource()
         await dataSource.update { _ in
             //$0.serverDirectory = directory
@@ -54,5 +55,6 @@ struct Login: AsyncParsableCommand {
         try await Task.sleep(until: .now.advanced(by: Duration(secondsComponent: Int64(Date.distantFuture.timeIntervalSinceNow), attosecondsComponent: .zero)), clock: .suspending)
         
         withExtendedLifetime(server, { })
+         */
     }
 }

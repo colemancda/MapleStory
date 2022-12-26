@@ -15,7 +15,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
     internal let socket: Socket
     
     private var tcpListenTask: Task<(), Never>?
-        
+    
     let storage = Storage()
     
     // MARK: - Initialization
@@ -106,57 +106,43 @@ public protocol MapleStoryServerDataSource: AnyObject {
     
     func didDisconnect(_ address: MapleStoryAddress, username: String?) async
     
-}
-
-public actor InMemoryMapleStoryServerDataSource: MapleStoryServerDataSource {
+    func register(
+        username: String
+    ) async throws -> Bool
     
-    /// Initializer
-    public init(
-        stateChanged: ((State) -> ())? = nil
-    ) {
-        self.stateChanged = stateChanged
-    }
+    /// get the credentials for a user
+    func password(
+        for username: String
+    ) async throws -> String
     
-    ///
-    public private(set) var state = State() {
-        didSet {
-            if let stateChanged = self.stateChanged, state != oldValue {
-                stateChanged(state)
-            }
-        }
-    }
+    /// get the credentials for a user
+    func pin(
+        for username: String
+    ) async throws -> String
     
-    internal let stateChanged: ((State) -> ())?
+    /// check user exists
+    func userExists(
+        for username: String
+    ) async throws -> Bool
     
-    public nonisolated var command: ParsableCommand.Type {
-        fatalError() //DefaultCommand.self
-    }
+    func worlds() async throws -> [World]
     
-    public func update(_ body: (inout State) throws -> ()) rethrows {
-        try body(&state)
-    }
+    func channel(
+        _ id: Channel.ID,
+        in world: World.ID
+    ) async throws -> Channel
     
-    public func didConnect(_ address: MapleStoryAddress) {
-        
-    }
+    func characters(
+        for user: String
+    ) async throws -> [Character]
     
-    public func didDisconnect(_ address: MapleStoryAddress, username: String?) {
-        
-    }
-}
-
-public extension InMemoryMapleStoryServerDataSource {
+    func characters(
+        for user: String,
+        in world: World.ID,
+        channel: Channel.ID
+    ) async throws -> [Character]
     
-    struct State: Equatable, Hashable, Codable {
-        
-        public var autoRegister = true
-        
-        //public var users = [String: User]()
-        
-        public var passwords = [String: String]()
-        
-        //public var channels = [Channel.ID: Channel]()
-    }
+    func characters() async throws -> [World.ID: [Character]]
 }
 
 public struct MapleStoryServerConfiguration: Equatable, Hashable, Codable {
@@ -333,7 +319,24 @@ internal extension MapleStoryServer {
         
         private func login(_ request: LoginRequest) async throws -> LoginResponse {
             log("Login - \(request.username)")
-            return LoginResponse.success(username: request.username)
+                        
+            // create if doesnt exist and autoregister enabled
+            if try await server.dataSource.register(username: request.username) {
+                log("Registered User - \(request.username)")
+            }
+            
+            // check if user exists
+            guard try await self.server.dataSource.userExists(for: request.username) else {
+                return .success(username: request.username) // TODO: Failure
+            }
+            
+            // validate password
+            let password = try await self.server.dataSource.password(for: request.username)
+            guard password == request.password else {
+                return .success(username: request.username) // TODO: Failure
+            }
+            
+            return .success(username: request.username)
         }
         
         private func guestLogin(_ request: GuestLoginRequest) async throws -> LoginResponse {
@@ -349,29 +352,13 @@ internal extension MapleStoryServer {
         private func serverList(_ request: ServerListRequest) async {
             log("Server List")
             do {
-                let value = ServerListResponse.world(.init(
-                    id: 0,
-                    name: " World 0",
-                    flags: 0x02,
-                    eventMessage: "",
-                    rateModifier: 0x64,
-                    eventXP: 0x00,
-                    rateModifier2: 0x64,
-                    dropRate: 0x00,
-                    value0: 0x00,
-                    channels: [
-                        ServerListResponse.Channel(
-                            name: " World 0-1",
-                            load: 0,
-                            value0: 0x01,
-                            id: 0
-                        )
-                    ],
-                    value1: 0x00
-                ))
-                
-                try await respond(value)
-                try await respond(ServerListResponse.end)
+                let worlds = try await server.dataSource.worlds()
+                let responses: [ServerListResponse] = worlds
+                    .map { .world(.init($0)) } + [.end]
+                // send responses
+                for response in responses {
+                    try await respond(response)
+                }
             }
             catch {
                 await close(error)
@@ -380,64 +367,26 @@ internal extension MapleStoryServer {
         
         private func serverStatus(_ request: ServerStatusRequest) async throws -> ServerStatusResponse {
             log("Server Status - World \(request.world) Channel \(request.channel)")
-            return .normal
+            let channel = try await server.dataSource.channel(
+                request.channel,
+                in: request.world
+            )
+            return .init(channel.status)
         }
         
         private func characterList(_ request: CharacterListRequest) async throws -> CharacterListResponse {
             log("Character List - World \(request.world) Channel \(request.channel)")
+            guard let username = await self.connection.username else {
+                throw MapleStoryError.notAuthenticated
+            }
+            let characters = try await server.dataSource.characters(
+                for: username,
+                in: request.world,
+                channel: request.channel
+            )
             return CharacterListResponse(
                 value0: 0x00,
-                characters: [
-                    MapleStory.CharacterListResponse.Character(
-                        stats: MapleStory.CharacterListResponse.CharacterStats(
-                            id: 1,
-                            name: "Admin",
-                            gender: .male,
-                            skinColor: .normal,
-                            face: 20000,
-                            hair: 30030,
-                            value0: 0,
-                            value1: 0,
-                            value2: 0,
-                            level: 254,
-                            job: .buccaneer,
-                            str: 32767,
-                            dex: 32767,
-                            int: 32767,
-                            luk: 32767,
-                            hp: 30000,
-                            maxHp: 30000,
-                            mp: 26474,
-                            maxMp: 30000,
-                            ap: 0,
-                            sp: 0,
-                            exp: 0,
-                            fame: 13337,
-                            isMarried: 0,
-                            currentMap: 910000000,
-                            spawnPoint: 1,
-                            value3: 0
-                        ),
-                        appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
-                            gender: .male,
-                            skinColor: .normal,
-                            face: 20000,
-                            mega: true,
-                            hair: 30030,
-                            equipment: [5: 0x82DE0F00, 6: 0xA22C1000, 9: 0xD9D01000, 1: 0x754B0F00, 7: 0x815B1000, 11: 0x279D1600],
-                            maskedEquipment: [:],
-                            cashWeapon: 0,
-                            value0: 0,
-                            value1: 0
-                        ),
-                        rank: MapleStory.CharacterListResponse.Rank(
-                            worldRank: 1,
-                            rankMove: 0,
-                            jobRank: 1,
-                            jobRankMove: 0
-                        )
-                    )
-                ],
+                characters: characters.map { .init($0) },
                 maxCharacters: 3
             )
         }
@@ -445,62 +394,15 @@ internal extension MapleStoryServer {
         private func allCharacters(_ request: AllCharactersRequest) async {
             log("All Character List")
             do {
-                let count = 1
-                let unk = count + (3 - count % 3)
-                let countPacket = AllCharactersResponse.count(characters: UInt32(count), value0: UInt32(unk))
-                let worldPacket = AllCharactersResponse.characters(world: 0, characters: [
-                    MapleStory.CharacterListResponse.Character(
-                        stats: MapleStory.CharacterListResponse.CharacterStats(
-                            id: 1,
-                            name: "Admin",
-                            gender: .male,
-                            skinColor: .normal,
-                            face: 20000,
-                            hair: 30030,
-                            value0: 0,
-                            value1: 0,
-                            value2: 0,
-                            level: 254,
-                            job: .buccaneer,
-                            str: 32767,
-                            dex: 32767,
-                            int: 32767,
-                            luk: 32767,
-                            hp: 30000,
-                            maxHp: 30000,
-                            mp: 26474,
-                            maxMp: 30000,
-                            ap: 0,
-                            sp: 0,
-                            exp: 0,
-                            fame: 13337,
-                            isMarried: 0,
-                            currentMap: 910000000,
-                            spawnPoint: 1,
-                            value3: 0
-                        ),
-                        appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
-                            gender: .male,
-                            skinColor: .normal,
-                            face: 20000,
-                            mega: true,
-                            hair: 30030,
-                            equipment: [5: 0x82DE0F00, 6: 0xA22C1000, 9: 0xD9D01000, 1: 0x754B0F00, 7: 0x815B1000, 11: 0x279D1600],
-                            maskedEquipment: [:],
-                            cashWeapon: 0,
-                            value0: 0,
-                            value1: 0
-                        ),
-                        rank: MapleStory.CharacterListResponse.Rank(
-                            worldRank: 1,
-                            rankMove: 0,
-                            jobRank: 1,
-                            jobRankMove: 0
-                        )
-                    )
-                ])
-                try await respond(countPacket)
-                try await respond(worldPacket)
+                let charactersByWorld = try await self.server.dataSource
+                    .characters()
+                    .sorted(by: { $0.key < $1.key })
+                let count = charactersByWorld.reduce(0, { $0 + $1.value.count })
+                let responses: [AllCharactersResponse] = [.count(count)]
+                    + charactersByWorld.map { .characters(world: $0.key, characters: $0.value.map({ .init($0) })) }
+                for response in responses {
+                    try await respond(response)
+                }
             }
             catch {
                 await close(error)
