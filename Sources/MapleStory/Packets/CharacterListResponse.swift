@@ -260,3 +260,56 @@ extension CharacterListResponse.Equipment: MapleStoryCodable {
         try container.encode(UInt8(0xFF))
     }
 }
+
+public extension CharacterListResponse.Character {
+    
+    init(_ character: Character) {
+        self.stats = .init(
+            id: character.id,
+            name: character.name,
+            gender: character.gender,
+            skinColor: character.skinColor,
+            face: character.face,
+            hair: character.hair,
+            value0: 0,
+            value1: 0,
+            value2: 0,
+            level: character.level,
+            job: character.job,
+            str: character.str,
+            dex: character.dex,
+            int: character.int,
+            luk: character.luk,
+            hp: character.hp,
+            maxHp: character.maxHp,
+            mp: character.mp,
+            maxMp: character.maxMp,
+            ap: character.ap,
+            sp: character.sp,
+            exp: character.exp,
+            fame: character.fame,
+            isMarried: character.isMarried ? 1 : 0,
+            currentMap: character.currentMap,
+            spawnPoint: character.spawnPoint,
+            value3: 0
+        )
+        self.appearance = .init(
+            gender: character.gender,
+            skinColor: character.skinColor,
+            face: character.face,
+            mega: character.isMega,
+            hair: character.hair,
+            equipment: .init(character.equipment),
+            maskedEquipment: .init(character.maskedEquipment),
+            cashWeapon: character.cashWeapon,
+            value0: 0,
+            value1: 0
+        )
+        self.rank = character.isRankEnabled ? .enabled(
+            worldRank: character.worldRank,
+            rankMove: character.rankMove,
+            jobRank: character.jobRank,
+            jobRankMove: character.jobRankMove
+        ) : .disabled
+    }
+}
