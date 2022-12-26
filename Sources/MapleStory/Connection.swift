@@ -71,7 +71,11 @@ internal actor Connection <Socket: MapleStorySocket> {
     // MARK: - Methods
     
     internal func startEncryption() {
-        shouldEncrypt = true
+        self.shouldEncrypt = true
+    }
+    
+    internal func authenticate(username: String) {
+        self.username = username
     }
     
     private func run() {
