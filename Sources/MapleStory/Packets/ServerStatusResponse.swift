@@ -23,3 +23,17 @@ public enum ServerStatusResponse: UInt16, MapleStoryPacket, Codable, Equatable, 
     /// Full
     case full           = 2
 }
+
+public extension ServerStatusResponse {
+    
+    init(_ status: Channel.Status) {
+        switch status {
+        case .normal:
+            self = .normal
+        case .highUsage:
+            self = .highUsage
+        case .full:
+            self = .full
+        }
+    }
+}

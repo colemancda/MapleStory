@@ -20,6 +20,15 @@ public enum AllCharactersResponse: MapleStoryPacket, Equatable, Hashable {
     case characters(world: UInt8, characters: [Character])
 }
 
+public extension AllCharactersResponse {
+    
+    static func count(_ value: Int) -> AllCharactersResponse {
+        let count = UInt32(value)
+        let unk = count + (3 - count % 3)
+        return .count(characters: count, value0: unk)
+    }
+}
+
 extension AllCharactersResponse: Codable {
     
     enum PacketType: UInt8, Codable {

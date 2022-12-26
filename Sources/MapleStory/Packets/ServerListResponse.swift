@@ -57,6 +57,32 @@ public extension ServerListResponse {
         public var channels: [Channel]
         
         public var value1: UInt16
+        
+        internal init(
+            id: UInt8,
+            name: String,
+            flags: UInt8,
+            eventMessage: String,
+            rateModifier: UInt8,
+            eventXP: UInt8,
+            rateModifier2: UInt8,
+            dropRate: UInt8,
+            value0: UInt8,
+            channels: [ServerListResponse.Channel],
+            value1: UInt16
+        ) {
+            self.id = id
+            self.name = name
+            self.flags = flags
+            self.eventMessage = eventMessage
+            self.rateModifier = rateModifier
+            self.eventXP = eventXP
+            self.rateModifier2 = rateModifier2
+            self.dropRate = dropRate
+            self.value0 = value0
+            self.channels = channels
+            self.value1 = value1
+        }
     }
 }
 
@@ -84,5 +110,34 @@ internal extension ServerListResponse {
         public init() {
             self.id = 0xFF
         }
+    }
+}
+
+public extension ServerListResponse.World {
+    
+    init(_ world: MapleStory.World) {
+        self.id = world.id
+        self.name = world.name
+        self.flags = world.flags
+        self.eventMessage = world.eventMessage
+        self.rateModifier = world.rateModifier
+        self.eventXP = world.eventXP
+        self.rateModifier2 = world.rateModifier
+        self.dropRate = world.dropRate
+        self.value0 = 0x00
+        self.channels = world.channels.map { .init($0) }
+        self.value1 = 0x00
+    }
+}
+
+public extension ServerListResponse.Channel {
+    
+    init(_ channel: MapleStory.Channel) {
+        self.init(
+            name: channel.name,
+            load: channel.load,
+            value0: 0x01,
+            id: numericCast(channel.id)
+        )
     }
 }
