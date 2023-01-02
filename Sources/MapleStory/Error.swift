@@ -21,4 +21,6 @@ public enum MapleStoryError: Error {
     case unknownUser(String)
     
     case invalidPassword
+    
+    case invalidRequest
 }

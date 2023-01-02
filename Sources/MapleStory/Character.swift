@@ -23,6 +23,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
     
     public var hair: UInt32
     
+    public var hairColor: UInt32
+    
     public var level: UInt8
     
     public var job: Job

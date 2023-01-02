@@ -240,6 +240,7 @@ internal extension MapleStoryServer {
             await connection.register { [unowned self] in await self.allCharacters($0) }
             await register { [unowned self] in try await self.selectCharacter($0) }
             await register { [unowned self] in try await self.selectAllCharacter($0) }
+            await register { [unowned self] in try await self.createCharacter($0) }
             
             // Channel
             await connection.register { [unowned self] in await self.playerLogin($0) }
@@ -412,6 +413,14 @@ internal extension MapleStoryServer {
             catch {
                 await close(error)
             }
+        }
+        
+        private func createCharacter(_ request: CreateCharacterRequest) async throws -> CreateCharacterResponse {
+            log("Create Character")
+            guard let character = Character(id: 0, request: request) else {
+                throw MapleStoryError.invalidRequest
+            }
+            return .init(didCreate: true, character: .init(character))
         }
         
         private func selectCharacter(_ request: CharacterSelectRequest) async throws -> ServerIPResponse {

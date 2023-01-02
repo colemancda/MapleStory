@@ -211,7 +211,7 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
             .query(on: database)
             .filter(\.$index, .equal, Int(worldID))
             .first() else {
-            throw MapleStoryDatabaseError.notFound
+            throw MapleStoryError.invalidRequest
         }
         let channels = try await world.$channels.query(on: database).all()
         let values = channels.enumerated().map { (index, channel) in
@@ -223,7 +223,7 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
             )
         }
         guard let channel = values.first(where: { $0.id == channelID }) else {
-            throw MapleStoryDatabaseError.notFound
+            throw MapleStoryError.invalidRequest
         }
         return channel
     }
@@ -235,9 +235,4 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     func characters(for user: String, in world: MapleStory.World.ID, channel: MapleStory.Channel.ID) async throws -> [MapleStory.Character] {
         []
     }
-}
-
-public enum MapleStoryDatabaseError: Error {
-    
-    case notFound
 }
