@@ -9,7 +9,7 @@ import Foundation
 import ArgumentParser
 import MapleStory
 import Socket
-import struct Vapor.Environment
+import MongoSwift
 
 @main
 struct Server: AsyncParsableCommand {
@@ -29,8 +29,8 @@ struct Server: AsyncParsableCommand {
     @Option(help: "Server backlog.")
     var backlog: Int = 1000
     
-    @Option(help: "Database host.")
-    var databaseHost: String?
+    @Option(help: "Database URL.")
+    var databaseURL: String = "mongodb://localhost:27017"
     
     @Option(help: "Database username.")
     var databaseUsername: String?
@@ -39,9 +39,11 @@ struct Server: AsyncParsableCommand {
     var databasePassword: String?
     
     @Option(help: "Database name.")
-    var databaseName: String?
+    var databaseName: String = "maplestory"
     
     func run() async throws {
+        
+        defer { cleanupMongoSwift() }
         
         // start server
         let ipAddress = self.address ?? IPv4Address.any.rawValue
@@ -54,11 +56,15 @@ struct Server: AsyncParsableCommand {
             backlog: backlog
         )
         
-        let database = try MapleStoryDatabase(
-            host: (databaseHost ?? Environment.get("DATABASE_HOST")) ?? "localhost",
-            name: (databaseName ?? Environment.get("DATABASE_NAME")) ?? "maplestory",
-            username: (databaseUsername ?? Environment.get("DATABASE_USERNAME")) ?? "admin",
-            password: (databasePassword ?? Environment.get("DATABASE_PASSWORD")) ?? "admin"
+        guard let databaseURL = URL(string: databaseURL) else {
+            throw MapleStoryError.invalidAddress(databaseURL)
+        }
+        
+        let database = try await MapleStoryDatabase(
+            url: databaseURL,
+            name: databaseName,
+            username: databaseUsername,
+            password: databasePassword
         )
         
         let server = try await MapleStoryServer(
@@ -68,8 +74,6 @@ struct Server: AsyncParsableCommand {
         )
         
         // create DB tables
-        try await database.migrate()
-        try await database.initialize()
         #if DEBUG
         NSLog("Users: \(try await database.userCount)")
         #endif

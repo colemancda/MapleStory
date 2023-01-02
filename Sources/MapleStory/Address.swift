@@ -17,7 +17,7 @@ public struct MapleStoryAddress: Equatable, Hashable, Codable {
     }
     
     /// Port
-    public let port: UInt16
+    public var port: UInt16
     
     internal let ipAddress: IPv4Address
     

@@ -6,79 +6,103 @@
 //
 
 import Foundation
-import struct MapleStory.MapleStoryAddress
-import Vapor
-import Fluent
+import MapleStory
+import SwiftBSON
 
-final class World: Model, Codable {
+extension MapleStory.World {
     
-    enum CodingKeys: String, CodingKey {
+    struct BSON: Codable, Equatable, Hashable, Identifiable {
         
-        case id
-        case index
-        case name
-        case address
-        case flags
-        case eventMessage
-        case rateModifier
-        case eventXP
-        case dropRate
-        case channels
+        static var collection: String { "worlds" }
+        
+        enum CodingKeys: String, CodingKey {
+            
+            case id = "_id"
+            case index
+            case name
+            case address
+            case flags
+            case eventMessage
+            case rateModifier
+            case eventXP
+            case dropRate
+            case channels
+        }
+        
+        public let id: BSONObjectID
+        
+        public let index: UInt8
+        
+        public var name: String
+        
+        public var address: MapleStoryAddress
+        
+        public var flags: UInt8
+        
+        public var eventMessage: String
+        
+        public var rateModifier: UInt8
+        
+        public var eventXP: UInt8
+            
+        public var dropRate: UInt8
+                
+        public var channels: [Channel.BSON]
+                
+        init(
+            id: BSONObjectID = BSONObjectID(),
+            index: UInt8,
+            name: String,
+            address: MapleStoryAddress = .channelServerDefault,
+            flags: UInt8 = 0x02,
+            eventMessage: String = "",
+            rateModifier: UInt8 = 0x64,
+            eventXP: UInt8 = 0x00,
+            dropRate: UInt8 = 0x00,
+            channels: [Channel.BSON] = []
+        ) {
+            self.id = id
+            self.index = (index)
+            self.name = name
+            self.address = address
+            self.flags = (flags)
+            self.eventMessage = eventMessage
+            self.rateModifier = (rateModifier)
+            self.eventXP = (eventXP)
+            self.dropRate = (dropRate)
+            self.channels = channels
+        }
     }
     
-    static let schema = "worlds"
+    init(_ value: BSON) {
+        self.init(
+            id: value.index,
+            name: value.name,
+            address: value.address,
+            flags: value.flags,
+            eventMessage: value.eventMessage,
+            rateModifier: value.rateModifier,
+            eventXP: value.eventXP,
+            dropRate: value.dropRate,
+            channels: value.channels.enumerated().map {
+                .init(id: UInt8($0.offset), $0.element)
+            }
+        )
+    }
+}
+
+extension MapleStory.Channel {
     
-    @ID
-    var id: UUID?
+    struct BSON: Codable, Equatable, Hashable {
+        
+        let name: String
+        
+        var load: UInt32
+        
+        var status: MapleStory.Channel.Status
+    }
     
-    @Field(key: CodingKeys.index)
-    var index: Int
-    
-    @Field(key: CodingKeys.name)
-    var name: String
-    
-    @Field(key: CodingKeys.address)
-    var address: MapleStoryAddress
-    
-    @Field(key: CodingKeys.flags)
-    var flags: Int
-    
-    @Field(key: CodingKeys.eventMessage)
-    var eventMessage: String
-    
-    @Field(key: CodingKeys.rateModifier)
-    var rateModifier: Int
-    
-    @Field(key: CodingKeys.eventXP)
-    var eventXP: Int
-    
-    @Field(key: CodingKeys.dropRate)
-    var dropRate: Int
-    
-    @Children(for: \.$world)
-    var channels: [Channel]
-    
-    init() { }
-    
-    init(
-        id: UUID? = nil,
-        index: UInt8,
-        name: String,
-        address: MapleStoryAddress = .channelServerDefault,
-        flags: UInt8 = 0x02,
-        eventMessage: String = "",
-        rateModifier: UInt8 = 0x64,
-        eventXP: UInt8 = 0x00,
-        dropRate: UInt8 = 0x00
-    ) {
-        self.id = id
-        self.index = numericCast(index)
-        self.name = name
-        self.address = address
-        self.flags = numericCast(flags)
-        self.eventMessage = eventMessage
-        self.rateModifier = numericCast(rateModifier)
-        self.eventXP = numericCast(eventXP)
-        self.dropRate = numericCast(dropRate)
+    init(id: UInt8, _ value: BSON) {
+        self.init(id: id, name: value.name, load: value.load, status: value.status)
     }
 }

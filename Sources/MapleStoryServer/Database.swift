@@ -8,90 +8,90 @@
 import Foundation
 import ArgumentParser
 import MapleStory
-import Fluent
-import FluentPostgresDriver
-import Vapor
+import SwiftBSON
+import MongoSwift
+import NIOPosix
 
 final class MapleStoryDatabase: MapleStoryServerDataSource {
     
-    let host: String
+    let url: URL
     
     let name: String
     
-    let username: String
+    let username: String?
     
-    let password: String
+    let password: String?
     
-    private let app: Application
+    private let client: MongoClient
     
-    private var database: Database {
-        app.db(.psql)
+    private let eventLoopGroup: MultiThreadedEventLoopGroup
+    
+    private let database: MongoDatabase
+    
+    private var users: MongoCollection<User>!
+    
+    private var worldCollection: MongoCollection<World.BSON>!
+    
+    deinit {
+        // clean up driver resources
+        try? client.syncClose()
+        // shut down EventLoopGroup
+        try? eventLoopGroup.syncShutdownGracefully()
     }
     
     init(
-        host: String,
-        name: String,
-        username: String,
-        password: String
-    ) throws {
-        self.host = host
+        url: URL = URL(string: "mongodb://localhost:27017")!,
+        name: String = "maplestory",
+        username: String? = nil,
+        password: String? = nil
+    ) async throws {
+        self.url = url
         self.name = name
         self.username = username
         self.password = password
-        // setup app
-        var env = try Environment.detect()
-        try LoggingSystem.bootstrap(from: &env)
-        self.app = Application(env)
-        app.databases.use(
-            .postgres(
-                hostname: host,
-                username: username,
-                password: password,
-                database: name
-            ),
-            as: .psql
-        )
-        #if DEBUG
-        app.logger.logLevel = .debug
-        #endif
-    }
-    
-    func run() throws {
-        defer { app.shutdown() }
-        try app.run()
-    }
-    
-    func migrate() async throws {
-        app.migrations.add(CreateUser())
-        app.migrations.add(CreateWorld())
-        app.migrations.add(CreateChannel())
-        try await app.autoMigrate()
+        // setup db
+        let eventLoopGroup = MultiThreadedEventLoopGroup(numberOfThreads: 4)
+        self.client = try MongoClient(url.absoluteString, using: eventLoopGroup)
+        self.eventLoopGroup = eventLoopGroup
+        self.database = client.db(name)
+        try await initialize()
     }
     
     func initialize() async throws {
+        // setup tables
+        self.users = database.collection(User.collection, withType: User.self)
+        self.worldCollection = database.collection(World.BSON.collection, withType: World.BSON.self)
         // create admin user
         if try await userExists(for: "admin") == false {
-            try await createUser(
+            let user = User(
                 username: "admin",
-                password: "admin"
+                password: "admin",
+                isAdmin: true
             )
+            try await users.insertOne(user)
+            // create admin character
+            
         }
-        // create worlds
-        if try await worlds().isEmpty {
-            for worldIndex in 0 ..< 15 {
-                let world = World(
-                    index: numericCast(worldIndex),
-                    name: "World \(worldIndex + 1)"
+        // create worlds and channels
+        if try await worldCollection.countDocuments() == 0 {
+            let worlds = (0 ..< 15).map {
+                let worldName = "World \($0 + 1)"
+                var address = MapleStoryAddress.channelServerDefault
+                address.port += UInt16($0)
+                return World.BSON(
+                    index: World.ID($0),
+                    name: worldName,
+                    address: address,
+                    channels: (0 ..< 20).map {
+                        Channel.BSON(
+                            name: "\(worldName) - \($0 + 1)",
+                            load: 0,
+                            status: .normal
+                        )
+                    }
                 )
-                try await world.create(on: database)
-                // create channels
-                for channelIndex in 0 ..< 20 {
-                    let channel = Channel(world: world.id!, name: "\(world.name) - \(channelIndex + 1)")
-                    try await world.$channels.create(channel, on: database)
-                }
-                // save
-                try await world.save(on: database)
             }
+            try await worldCollection.insertMany(worlds)
         }
     }
     
@@ -111,6 +111,7 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         username: String,
         password: String
     ) async throws -> Bool {
+        let username = username.lowercased()
         // check if user exists
         guard try await userExists(for: username) == false else {
             return false
@@ -126,12 +127,13 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         username: String,
         password: String
     ) async throws {
+        let username = username.lowercased()
         // create new user
         let newUser = User(
             username: username,
             password: password
         )
-        try await newUser.create(on: database)
+        try await users.insertOne(newUser)
     }
     
     func password(for username: String) async throws -> String {
@@ -146,19 +148,19 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     func userExists(for username: String) async throws -> Bool {
         let username = username.lowercased()
-        let count = try await User
-            .query(on: database)
-            .filter(\.$username, .equal, username)
-            .count()
+        let filter: BSONDocument = [
+            User.CodingKeys.username.rawValue: .string(username)
+        ]
+        let count = try await users.countDocuments(filter)
         return count != 0
     }
     
     func user(for username: String) async throws -> User {
         let username = username.lowercased()
-        guard let user = try await User
-            .query(on: database)
-            .filter(\.$username, .equal, username)
-            .first() else {
+        let filter: BSONDocument = [
+            User.CodingKeys.username.rawValue: .string(username)
+        ]
+        guard let user = try await users.findOne(filter) else {
             throw MapleStoryError.unknownUser(username)
         }
         return user
@@ -166,41 +168,12 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     var userCount: Int {
         get async throws {
-            try await User
-                .query(on: database)
-                .count()
+            try await users.countDocuments()
         }
     }
     
     func worlds() async throws -> [MapleStory.World] {
-        let worlds = try await World
-            .query(on: database)
-            .sort(\.$index)
-            .all()
-        var result = [MapleStory.World]()
-        result.reserveCapacity(worlds.count)
-        for value in worlds {
-            let mappedValue = MapleStory.World(
-                id: numericCast(value.index),
-                name: value.name,
-                address: value.address,
-                flags: numericCast(value.flags),
-                eventMessage: value.eventMessage,
-                rateModifier: numericCast(value.rateModifier),
-                eventXP: numericCast(value.eventXP),
-                dropRate: numericCast(value.dropRate),
-                channels: try await value.$channels.query(on: database).all().enumerated().map { (index, channel) in
-                    MapleStory.Channel(
-                        id: numericCast(index),
-                        name: channel.name,
-                        load: numericCast(channel.load),
-                        status: channel.status
-                    )
-                }
-            )
-            result.append(mappedValue)
-        }
-        return result
+        try await worldCollection.find().toArray().map { .init($0) }
     }
     
     func world(_ id: MapleStory.World.ID) async throws -> MapleStory.World {/*
@@ -235,22 +208,14 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         _ channelID: MapleStory.Channel.ID,
         in worldID: MapleStory.World.ID
     ) async throws -> MapleStory.Channel {
-        guard let world = try await World
-            .query(on: database)
-            .filter(\.$index, .equal, Int(worldID))
-            .first() else {
-            throw MapleStoryError.invalidRequest
-        }
-        let channels = try await world.$channels.query(on: database).all()
-        let values = channels.enumerated().map { (index, channel) in
-            MapleStory.Channel(
-                id: UInt8(index),
-                name: channel.name,
-                load: numericCast(channel.load),
-                status: channel.status
-            )
-        }
-        guard let channel = values.first(where: { $0.id == channelID }) else {
+        let filter: BSONDocument = [
+            World.BSON.CodingKeys.index.rawValue: .int32(Int32(worldID))
+        ]
+        guard let world = try await worldCollection.findOne(filter),
+              let channel = world.channels
+                .enumerated()
+                .first(where: { $0.offset == channelID })
+                .flatMap({ Channel(id: UInt8($0.offset), $0.element) }) else {
             throw MapleStoryError.invalidRequest
         }
         return channel

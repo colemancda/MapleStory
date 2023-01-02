@@ -329,18 +329,19 @@ internal extension MapleStoryServer {
         // MARK: - Requests
         
         private func login(_ request: LoginRequest) async throws -> LoginResponse {
+            let username = request.username.lowercased()
             log("Login - \(request.username)")
-                        
+            
             // create if doesnt exist and autoregister enabled
-            guard try await server.dataSource.register(username: request.username, password: request.password) == false else {
+            guard try await server.dataSource.register(username: username, password: request.password) == false else {
                 log("Registered User - \(request.username)")
-                await connection.authenticate(username: request.username)
+                await connection.authenticate(username: username)
                 return .success(username: request.username)
             }
             
             // check if user exists
-            guard try await self.server.dataSource.userExists(for: request.username) else {
-                throw MapleStoryError.unknownUser(request.username) //.success(username: request.username) // TODO: Failure
+            guard try await self.server.dataSource.userExists(for: username) else {
+                throw MapleStoryError.unknownUser(username) //.success(username: request.username) // TODO: Failure
             }
             
             // validate password
@@ -349,7 +350,7 @@ internal extension MapleStoryServer {
                 throw MapleStoryError.invalidPassword //return .success(username: request.username) // TODO: Failure
             }
             
-            await connection.authenticate(username: request.username)
+            await connection.authenticate(username: username)
             return .success(username: request.username)
         }
         

@@ -6,50 +6,49 @@
 //
 
 import Foundation
-import Vapor
-import Fluent
+import MapleStory
+import SwiftBSON
 
-final class User: Model, Codable {
+struct User: Codable, Equatable, Hashable, Identifiable {
+    
+    static var collection: String { "users" }
     
     enum CodingKeys: String, CodingKey {
         
-        case id
+        case id = "_id"
         case username
         case password
         case created
         case pinCode = "pincode"
         case birthday
+        case isAdmin = "admin"
+        case connections
     }
     
-    static let schema = "users"
+    let id: BSONObjectID
     
-    @ID
-    var id: UUID?
+    let username: String
     
-    @Field(key: CodingKeys.username)
-    var username: String
-    
-    @Field(key: CodingKeys.password)
     var password: String
     
-    @Field(key: CodingKeys.created)
     var created: Date
     
-    @Field(key: CodingKeys.pinCode)
     var pinCode: String
     
-    @Field(key: CodingKeys.birthday)
     var birthday: Date
     
-    init() { }
+    var isAdmin: Bool
+    
+    var connections: [MapleStoryAddress]
     
     init(
-        id: UUID? = nil,
+        id: BSONObjectID = BSONObjectID(),
         username: String,
         password: String,
         created: Date = Date(),
         pinCode: String = "1234",
-        birthday: Date = Date(timeIntervalSinceReferenceDate: 0)
+        birthday: Date = Date(timeIntervalSinceReferenceDate: 0),
+        isAdmin: Bool = false
     ) {
         self.id = id
         self.username = username
@@ -57,5 +56,7 @@ final class User: Model, Codable {
         self.created = created
         self.pinCode = pinCode
         self.birthday = birthday
+        self.isAdmin = isAdmin
+        self.connections = []
     }
 }

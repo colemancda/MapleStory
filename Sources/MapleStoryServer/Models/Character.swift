@@ -6,14 +6,5 @@
 //
 
 import Foundation
-import Fluent
 
-final class Character: Model, Codable {
-    
-    static let schema = "characters"
-    
-    @ID
-    var id: UUID?
-    
-    
-}
+
