@@ -63,6 +63,8 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     func migrate() async throws {
         app.migrations.add(CreateUser())
+        app.migrations.add(CreateWorld())
+        app.migrations.add(CreateChannel())
         try await app.autoMigrate()
     }
     
@@ -135,12 +137,55 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         }
     }
     
-    func worlds() throws -> [MapleStory.World] {
-        []
+    func worlds() async throws -> [MapleStory.World] {
+        let worlds = try await World
+            .query(on: database)
+            .sort(\.$index)
+            .all()
+        return worlds.map {
+            MapleStory.World(
+                id: $0.index,
+                name: $0.name,
+                address: $0.address,
+                flags: $0.flags,
+                eventMessage: $0.eventMessage,
+                rateModifier: $0.rateModifier,
+                eventXP: $0.eventXP,
+                dropRate: $0.dropRate,
+                channels: $0.channels.enumerated().map { (index, channel) in
+                    MapleStory.Channel(
+                        id: UInt8(index),
+                        name: channel.name,
+                        load: channel.load,
+                        status: channel.status
+                    )
+                }
+            )
+        }
     }
     
-    func channel(_ id: MapleStory.Channel.ID, in world: MapleStory.World.ID) async throws -> MapleStory.Channel {
-        fatalError()
+    func channel(
+        _ channelID: MapleStory.Channel.ID,
+        in worldID: MapleStory.World.ID
+    ) async throws -> MapleStory.Channel {
+        guard let world = try await World
+            .query(on: database)
+            .filter(\.$index, .equal, worldID)
+            .first() else {
+            throw MapleStoryDatabaseError.notFound
+        }
+        let channels = world.channels.enumerated().lazy.map { (index, channel) in
+            MapleStory.Channel(
+                id: UInt8(index),
+                name: channel.name,
+                load: channel.load,
+                status: channel.status
+            )
+        }
+        guard let channel = channels.first(where: { $0.id == channelID }) else {
+            throw MapleStoryDatabaseError.notFound
+        }
+        return channel
     }
     
     func characters(for user: String) async throws -> [MapleStory.World.ID : [MapleStory.Character]] {
@@ -150,4 +195,9 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     func characters(for user: String, in world: MapleStory.World.ID, channel: MapleStory.Channel.ID) async throws -> [MapleStory.Character] {
         []
     }
+}
+
+public enum MapleStoryDatabaseError: Error {
+    
+    case notFound
 }
