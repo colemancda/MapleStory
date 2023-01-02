@@ -128,6 +128,8 @@ public protocol MapleStoryServerDataSource: AnyObject {
     
     func worlds() async throws -> [World]
     
+    func world(_ id: World.ID) async throws -> World
+    
     func channel(
         _ id: Channel.ID,
         in world: World.ID
@@ -142,6 +144,12 @@ public protocol MapleStoryServerDataSource: AnyObject {
         in world: World.ID,
         channel: Channel.ID
     ) async throws -> [Character]
+    
+    func newCharacterID(in world: World.ID) async throws -> UInt32
+    
+    func characterExists(name: String, in world: World.ID) async throws -> Bool
+    
+    func create(_ character: Character) async throws
 }
 
 public struct MapleStoryServerConfiguration: Equatable, Hashable, Codable {
@@ -185,7 +193,9 @@ internal extension MapleStoryServer.Connection {
     
     struct ClientState: Equatable, Hashable {
         
-        var channel: UInt16 = 0x00
+        var channel: UInt8 = 0x00
+        
+        var world: UInt8 = 0x00
     }
 }
 
@@ -241,6 +251,7 @@ internal extension MapleStoryServer {
             await register { [unowned self] in try await self.selectCharacter($0) }
             await register { [unowned self] in try await self.selectAllCharacter($0) }
             await register { [unowned self] in try await self.createCharacter($0) }
+            await register { [unowned self] in try await self.checkCharacterName($0) }
             
             // Channel
             await connection.register { [unowned self] in await self.playerLogin($0) }
@@ -387,10 +398,12 @@ internal extension MapleStoryServer {
                 in: request.world,
                 channel: request.channel
             )
+            self.state.world = request.world
+            self.state.channel = request.channel
             return CharacterListResponse(
                 value0: 0x00,
                 characters: characters.map { .init($0) },
-                maxCharacters: 3
+                maxCharacters: 6
             )
         }
         
@@ -415,19 +428,28 @@ internal extension MapleStoryServer {
             }
         }
         
+        private func checkCharacterName(_ request: CheckNameRequest) async throws -> CheckNameResponse {
+            log("Check Character Name - \(request.name)")
+            let isUsed = try await server.dataSource.characterExists(name: request.name, in: state.world)
+            return CheckNameResponse(name: request.name, isUsed: isUsed)
+        }
+        
         private func createCharacter(_ request: CreateCharacterRequest) async throws -> CreateCharacterResponse {
-            log("Create Character")
-            guard let character = Character(id: 0, request: request) else {
+            log("Create Character - \(request.name)")
+            let id = try await server.dataSource.newCharacterID(in: state.world)
+            guard let character = Character(id: id, request: request) else {
                 throw MapleStoryError.invalidRequest
             }
+            try await server.dataSource.create(character)
             return .init(didCreate: true, character: .init(character))
         }
         
         private func selectCharacter(_ request: CharacterSelectRequest) async throws -> ServerIPResponse {
             log("Select Character - Client \(request.client)")
+            let world = try await server.dataSource.world(state.world)
             return ServerIPResponse(
                 value0: 0,
-                address: MapleStoryAddress(rawValue: "192.168.1.119:7575")!,
+                address: world.address,
                 client: request.client,
                 value1: 0,
                 value2: 0
@@ -436,9 +458,10 @@ internal extension MapleStoryServer {
         
         private func selectAllCharacter(_ request: AllCharactersSelectRequest) async throws -> ServerIPResponse {
             log("Select All Character - Client \(request.client)")
+            let world = try await server.dataSource.world(state.world)
             return ServerIPResponse(
                 value0: 0,
-                address: MapleStoryAddress(rawValue: "192.168.1.119:7575")!,
+                address: world.address,
                 client: request.client,
                 value1: 0,
                 value2: 0

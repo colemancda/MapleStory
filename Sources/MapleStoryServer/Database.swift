@@ -203,6 +203,34 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         return result
     }
     
+    func world(_ id: MapleStory.World.ID) async throws -> MapleStory.World {/*
+        guard let value = try await World
+            .query(on: database)
+            .filter(\World.index, .equal, Int(id))
+            .first() else {
+            throw MapleStoryError.invalidRequest
+        }
+        return MapleStory.World(
+            id: numericCast(value.index),
+            name: value.name,
+            address: value.address,
+            flags: numericCast(value.flags),
+            eventMessage: value.eventMessage,
+            rateModifier: numericCast(value.rateModifier),
+            eventXP: numericCast(value.eventXP),
+            dropRate: numericCast(value.dropRate),
+            channels: try await value.$channels.query(on: database).all().enumerated().map { (index, channel) in
+                MapleStory.Channel(
+                    id: numericCast(index),
+                    name: channel.name,
+                    load: numericCast(channel.load),
+                    status: channel.status
+                )
+            }
+        )*/
+        fatalError()
+    }
+    
     func channel(
         _ channelID: MapleStory.Channel.ID,
         in worldID: MapleStory.World.ID
@@ -234,5 +262,17 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     func characters(for user: String, in world: MapleStory.World.ID, channel: MapleStory.Channel.ID) async throws -> [MapleStory.Character] {
         []
+    }
+    
+    func create(_ character: MapleStory.Character) async throws {
+        
+    }
+    
+    func newCharacterID(in world: MapleStory.World.ID) async throws -> UInt32 {
+        0
+    }
+    
+    func characterExists(name: String, in world: MapleStory.World.ID) async throws -> Bool {
+        return false
     }
 }
