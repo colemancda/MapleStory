@@ -26,6 +26,28 @@ public struct World: Equatable, Hashable, Codable, Identifiable {
     public var dropRate: UInt8
             
     public var channels: [Channel]
+    
+    public init(
+        id: UInt8,
+        name: String,
+        address: MapleStoryAddress = .channelServerDefault,
+        flags: UInt8 = 0x02,
+        eventMessage: String = "",
+        rateModifier: UInt8 = 0x64,
+        eventXP: UInt8 = 0,
+        dropRate: UInt8 = 0,
+        channels: [Channel] = []
+    ) {
+        self.id = id
+        self.name = name
+        self.address = address
+        self.flags = flags
+        self.eventMessage = eventMessage
+        self.rateModifier = rateModifier
+        self.eventXP = eventXP
+        self.dropRate = dropRate
+        self.channels = channels
+    }
 }
 
 /// Channel
@@ -38,6 +60,18 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable {
     public var load: UInt32
     
     public var status: Status
+    
+    public init(
+        id: UInt8,
+        name: String,
+        load: UInt32 = 0,
+        status: Channel.Status = .normal
+    ) {
+        self.id = id
+        self.name = name
+        self.load = load
+        self.status = status
+    }
 }
 
 public extension Channel {
