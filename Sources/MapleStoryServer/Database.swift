@@ -68,6 +68,33 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         try await app.autoMigrate()
     }
     
+    func initialize() async throws {
+        // create admin user
+        if try await userExists(for: "admin") == false {
+            try await createUser(
+                username: "admin",
+                password: "admin"
+            )
+        }
+        // create worlds
+        if try await worlds().isEmpty {
+            for worldIndex in 0 ..< 15 {
+                let world = World(
+                    index: numericCast(worldIndex),
+                    name: "World \(worldIndex + 1)"
+                )
+                try await world.create(on: database)
+                // create channels
+                for channelIndex in 0 ..< 20 {
+                    let channel = Channel(world: world.id!, name: "\(world.name) - \(channelIndex + 1)")
+                    try await world.$channels.create(channel, on: database)
+                }
+                // save
+                try await world.save(on: database)
+            }
+        }
+    }
+    
     var command: ArgumentParser.ParsableCommand.Type {
         fatalError()
     }
@@ -85,18 +112,26 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         password: String
     ) async throws -> Bool {
         // check if user exists
-        guard try await userExists(for: username) else {
+        guard try await userExists(for: username) == false else {
             return false
         }
         // check if can create new user
         
         // create new user
+        try await createUser(username: username, password: password)
+        return true
+    }
+    
+    func createUser(
+        username: String,
+        password: String
+    ) async throws {
+        // create new user
         let newUser = User(
             username: username,
             password: password
         )
-        try await newUser.save(on: database)
-        return true
+        try await newUser.create(on: database)
     }
     
     func password(for username: String) async throws -> String {
@@ -142,26 +177,30 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
             .query(on: database)
             .sort(\.$index)
             .all()
-        return worlds.map {
-            MapleStory.World(
-                id: $0.index,
-                name: $0.name,
-                address: $0.address,
-                flags: $0.flags,
-                eventMessage: $0.eventMessage,
-                rateModifier: $0.rateModifier,
-                eventXP: $0.eventXP,
-                dropRate: $0.dropRate,
-                channels: $0.channels.enumerated().map { (index, channel) in
+        var result = [MapleStory.World]()
+        result.reserveCapacity(worlds.count)
+        for value in worlds {
+            let mappedValue = MapleStory.World(
+                id: numericCast(value.index),
+                name: value.name,
+                address: value.address,
+                flags: numericCast(value.flags),
+                eventMessage: value.eventMessage,
+                rateModifier: numericCast(value.rateModifier),
+                eventXP: numericCast(value.eventXP),
+                dropRate: numericCast(value.dropRate),
+                channels: try await value.$channels.query(on: database).all().enumerated().map { (index, channel) in
                     MapleStory.Channel(
-                        id: UInt8(index),
+                        id: numericCast(index),
                         name: channel.name,
-                        load: channel.load,
+                        load: numericCast(channel.load),
                         status: channel.status
                     )
                 }
             )
+            result.append(mappedValue)
         }
+        return result
     }
     
     func channel(
@@ -170,19 +209,20 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     ) async throws -> MapleStory.Channel {
         guard let world = try await World
             .query(on: database)
-            .filter(\.$index, .equal, worldID)
+            .filter(\.$index, .equal, Int(worldID))
             .first() else {
             throw MapleStoryDatabaseError.notFound
         }
-        let channels = world.channels.enumerated().lazy.map { (index, channel) in
+        let channels = try await world.$channels.query(on: database).all()
+        let values = channels.enumerated().map { (index, channel) in
             MapleStory.Channel(
                 id: UInt8(index),
                 name: channel.name,
-                load: channel.load,
+                load: numericCast(channel.load),
                 status: channel.status
             )
         }
-        guard let channel = channels.first(where: { $0.id == channelID }) else {
+        guard let channel = values.first(where: { $0.id == channelID }) else {
             throw MapleStoryDatabaseError.notFound
         }
         return channel

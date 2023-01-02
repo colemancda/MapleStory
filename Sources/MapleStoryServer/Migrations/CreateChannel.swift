@@ -14,7 +14,7 @@ struct CreateChannel: AsyncMigration {
             .id()
             .field(Channel.CodingKeys.name, .string, .required)
             .field(Channel.CodingKeys.world, .uuid, .required, .references(World.schema, "id"))
-            .field(Channel.CodingKeys.load, .uint32, .required)
+            .field(Channel.CodingKeys.load, .int, .required)
             .field(Channel.CodingKeys.status, .uint8, .required)
             .create()
     }

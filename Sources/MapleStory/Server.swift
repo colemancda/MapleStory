@@ -320,21 +320,24 @@ internal extension MapleStoryServer {
             log("Login - \(request.username)")
                         
             // create if doesnt exist and autoregister enabled
-            if try await server.dataSource.register(username: request.username, password: request.password) {
+            guard try await server.dataSource.register(username: request.username, password: request.password) == false else {
                 log("Registered User - \(request.username)")
+                await connection.authenticate(username: request.username)
+                return .success(username: request.username)
             }
             
             // check if user exists
             guard try await self.server.dataSource.userExists(for: request.username) else {
-                return .success(username: request.username) // TODO: Failure
+                throw MapleStoryError.unknownUser(request.username) //.success(username: request.username) // TODO: Failure
             }
             
             // validate password
             let password = try await self.server.dataSource.password(for: request.username)
             guard password == request.password else {
-                return .success(username: request.username) // TODO: Failure
+                throw MapleStoryError.invalidPassword //return .success(username: request.username) // TODO: Failure
             }
             
+            await connection.authenticate(username: request.username)
             return .success(username: request.username)
         }
         

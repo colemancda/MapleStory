@@ -32,7 +32,7 @@ final class World: Model, Codable {
     var id: UUID?
     
     @Field(key: CodingKeys.index)
-    var index: UInt8
+    var index: Int
     
     @Field(key: CodingKeys.name)
     var name: String
@@ -41,19 +41,19 @@ final class World: Model, Codable {
     var address: MapleStoryAddress
     
     @Field(key: CodingKeys.flags)
-    var flags: UInt8
+    var flags: Int
     
     @Field(key: CodingKeys.eventMessage)
     var eventMessage: String
     
     @Field(key: CodingKeys.rateModifier)
-    var rateModifier: UInt8
+    var rateModifier: Int
     
     @Field(key: CodingKeys.eventXP)
-    var eventXP: UInt8
+    var eventXP: Int
     
     @Field(key: CodingKeys.dropRate)
-    var dropRate: UInt8
+    var dropRate: Int
     
     @Children(for: \.$world)
     var channels: [Channel]
@@ -72,14 +72,13 @@ final class World: Model, Codable {
         dropRate: UInt8 = 0x00
     ) {
         self.id = id
-        self.index = index
+        self.index = numericCast(index)
         self.name = name
         self.address = address
-        self.flags = flags
+        self.flags = numericCast(flags)
         self.eventMessage = eventMessage
-        self.rateModifier = rateModifier
-        self.eventXP = eventXP
-        self.dropRate = dropRate
-        self.channels = []
+        self.rateModifier = numericCast(rateModifier)
+        self.eventXP = numericCast(eventXP)
+        self.dropRate = numericCast(dropRate)
     }
 }

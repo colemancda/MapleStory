@@ -33,7 +33,7 @@ final class Channel: Model, Codable {
     var name: String
     
     @Field(key: CodingKeys.load)
-    var load: UInt32
+    var load: Int
     
     @Field(key: CodingKeys.status)
     var status: MapleStory.Channel.Status
@@ -50,7 +50,7 @@ final class Channel: Model, Codable {
         self.id = id
         self.$world.id = world
         self.name = name
-        self.load = load
+        self.load = numericCast(load)
         self.status = status
     }
 }

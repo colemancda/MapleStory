@@ -67,9 +67,13 @@ struct Server: AsyncParsableCommand {
             socket: MapleStorySocketIPv4TCP.self
         )
         
-        // run Vapor
+        // create DB tables
         try await database.migrate()
-        try database.run()
+        try await database.initialize()
+        #if DEBUG
+        NSLog("Users: \(try await database.userCount)")
+        #endif
+        try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
         
         // retain
         let _ = server
