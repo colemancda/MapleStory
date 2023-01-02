@@ -17,4 +17,8 @@ public enum MapleStoryError: Error {
     case invalidData(Data)
     
     case notAuthenticated
+    
+    case unknownUser(String)
+    
+    case invalidPassword
 }

@@ -107,7 +107,8 @@ public protocol MapleStoryServerDataSource: AnyObject {
     func didDisconnect(_ address: MapleStoryAddress, username: String?) async
     
     func register(
-        username: String
+        username: String,
+        password: String
     ) async throws -> Bool
     
     /// get the credentials for a user
@@ -134,15 +135,13 @@ public protocol MapleStoryServerDataSource: AnyObject {
     
     func characters(
         for user: String
-    ) async throws -> [Character]
+    ) async throws -> [World.ID: [Character]]
     
     func characters(
         for user: String,
         in world: World.ID,
         channel: Channel.ID
     ) async throws -> [Character]
-    
-    func characters() async throws -> [World.ID: [Character]]
 }
 
 public struct MapleStoryServerConfiguration: Equatable, Hashable, Codable {
@@ -321,7 +320,7 @@ internal extension MapleStoryServer {
             log("Login - \(request.username)")
                         
             // create if doesnt exist and autoregister enabled
-            if try await server.dataSource.register(username: request.username) {
+            if try await server.dataSource.register(username: request.username, password: request.password) {
                 log("Registered User - \(request.username)")
             }
             
@@ -341,12 +340,12 @@ internal extension MapleStoryServer {
         
         private func guestLogin(_ request: GuestLoginRequest) async throws -> LoginResponse {
             log("Guest Login")
-            return LoginResponse.success(username: "Guest\(UUID())")
+            return .success(username: "Guest\(UUID())")
         }
         
         private func pinOperation(_ request: PinOperationRequest) async throws -> PinOperationResponse {
             log("Pin Operation")
-            return PinOperationResponse.success
+            return .success
         }
         
         private func serverList(_ request: ServerListRequest) async {
@@ -394,8 +393,11 @@ internal extension MapleStoryServer {
         private func allCharacters(_ request: AllCharactersRequest) async {
             log("All Character List")
             do {
+                guard let username = await self.connection.username else {
+                    throw MapleStoryError.notAuthenticated
+                }
                 let charactersByWorld = try await self.server.dataSource
-                    .characters()
+                    .characters(for: username)
                     .sorted(by: { $0.key < $1.key })
                 let count = charactersByWorld.reduce(0, { $0 + $1.value.count })
                 let responses: [AllCharactersResponse] = [.count(count)]
