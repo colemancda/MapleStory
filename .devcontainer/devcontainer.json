@@ -5,8 +5,6 @@
 	"build": {
 		"dockerfile": "Dockerfile",
 		"args": {
-			// Update the VARIANT arg to pick a Swift version 
-			"VARIANT": "5.7.1-jammy",
 			// Options
 			"NODE_VERSION": "lts/*",
 			"UPGRADE_PACKAGES": "true"
@@ -35,8 +33,13 @@
 	},
 
 	// Use 'forwardPorts' to make a list of ports inside the container available locally.
-	// "forwardPorts": [],
-
+	"forwardPorts": [
+		8484,
+		7575,
+		7576,
+		7577
+	],
+	
 	// Use 'postCreateCommand' to run commands after the container is created.
 	// "postCreateCommand": "",
 

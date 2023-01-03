@@ -1,6 +1,4 @@
-# [Choice] Swift version: 5.6-focal, 5.5, 5.4, 5.3, 5.2, 5.1, 4.2
-ARG VARIANT=5.7.1-jammy
-FROM swift:${VARIANT}
+FROM swift:5.7.1-focal
 
 # [Option] Install zsh
 ARG INSTALL_ZSH="true"
@@ -25,9 +23,8 @@ COPY library-scripts/node-debian.sh /tmp/library-scripts/
 RUN bash /tmp/library-scripts/node-debian.sh "${NVM_DIR}" "${NODE_VERSION}" "${USERNAME}" \
     && rm -rf /var/lib/apt/lists/* /tmp/library-scripts
 
-# [Optional] Uncomment this section to install additional OS packages you may want.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    libmongoc-dev \
+    libmongoc-1.0-0
 
-# [Optional] Uncomment this line to install global node packages.
-# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
