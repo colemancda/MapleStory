@@ -50,6 +50,46 @@ public struct World: Equatable, Hashable, Codable, Identifiable {
     }
 }
 
+public extension World {
+    
+    enum Name: String, CaseIterable {
+        
+        case scania     = "Scania"
+        case bera       = "Bera"
+        case broa       = "Broa"
+        case windia     = "Windia"
+        case khaini     = "Khaini"
+        case bellocan   = "Bellocan"
+        case mardia     = "Mardia"
+        case kradia     = "Kradia"
+        case yellonde   = "Yellonde"
+        case demethos   = "Demethos"
+        case elnido     = "Elnido"
+        case kastia     = "Kastia"
+        case judis      = "Judis"
+        case arkenia    = "Arkenia"
+        case plana      = "Plana"
+        
+        init?(id: World.ID) {
+            guard let value = Self.allCases.enumerated().first(where: { $0.offset == id })?.element else {
+                return nil
+            }
+            self = value
+        }
+        
+        var id: World.ID {
+            World.ID(Self.allCases.firstIndex(of: self)!)
+        }
+    }
+    
+    static func name(for id: World.ID) -> String {
+        guard let name = Name(id: id) else {
+            return "World \(id + 1)"
+        }
+        return name.rawValue
+    }
+}
+
 /// Channel
 public struct Channel: Codable, Equatable, Hashable, Identifiable {
     

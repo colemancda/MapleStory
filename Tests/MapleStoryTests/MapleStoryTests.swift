@@ -47,6 +47,62 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(Job.supergm.type, .gm)
     }
     
+    func testWorldName() {
+        
+        func name(for id: World.ID) -> String {
+            switch id {
+            case 0:
+                return "Scania"
+            case 1:
+                return "Bera"
+            case 2:
+                return "Broa"
+            case 3:
+                return "Windia"
+            case 4:
+                return "Khaini"
+            case 5:
+                return "Bellocan"
+            case 6:
+                return "Mardia"
+            case 7:
+                return "Kradia"
+            case 8:
+                return "Yellonde"
+            case 9:
+                return "Demethos"
+            case 10:
+                return "Elnido"
+            case 11:
+                return "Kastia"
+            case 12:
+                return "Judis"
+            case 13:
+                return "Arkenia"
+            case 14:
+                return "Plana"
+            default:
+                return "World \(id + 1)"
+            }
+        }
+        
+        XCTAssertEqual(World.Name.scania.rawValue, name(for: 0))
+        XCTAssertEqual(World.Name.scania.id, 0)
+        XCTAssertEqual(World.Name(id: 0), .scania)
+        
+        XCTAssertNil(World.Name(id: 15))
+        XCTAssertEqual(World.name(for: 15), "World 16")
+        XCTAssertEqual(World.name(for: 15), name(for: 15))
+        
+        for (index, value) in World.Name.allCases.enumerated() {
+            let id = UInt8(index)
+            XCTAssertEqual(value.id, id)
+            XCTAssertEqual(World.Name(id: id), value)
+            XCTAssertEqual(value.rawValue, name(for: id))
+            XCTAssertEqual(World.Name(rawValue: name(for: id)), value)
+        }
+    }
+    
     func testHello() throws {
         
         let data = Data([0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08])
