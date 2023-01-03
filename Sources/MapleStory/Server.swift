@@ -452,7 +452,7 @@ internal extension MapleStoryServer {
                 throw MapleStoryError.invalidRequest
             }
             try await server.dataSource.create(character, for: username, in: state.world)
-            return .init(didCreate: true, character: .init(character))
+            return .init(character: .init(character))
         }
         
         private func selectCharacter(_ request: CharacterSelectRequest) async throws -> ServerIPResponse {

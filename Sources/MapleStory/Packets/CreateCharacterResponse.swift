@@ -13,12 +13,12 @@ public struct CreateCharacterResponse: MapleStoryPacket, Codable, Equatable, Has
     
     public typealias Character = CharacterListResponse.Character
     
-    public var didCreate: Bool
+    public var error: Bool
     
     public var character: Character
     
-    public init(didCreate: Bool, character: Character) {
-        self.didCreate = didCreate
+    public init(error: Bool = false, character: Character) {
+        self.error = error
         self.character = character
     }
 }

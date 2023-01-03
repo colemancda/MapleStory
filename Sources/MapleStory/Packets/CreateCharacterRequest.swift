@@ -77,7 +77,7 @@ public extension Character {
         self.fame = 0
         self.cashWeapon = 0
         self.isMarried = false
-        self.isMega = false
+        self.isMega = true
         self.currentMap = 40000
         self.spawnPoint = 2
         self.equipment = [:]

@@ -118,7 +118,7 @@ extension Character {
             isMarried: Bool = false,
             currentMap: UInt32 = 40000,
             spawnPoint: UInt8 = 2,
-            isMega: Bool = false,
+            isMega: Bool = true,
             cashWeapon: UInt32 = 0,
             equipment: [UInt8 : UInt32] = [5: 0x82DE0F00, 6: 0xA22C1000, 7: 0x815B1000, 11: 0xF0DD1300],
             maskedEquipment: [UInt8 : UInt32] = [:],

@@ -638,7 +638,7 @@ final class LoginTests: XCTestCase {
         }
         
         let value = CreateCharacterResponse(
-            didCreate: false,
+            error: false,
             character: MapleStory.CharacterListResponse.Character(
                 stats: MapleStory.CharacterListResponse.CharacterStats(
                     id: 15,
