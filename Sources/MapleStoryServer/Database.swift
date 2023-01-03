@@ -67,7 +67,7 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         // create worlds and channels
         if try await worldCollection.countDocuments() == 0 {
             let worlds = (0 ..< 15).map {
-                let worldName = "World \($0 + 1)"
+                let worldName = World.name(for: UInt8($0))
                 var address = MapleStoryAddress.channelServerDefault
                 address.port += UInt16($0)
                 return World.BSON(
