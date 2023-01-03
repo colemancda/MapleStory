@@ -97,8 +97,8 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
             for world in try await _worlds() {
                 let id = try await newCharacterID(in: world.index)
                 let character = Character.BSON(
-                    user: user.id,
-                    world: world.id,
+                    user: "admin",
+                    world: world.index,
                     characterID: id,
                     name: "admin",
                     job: .supergm,
@@ -106,6 +106,7 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
                     maxHp: 9999,
                     mp: 9999,
                     maxMp: 9999,
+                    isMega: true,
                     isRankEnabled: false
                 )
                 try await characters.insertOne(character)
@@ -231,39 +232,41 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     func characters(
         for username: String
-    ) async throws -> [MapleStory.World.ID : [MapleStory.Character]] {/*
-        guard let userID = try await users.findOne(["username": .string(username)])?.id else {
-            throw MapleStoryError.unknownUser(username)
-        }
-        var results = [MapleStory.World.ID : [MapleStory.Character]]()
-        try await characters.find([
-            "user": .objectID(userID)
+    ) async throws -> [MapleStory.World.ID : [MapleStory.Character]] {
+        let characters = try await characters.find([
+            "user": .string(username)
         ])
-        return results*/
-        [:]
+        .toArray()
+        var results = [MapleStory.World.ID : [MapleStory.Character]]()
+        for bson in characters {
+            let value = Character(bson)
+            results[bson.world, default: []].append(value)
+        }
+        return results
     }
     
     func characters(
-        for user: String,
+        for username: String,
         in world: MapleStory.World.ID,
         channel: MapleStory.Channel.ID
-    ) async throws -> [MapleStory.Character] {/*
-        let filter: BSONDocument = [
-            "": .int32(Int32(world))
-        ]
-        var results = [MapleStory.Character]()
-        try await characters.find()
-        return results*/
-        []
+    ) async throws -> [MapleStory.Character] {
+        try await characters.find([
+            "user": .string(username),
+            "world": .int32(Int32(world))
+        ])
+        .toArray()
+        .map { Character($0) }
     }
     
-    func create(_ character: MapleStory.Character, for username: String, in worldID: World.ID) async throws {
-        let user = try await user(for: username)
-        let world = try await _world(worldID)
+    func create(
+        _ character: MapleStory.Character,
+        for username: String,
+        in worldID: World.ID
+    ) async throws {
         let bson = Character.BSON(
             id: BSONObjectID(),
-            user: user.id,
-            world: world.id,
+            user: username,
+            world: worldID,
             characterID: character.id,
             name: character.name,
             created: character.created,
@@ -318,10 +321,9 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         name: String,
         in world: MapleStory.World.ID
     ) async throws -> Bool {
-        let worldID = try await _world(world).id
         let filter: BSONDocument = [
             "name": .string(name),
-            "world": .objectID(worldID)
+            "world": .int32(Int32(world))
         ]
         return try await characters.countDocuments(filter) != 0
     }

@@ -17,11 +17,11 @@ extension Character {
         
         let id: BSONObjectID
         
-        let user: BSONObjectID
+        let user: String
         
-        let world: BSONObjectID
+        let world: World.ID
         
-        let characterID: UInt32
+        let characterID: Character.ID
         
         let name: CharacterName
         
@@ -91,9 +91,9 @@ extension Character {
         
         init(
             id: BSONObjectID = BSONObjectID(),
-            user: BSONObjectID,
-            world: BSONObjectID,
-            characterID: UInt32,
+            user: String,
+            world: World.ID,
+            characterID: Character.ID,
             name: CharacterName,
             created: Date = Date(),
             gender: Gender = .male,
@@ -120,7 +120,7 @@ extension Character {
             spawnPoint: UInt8 = 2,
             isMega: Bool = false,
             cashWeapon: UInt32 = 0,
-            equipment: [UInt8 : UInt32] = [:],
+            equipment: [UInt8 : UInt32] = [5: 0x82DE0F00, 6: 0xA22C1000, 7: 0x815B1000, 11: 0xF0DD1300],
             maskedEquipment: [UInt8 : UInt32] = [:],
             isRankEnabled: Bool = true,
             worldRank: UInt32 = 0,
@@ -168,5 +168,42 @@ extension Character {
         }
     }
     
-    
+    init(_ value: BSON) {
+        self.init(
+            id: value.characterID,
+            created: value.created,
+            name: value.name,
+            gender: value.gender,
+            skinColor: value.skinColor,
+            face: value.face,
+            hair: value.hair,
+            hairColor: value.hairColor,
+            level: value.level,
+            job: value.job,
+            str: value.str,
+            dex: value.dex,
+            int: value.int,
+            luk: value.luk,
+            hp: value.hp,
+            maxHp: value.maxHp,
+            mp: value.mp,
+            maxMp: value.maxMp,
+            ap: value.ap,
+            sp: value.sp,
+            exp: value.exp,
+            fame: value.fame,
+            isMarried: value.isMarried,
+            currentMap: value.currentMap,
+            spawnPoint: value.spawnPoint,
+            isMega: value.isMarried,
+            cashWeapon: value.cashWeapon,
+            equipment: value.equipment,
+            maskedEquipment: value.maskedEquipment,
+            isRankEnabled: value.isRankEnabled,
+            worldRank: value.worldRank,
+            rankMove: value.rankMove,
+            jobRank: value.jobRank,
+            jobRankMove: value.jobRankMove
+        )
+    }
 }
