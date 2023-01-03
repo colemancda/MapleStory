@@ -32,6 +32,8 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     private var worldCollection: MongoCollection<World.BSON>!
     
+    private var characters: MongoCollection<Character.BSON>!
+    
     deinit {
         // clean up driver resources
         try? client.syncClose()
@@ -61,17 +63,7 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         // setup tables
         self.users = database.collection(User.collection, withType: User.self)
         self.worldCollection = database.collection(World.BSON.collection, withType: World.BSON.self)
-        // create admin user
-        if try await userExists(for: "admin") == false {
-            let user = User(
-                username: "admin",
-                password: "admin",
-                isAdmin: true
-            )
-            try await users.insertOne(user)
-            // create admin character
-            
-        }
+        self.characters = database.collection(Character.BSON.collection, withType: Character.BSON.self)
         // create worlds and channels
         if try await worldCollection.countDocuments() == 0 {
             let worlds = (0 ..< 15).map {
@@ -92,6 +84,32 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
                 )
             }
             try await worldCollection.insertMany(worlds)
+        }
+        // create admin user
+        if try await userExists(for: "admin") == false {
+            let user = User(
+                username: "admin",
+                password: "admin",
+                isAdmin: true
+            )
+            try await users.insertOne(user)
+            // create admin character in each world
+            for world in try await _worlds() {
+                let id = try await newCharacterID(in: world.index)
+                let character = Character.BSON(
+                    user: user.id,
+                    world: world.id,
+                    characterID: id,
+                    name: "admin",
+                    job: .supergm,
+                    hp: 9999,
+                    maxHp: 9999,
+                    mp: 9999,
+                    maxMp: 9999,
+                    isRankEnabled: false
+                )
+                try await characters.insertOne(character)
+            }
         }
     }
     
@@ -173,35 +191,25 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
     }
     
     func worlds() async throws -> [MapleStory.World] {
-        try await worldCollection.find().toArray().map { .init($0) }
+        try await _worlds().map { .init($0) }
     }
     
-    func world(_ id: MapleStory.World.ID) async throws -> MapleStory.World {/*
-        guard let value = try await World
-            .query(on: database)
-            .filter(\World.index, .equal, Int(id))
-            .first() else {
+    func _worlds() async throws -> [World.BSON] {
+        try await worldCollection.find().toArray()
+    }
+    
+    func world(_ id: MapleStory.World.ID) async throws -> MapleStory.World {
+        try await World(_world(id))
+    }
+    
+    func _world(_ id: MapleStory.World.ID) async throws -> World.BSON {
+        let filter: BSONDocument = [
+            World.BSON.CodingKeys.index.rawValue: .int32(Int32(id))
+        ]
+        guard let world = try await worldCollection.findOne(filter) else {
             throw MapleStoryError.invalidRequest
         }
-        return MapleStory.World(
-            id: numericCast(value.index),
-            name: value.name,
-            address: value.address,
-            flags: numericCast(value.flags),
-            eventMessage: value.eventMessage,
-            rateModifier: numericCast(value.rateModifier),
-            eventXP: numericCast(value.eventXP),
-            dropRate: numericCast(value.dropRate),
-            channels: try await value.$channels.query(on: database).all().enumerated().map { (index, channel) in
-                MapleStory.Channel(
-                    id: numericCast(index),
-                    name: channel.name,
-                    load: numericCast(channel.load),
-                    status: channel.status
-                )
-            }
-        )*/
-        fatalError()
+        return world
     }
     
     func channel(
@@ -221,23 +229,100 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         return channel
     }
     
-    func characters(for user: String) async throws -> [MapleStory.World.ID : [MapleStory.Character]] {
+    func characters(
+        for username: String
+    ) async throws -> [MapleStory.World.ID : [MapleStory.Character]] {/*
+        guard let userID = try await users.findOne(["username": .string(username)])?.id else {
+            throw MapleStoryError.unknownUser(username)
+        }
+        var results = [MapleStory.World.ID : [MapleStory.Character]]()
+        try await characters.find([
+            "user": .objectID(userID)
+        ])
+        return results*/
         [:]
     }
     
-    func characters(for user: String, in world: MapleStory.World.ID, channel: MapleStory.Channel.ID) async throws -> [MapleStory.Character] {
+    func characters(
+        for user: String,
+        in world: MapleStory.World.ID,
+        channel: MapleStory.Channel.ID
+    ) async throws -> [MapleStory.Character] {/*
+        let filter: BSONDocument = [
+            "": .int32(Int32(world))
+        ]
+        var results = [MapleStory.Character]()
+        try await characters.find()
+        return results*/
         []
     }
     
-    func create(_ character: MapleStory.Character) async throws {
-        
+    func create(_ character: MapleStory.Character, for username: String, in worldID: World.ID) async throws {
+        let user = try await user(for: username)
+        let world = try await _world(worldID)
+        let bson = Character.BSON(
+            id: BSONObjectID(),
+            user: user.id,
+            world: world.id,
+            characterID: character.id,
+            name: character.name,
+            created: character.created,
+            gender: character.gender,
+            skinColor: character.skinColor,
+            face: character.face,
+            hair: character.hair,
+            hairColor: character.hairColor,
+            level: character.level,
+            job: character.job,
+            str: character.str,
+            dex: character.dex,
+            int: character.int,
+            luk: character.luk,
+            hp: character.hp,
+            maxHp: character.maxHp,
+            mp: character.mp,
+            maxMp: character.maxMp,
+            ap: character.ap,
+            sp: character.sp,
+            exp: character.exp,
+            fame: character.fame,
+            isMarried: character.isMarried,
+            currentMap: character.currentMap,
+            spawnPoint: character.spawnPoint,
+            isMega: character.isMega,
+            cashWeapon: character.cashWeapon,
+            equipment: character.equipment,
+            maskedEquipment: character.maskedEquipment,
+            isRankEnabled: character.isRankEnabled,
+            worldRank: character.worldRank,
+            rankMove: character.rankMove,
+            jobRank: character.jobRank,
+            jobRankMove: character.jobRankMove
+        )
+        try await characters.insertOne(bson)
     }
     
-    func newCharacterID(in world: MapleStory.World.ID) async throws -> UInt32 {
-        0
+    func newCharacterID(in worldID: MapleStory.World.ID) async throws -> UInt32 {
+        let filter: BSONDocument = [
+            World.BSON.CodingKeys.index.rawValue: .int32(Int32(worldID))
+        ]
+        guard var world = try await worldCollection.findOne(filter) else {
+            throw MapleStoryError.invalidRequest
+        }
+        world.maxCharacterID += 1
+        try await worldCollection.findOneAndUpdate(filter: filter, update: worldCollection.encoder.encode(world))
+        return world.maxCharacterID
     }
     
-    func characterExists(name: String, in world: MapleStory.World.ID) async throws -> Bool {
-        return false
+    func characterExists(
+        name: String,
+        in world: MapleStory.World.ID
+    ) async throws -> Bool {
+        let worldID = try await _world(world).id
+        let filter: BSONDocument = [
+            "name": .string(name),
+            "world": .objectID(worldID)
+        ]
+        return try await characters.countDocuments(filter) != 0
     }
 }

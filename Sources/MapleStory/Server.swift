@@ -147,9 +147,16 @@ public protocol MapleStoryServerDataSource: AnyObject {
     
     func newCharacterID(in world: World.ID) async throws -> UInt32
     
-    func characterExists(name: String, in world: World.ID) async throws -> Bool
+    func characterExists(
+        name: String,
+        in world: World.ID
+    ) async throws -> Bool
     
-    func create(_ character: Character) async throws
+    func create(
+        _ character: Character,
+        for username: String,
+        in world: World.ID
+    ) async throws
 }
 
 public struct MapleStoryServerConfiguration: Equatable, Hashable, Codable {
@@ -437,11 +444,14 @@ internal extension MapleStoryServer {
         
         private func createCharacter(_ request: CreateCharacterRequest) async throws -> CreateCharacterResponse {
             log("Create Character - \(request.name)")
+            guard let username = await self.connection.username else {
+                throw MapleStoryError.notAuthenticated
+            }
             let id = try await server.dataSource.newCharacterID(in: state.world)
             guard let character = Character(id: id, request: request) else {
                 throw MapleStoryError.invalidRequest
             }
-            try await server.dataSource.create(character)
+            try await server.dataSource.create(character, for: username, in: state.world)
             return .init(didCreate: true, character: .init(character))
         }
         

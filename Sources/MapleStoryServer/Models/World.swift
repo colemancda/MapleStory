@@ -27,6 +27,7 @@ extension MapleStory.World {
             case eventXP
             case dropRate
             case channels
+            case maxCharacterID
         }
         
         public let id: BSONObjectID
@@ -48,6 +49,8 @@ extension MapleStory.World {
         public var dropRate: UInt8
                 
         public var channels: [Channel.BSON]
+        
+        public var maxCharacterID: UInt32
                 
         init(
             id: BSONObjectID = BSONObjectID(),
@@ -59,7 +62,8 @@ extension MapleStory.World {
             rateModifier: UInt8 = 0x64,
             eventXP: UInt8 = 0x00,
             dropRate: UInt8 = 0x00,
-            channels: [Channel.BSON] = []
+            channels: [Channel.BSON] = [],
+            maxCharacterID: UInt32 = 0
         ) {
             self.id = id
             self.index = (index)
@@ -71,6 +75,7 @@ extension MapleStory.World {
             self.eventXP = (eventXP)
             self.dropRate = (dropRate)
             self.channels = channels
+            self.maxCharacterID = maxCharacterID
         }
     }
     
