@@ -15,7 +15,7 @@ public struct ServerIPResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
     public let address: MapleStoryAddress
     
-    public let client: UInt32
+    public let character: Character.ID
     
     public let value1: UInt32
     

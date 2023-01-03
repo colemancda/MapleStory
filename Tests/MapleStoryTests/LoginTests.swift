@@ -458,7 +458,7 @@ final class LoginTests: XCTestCase {
         )
         
         let value = AllCharactersSelectRequest(
-            client: 1,
+            character: 1,
             macAddresses: ""
         )
         
@@ -476,7 +476,7 @@ final class LoginTests: XCTestCase {
         let value = ServerIPResponse(
             value0: 0,
             address: MapleStoryAddress(rawValue: "172.17.0.3:7575")!,
-            client: 1,
+            character: 1,
             value1: 0,
             value2: 0
         )
@@ -519,7 +519,7 @@ final class LoginTests: XCTestCase {
         )
         
         let value = CharacterSelectRequest(
-            client: 1,
+            character: 1,
             macAddresses: "00-1C-42-48-07-29"
         )
         
@@ -724,7 +724,7 @@ final class LoginTests: XCTestCase {
         
         let value = DeleteCharacterRequest(
             date: 10141100,
-            client: 16
+            character: 16
         )
         
         XCTAssertEncode(value, packet)
@@ -745,7 +745,7 @@ final class LoginTests: XCTestCase {
         }
         
         let value = DeleteCharacterResponse(
-            client: 16,
+            character: 16,
             state: 18
         )
         

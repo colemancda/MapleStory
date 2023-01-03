@@ -13,10 +13,10 @@ public struct DeleteCharacterRequest: MapleStoryPacket, Codable, Equatable, Hash
     
     public let date: UInt32
     
-    public let client: UInt32
+    public let character: Character.ID
     
-    public init(date: UInt32, client: UInt32) {
+    public init(date: UInt32, character: Character.ID) {
         self.date = date
-        self.client = client
+        self.character = character
     }
 }

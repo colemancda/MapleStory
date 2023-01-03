@@ -327,4 +327,15 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         ]
         return try await characters.countDocuments(filter) != 0
     }
+    
+    func delete(
+        character id: Character.ID,
+        in world: World.ID
+    ) async throws {
+        let filter: BSONDocument = [
+            "characterID": .int32(Int32(id)),
+            "world": .int32(Int32(world))
+        ]
+        try await characters.deleteOne(filter)
+    }
 }

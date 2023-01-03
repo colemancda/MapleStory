@@ -10,12 +10,12 @@ public struct PlayerLoginRequest: MapleStoryPacket, Codable, Equatable, Hashable
     
     public static var opcode: Opcode { 0x14 }
     
-    public let client: UInt32
+    public let character: Character.ID
     
     internal let value0: UInt16
     
-    public init(client: UInt32) {
-        self.client = client
+    public init(character: Character.ID) {
+        self.character = character
         self.value0 = 0x0000
     }
 }

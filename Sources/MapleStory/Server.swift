@@ -157,6 +157,11 @@ public protocol MapleStoryServerDataSource: AnyObject {
         for username: String,
         in world: World.ID
     ) async throws
+    
+    func delete(
+        character id: Character.ID,
+        in world: World.ID
+    ) async throws
 }
 
 public struct MapleStoryServerConfiguration: Equatable, Hashable, Codable {
@@ -258,6 +263,7 @@ internal extension MapleStoryServer {
             await register { [unowned self] in try await self.selectCharacter($0) }
             await register { [unowned self] in try await self.selectAllCharacter($0) }
             await register { [unowned self] in try await self.createCharacter($0) }
+            await register { [unowned self] in try await self.deleteCharacter($0) }
             await register { [unowned self] in try await self.checkCharacterName($0) }
             
             // Channel
@@ -455,32 +461,39 @@ internal extension MapleStoryServer {
             return .init(character: .init(character))
         }
         
+        private func deleteCharacter(_ request: DeleteCharacterRequest) async throws -> DeleteCharacterResponse {
+            log("Delete Character - \(request.character)")
+            try await server.dataSource.delete(character: request.character, in: state.world)
+            return DeleteCharacterResponse(character: request.character, state: 0)
+        }
+        
         private func selectCharacter(_ request: CharacterSelectRequest) async throws -> ServerIPResponse {
-            log("Select Character - Client \(request.client)")
+            log("Select Character - \(request.character)")
             let world = try await server.dataSource.world(state.world)
             return ServerIPResponse(
                 value0: 0,
                 address: world.address,
-                client: request.client,
+                character: request.character,
                 value1: 0,
                 value2: 0
             )
         }
         
         private func selectAllCharacter(_ request: AllCharactersSelectRequest) async throws -> ServerIPResponse {
-            log("Select All Character - Client \(request.client)")
+            log("Select All Character - \(request.character)")
             let world = try await server.dataSource.world(state.world)
+            // TODO: Detect character world
             return ServerIPResponse(
                 value0: 0,
                 address: world.address,
-                client: request.client,
+                character: request.character,
                 value1: 0,
                 value2: 0
             )
         }
         
         private func playerLogin(_ request: PlayerLoginRequest) async {
-            log("Player Login - Client \(request.client)")
+            log("Player Login - \(request.character)")
             do {
                 let warpMap = WarpToMapNotification.characterInfo(WarpToMapNotification.CharacterInfo(
                     channel: 0,

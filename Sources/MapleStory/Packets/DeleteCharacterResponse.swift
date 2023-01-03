@@ -11,12 +11,12 @@ public struct DeleteCharacterResponse: MapleStoryPacket, Codable, Equatable, Has
     
     public static var opcode: Opcode { 0x0F }
     
-    public let client: UInt32
+    public let character: Character.ID
     
     public let state: UInt8
     
-    public init(client: UInt32, state: UInt8) {
-        self.client = client
+    public init(character: Character.ID, state: UInt8) {
+        self.character = character
         self.state = state
     }
 }

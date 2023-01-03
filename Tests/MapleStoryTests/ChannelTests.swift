@@ -28,7 +28,7 @@ final class ChannelTests: XCTestCase {
         
         XCTAssertEqual(packet.data, packetData)
         
-        let value = PlayerLoginRequest(client: 1)
+        let value = PlayerLoginRequest(character: 1)
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
     }
