@@ -61,10 +61,26 @@ public protocol MapleStorySocketUDP {
 /// MapleStory Socket Event
 public enum MapleStorySocketEvent {
     
-    case pendingRead
-    case read(Int)
-    case write(Int)
-    case close(Error?)
+    /// New connection
+    case connection
+    
+    /// Pending read
+    case read
+    
+    /// Pending Write
+    case write
+    
+    /// Did read
+    case didRead(Int)
+    
+    /// Did write
+    case didWrite(Int)
+    
+    /// Error ocurred
+    case error(Error)
+    
+    /// Socket closed
+    case close
 }
 
 public typealias MapleStorySocketEventStream = AsyncStream<MapleStorySocketEvent>
@@ -122,13 +138,14 @@ public final class MapleStorySocketIPv4TCP: MapleStorySocket {
         destination destinationAddress: MapleStoryAddress
     ) async throws -> Self {
         let fileDescriptor = try SocketDescriptor.tcp(localAddress) // [.closeOnExec, .nonBlocking])
-        try await fileDescriptor.closeIfThrows {
+        let socket = await Socket(fileDescriptor: fileDescriptor)
+        try fileDescriptor.closeIfThrows {
             try fileDescriptor.setSocketOption(GenericSocketOption.ReuseAddress(true))
             try fileDescriptor.setNonblocking()
-            try await fileDescriptor.connect(to: IPv4SocketAddress(destinationAddress), sleep: 100_000_000)
         }
-        return await Self(
-            fileDescriptor: fileDescriptor,
+        try await socket.connect(to: IPv4SocketAddress(destinationAddress))
+        return Self(
+            socket: socket,
             address: localAddress
         )
     }
@@ -151,16 +168,13 @@ public final class MapleStorySocketIPv4TCP: MapleStorySocket {
     // MARK: - Methods
     
     public func accept() async throws -> Self {
-        let (clientFileDescriptor, clientAddress) = try await socket.fileDescriptor.accept(IPv4SocketAddress.self, sleep: 100_000_000)
-        try clientFileDescriptor.closeIfThrows {
-            try clientFileDescriptor.setNonblocking()
-        }
+        let (clientFileSocket, clientAddress) = try await socket.accept(IPv4SocketAddress.self)
         let address = MapleStoryAddress(
             ipAddress: clientAddress.address,
             port: clientAddress.port
         )
-        return await Self(
-            fileDescriptor: clientFileDescriptor,
+        return Self(
+            socket: clientFileSocket,
             address: address
         )
     }
@@ -183,16 +197,8 @@ public final class MapleStorySocketIPv4TCP: MapleStorySocket {
 internal extension MapleStorySocketEvent {
     
     init(_ event: Socket.Event) {
-        switch event {
-        case .pendingRead:
-            self = .pendingRead
-        case let .read(bytes):
-            self = .read(bytes)
-        case let .write(bytes):
-            self = .write(bytes)
-        case let .close(error):
-            self = .close(error)
-        }
+        // TODO: Create with switch statement
+        self = unsafeBitCast(event, to: MapleStorySocketEvent.self)
     }
 }
 
