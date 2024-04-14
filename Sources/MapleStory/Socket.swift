@@ -109,12 +109,10 @@ public final class MapleStorySocketIPv4TCP: MapleStorySocket {
     // MARK: - Initialization
     
     deinit {
-        // TODO: Fix crash
-        /*
+        let socket = self.socket
         Task(priority: .high) {
             await socket.close()
         }
-         */
     }
     
     internal init(

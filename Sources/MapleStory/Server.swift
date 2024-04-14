@@ -1,5 +1,6 @@
 import Foundation
 import ArgumentParser
+import SystemPackage
 
 /// MapleStory Classic Server
 public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: MapleStoryServerDataSource> {
@@ -54,8 +55,8 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
         log?("Started MapleStory Server")
         // listening run loop
         self.tcpListenTask = Task.detached(priority: .high) { [weak self] in
-            do {
-                while let socket = self?.socket {
+            while let socket = self?.socket {
+                do {
                     // wait for incoming sockets
                     let newSocket = try await socket.accept()
                     if let self = self {
@@ -65,10 +66,13 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
                         await self.dataSource.didConnect(newSocket.address)
                     }
                 }
-            }
-            catch _ as CancellationError { }
-            catch {
-                self?.log?("Error waiting for new TCP connection: \(error)")
+                catch _ as CancellationError { }
+                catch Errno.resourceTemporarilyUnavailable {
+                    try? await Task.sleep(nanoseconds: 100_000_000)
+                }
+                catch {
+                    self?.log?("Error waiting for new TCP connection: \(error)")
+                }
             }
         }
     }
