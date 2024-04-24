@@ -41,9 +41,18 @@ extension Version: CustomStringConvertible, CustomDebugStringConvertible {
 
 public extension Version {
     
-    /// MapleStory v0.62
+    /// MapleStory v28
+    static var v28: Version { 28 }
+    
+    /// MapleStory v40
+    static var v40: Version { 40 }
+    
+    /// MapleStory v55
+    static var v55: Version { 55 }
+    
+    /// MapleStory v62
     static var v62: Version { 62 }
     
-    /// MapleStory v0.83
+    /// MapleStory v83
     static var v83: Version { 83 }
 }
