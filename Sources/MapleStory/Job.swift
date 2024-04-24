@@ -56,10 +56,57 @@ public enum Job: UInt16, Codable, CaseIterable {
     case outlaw             = 521
     case corsair            = 522
     
+    case mapleLeafBrigadier = 800
+    
     case gm                 = 900
     case supergm            = 910
+    
+    case noblesse           = 1000
+    
+    case dawnWarrior1       = 1100
+    case dawnWarrior2       = 1110
+    case dawnWarrior3       = 1111
+    case dawnWarrior4       = 1112
+    
+    case blazeWizard1       = 1200
+    case blazeWizard2       = 1210
+    case blazeWizard3       = 1211
+    case blazeWizard4       = 1212
+    
+    case windArcher1        = 1300
+    case windArcher2        = 1310
+    case windArcher3        = 1311
+    case windArcher4        = 1312
+    
+    case nightWalker1       = 1400
+    case nightWalker2       = 1410
+    case nightWalker3       = 1411
+    case nightWalker4       = 1412
+    
+    case thunderBreaker1    = 1500
+    case thunderBreaker2    = 1510
+    case thunderBreaker3    = 1511
+    case thunderBreaker4    = 1512
+    
+    case legend             = 2000
+    case evan               = 2001
+    
+    case aran1              = 2100
+    case aran2              = 2110
+    case aran3              = 2111
+    case aran4              = 2112
+    
+    case evan1              = 2200
+    case evan2              = 2210
+    case evan3              = 2211
+    case evan4              = 2212
+    case evan5              = 2213
+    case evan6              = 2214
+    case evan7              = 2215
+    case evan8              = 2216
+    case evan9              = 2217
+    case evan10             = 2218
 }
-
 
 public extension Job {
     
@@ -72,19 +119,39 @@ public extension Job {
 
 public enum Class: UInt8 {
     
-    case beginner = 0
+    case beginner       = 0
     
-    case warrior = 1
+    case warrior        = 1
     
-    case magician = 2
+    case magician       = 2
     
-    case bowman = 3
+    case bowman         = 3
     
-    case thief = 4
+    case thief          = 4
     
-    case pirate = 5
+    case pirate         = 5
     
-    case gm = 9
+    case mapleLeaf      = 8
+    
+    case gm             = 9
+    
+    case noblesse       = 10
+    
+    case dawnWarrior    = 11
+    
+    case blazeWizard    = 12
+    
+    case windArcher     = 13
+    
+    case nightWalker    = 14
+    
+    case thunderBreaker = 15
+    
+    case legend         = 20
+    
+    case aran           = 21
+    
+    case evan           = 22
 }
 
 public extension Class {
@@ -101,6 +168,18 @@ public extension Class {
             self = .thief
         case 32:
             self = .pirate
+        case 1024:
+            self = .noblesse
+        case 2048:
+            self = .dawnWarrior
+        case 4096:
+            self = .blazeWizard
+        case 8192:
+            self = .windArcher
+        case 16384:
+            self = .nightWalker
+        case 32768:
+            self = .thunderBreaker
         default:
             self = .beginner
         }
