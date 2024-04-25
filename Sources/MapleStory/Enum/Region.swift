@@ -6,7 +6,7 @@
 //
 
 /// MapleStory Region
-public struct Region: RawRepresentable, Equatable, Hashable, Codable {
+public struct Region: RawRepresentable, Equatable, Hashable, Codable, Sendable {
     
     public let rawValue: UInt8
     
