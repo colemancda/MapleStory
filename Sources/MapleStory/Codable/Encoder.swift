@@ -371,6 +371,11 @@ public struct MapleStoryEncodingContainer {
     /// The path of coding keys taken to get to this point in encoding.
     public let codingPath: [CodingKey]
     
+    /// Number of written bytes so far.
+    public var count: Int {
+        encoder.data.count
+    }
+    
     // MARK: - Initialization
     
     fileprivate init(referencing encoder: MapleStoryEncoder.Encoder) {
@@ -463,7 +468,6 @@ public struct MapleStoryEncodingContainer {
     }
     
     private func encodeMapleStory <T: MapleStoryRawEncodable> (_ value: T) throws {
-        
         let data = encoder.box(value)
         try setValue(value, data: data)
     }
