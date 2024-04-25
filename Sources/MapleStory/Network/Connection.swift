@@ -29,7 +29,7 @@ internal actor Connection <Socket: MapleStorySocket> {
     
     var sendNonce = Nonce()
     
-    var key: Key = .default
+    let key: Key
     
     var username: String?
         
@@ -56,12 +56,14 @@ internal actor Connection <Socket: MapleStorySocket> {
     public init(
         socket: Socket,
         log: ((String) -> ())? = nil,
-        version: Version = .v62,
+        version: Version,
         region: Region = .global,
+        key: Key = .default,
         didDisconnect: ((Error?) async -> ())? = nil
     ) async {
         self.version = version
         self.region = region
+        self.key = key
         self.socket = socket
         self.log = log
         self.didDisconnect = didDisconnect
