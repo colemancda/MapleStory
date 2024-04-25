@@ -63,4 +63,54 @@ public struct World: Equatable, Hashable, Codable, Identifiable {
         self.dropRate = dropRate
         self.channels = channels
     }
+    
+    public enum CodingKeys: CodingKey {
+        
+        case id
+        case index
+        case region
+        case version
+        case name
+        case address
+        case flags
+        case eventMessage
+        case rateModifier
+        case eventXP
+        case dropRate
+        case channels
+    }
+}
+
+// MARK: - Entity
+
+extension World: Entity {
+    
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .name: .string,
+            .index: .int16,
+            .region: .int16,
+            .version: .int16,
+            .name: .string,
+            .address: .string,
+            .region: .int16,
+            .flags: .int16,
+            .eventMessage: .string,
+            .rateModifier: .int16,
+            .eventXP: .int16,
+            .dropRate: .int16,
+        ]
+    }
+    
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .channels: Relationship(
+                id: .channels,
+                entity: World.self,
+                destination: Channel.self,
+                type: .toMany,
+                inverseRelationship: .world
+            )
+        ]
+    }
 }
