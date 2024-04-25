@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct Key {
+public struct Key: Equatable, Hashable, Sendable {
     
     public let data: Data
     
@@ -32,5 +32,19 @@ extension Key: CustomStringConvertible, CustomDebugStringConvertible {
     
     public var debugDescription: String {
         description
+    }
+}
+
+// MARK: - Codable
+
+extension Key: Codable {
+    
+    public init(from decoder: Decoder) throws {
+        let data = try Data(from: decoder)
+        self.init(data)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        try data.encode(to: encoder)
     }
 }
