@@ -50,7 +50,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
     
     public var sp: UInt16
     
-    public var exp: UInt32
+    public var exp: Experience
     
     public var fame: UInt16
     
@@ -78,7 +78,42 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
     
     public var jobRankMove: UInt32
     
-    public init(id: UInt32, created: Date, name: CharacterName, gender: Gender, skinColor: SkinColor, face: UInt32, hair: UInt32, hairColor: UInt32, level: UInt8, job: Job, str: UInt16, dex: UInt16, int: UInt16, luk: UInt16, hp: UInt16, maxHp: UInt16, mp: UInt16, maxMp: UInt16, ap: UInt16, sp: UInt16, exp: UInt32, fame: UInt16, isMarried: Bool, currentMap: UInt32, spawnPoint: UInt8, isMega: Bool, cashWeapon: UInt32, equipment: [UInt8 : UInt32], maskedEquipment: [UInt8 : UInt32], isRankEnabled: Bool, worldRank: UInt32, rankMove: UInt32, jobRank: UInt32, jobRankMove: UInt32) {
+    public init(
+        id: UInt32,
+        created: Date = Date(),
+        name: CharacterName,
+        gender: Gender = .male,
+        skinColor: SkinColor = .pale,
+        face: UInt32,
+        hair: UInt32,
+        hairColor: UInt32,
+        level: UInt8 = 0,
+        job: Job = .beginner,
+        str: UInt16 = 1,
+        dex: UInt16 = 1,
+        int: UInt16 = 1,
+        luk: UInt16 = 1,
+        hp: UInt16 = 50,
+        maxHp: UInt16 = 50,
+        mp: UInt16 = 5,
+        maxMp: UInt16 = 5,
+        ap: UInt16 = 0,
+        sp: UInt16 = 0,
+        exp: Experience = 0,
+        fame: UInt16 = 0,
+        isMarried: Bool = false,
+        currentMap: UInt32 = 40000,
+        spawnPoint: UInt8 = 2,
+        isMega: Bool = true,
+        cashWeapon: UInt32 = 0,
+        equipment: [UInt8 : UInt32] = [:],
+        maskedEquipment: [UInt8 : UInt32] = [:],
+        isRankEnabled: Bool = true,
+        worldRank: UInt32 = 0,
+        rankMove: UInt32 = 0,
+        jobRank: UInt32 = 0,
+        jobRankMove: UInt32 = 0
+    ) {
         self.id = id
         self.created = created
         self.name = name
