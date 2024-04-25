@@ -10,6 +10,7 @@ import Foundation
 import Foundation
 import XCTest
 @testable import MapleStory
+@testable import MapleStory62
 
 final class ChannelTests: XCTestCase {
     
