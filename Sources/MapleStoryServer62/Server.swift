@@ -16,7 +16,7 @@ struct Server: AsyncParsableCommand {
     
     static let configuration = CommandConfiguration(
         commandName: "MapleStoryServer",
-        abstract: "MapleStory Server emulator",
+        abstract: "MapleStory v62 Channel Server emulator",
         version: "1.0.0"
     )
     

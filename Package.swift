@@ -1,4 +1,4 @@
-// swift-tools-version: 5.7
+// swift-tools-version: 5.10
 import PackageDescription
 
 let package = Package(
@@ -7,19 +7,47 @@ let package = Package(
         .macOS("13.0")
     ],
     products: [
-        .executable(
-            name: "MapleStoryServer",
-            targets: ["MapleStoryServer"]
-        ),
         .library(
             name: "MapleStory",
             targets: ["MapleStory"]
+        ),
+        .library(
+            name: "MapleStory28",
+            targets: ["MapleStory"]
+        ),
+        .library(
+            name: "MapleStory40",
+            targets: ["MapleStory"]
+        ),
+        .library(
+            name: "MapleStory62",
+            targets: ["MapleStory"]
+        ),
+        .library(
+            name: "MapleStory83",
+            targets: ["MapleStory"]
+        ),
+        .executable(
+            name: "MapleStoryLoginServer",
+            targets: ["MapleStoryLoginServer"]
+        ),
+        .executable(
+            name: "MapleStoryServer62",
+            targets: ["MapleStoryServer62"]
         ),
     ],
     dependencies: [
         .package(
             url: "https://github.com/PureSwift/Socket",
             branch: "main"
+        ),
+        .package(
+            url: "https://github.com/PureSwift/CoreModel",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/PureSwift/CoreModel-MongoDB",
+            branch: "master"
         ),
         .package(
             url: "https://github.com/krzyzanowskim/CryptoSwift.git",
@@ -39,18 +67,62 @@ let package = Package(
             name: "MapleStory",
             dependencies: [
                 "CMapleStory",
-                "Socket",
                 "CryptoSwift",
+                "Socket",
                 .product(
-                    name: "ArgumentParser",
-                    package: "swift-argument-parser"
+                    name: "CoreModel",
+                    package: "CoreModel"
                 )
             ]
         ),
+        .target(
+            name: "MapleStory28",
+            dependencies: [
+                "MapleStory"
+            ]
+        ),
+        .target(
+            name: "MapleStory40",
+            dependencies: [
+                "MapleStory"
+            ]
+        ),
+        .target(
+            name: "MapleStory62",
+            dependencies: [
+                "MapleStory"
+            ]
+        ),
+        .target(
+            name: "MapleStory83",
+            dependencies: [
+                "MapleStory"
+            ]
+        ),
         .executableTarget(
-            name: "MapleStoryServer",
+            name: "MapleStoryLoginServer",
             dependencies: [
                 "MapleStory",
+                .product(
+                    name: "ArgumentParser",
+                    package: "swift-argument-parser"
+                ),
+                .product(
+                    name: "MongoSwift",
+                    package: "mongo-swift-driver"
+                )
+            ],
+            swiftSettings: [
+              // Enable better optimizations when building in Release configuration. Despite the use of
+              // the `.unsafeFlags` construct required by SwiftPM, this flag is recommended for Release
+              // builds. See <https://github.com/swift-server/guides#building-for-production> for details.
+              .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
+            ]
+        ),
+        .executableTarget(
+            name: "MapleStoryServer62",
+            dependencies: [
+                "MapleStory62",
                 .product(
                     name: "ArgumentParser",
                     package: "swift-argument-parser"

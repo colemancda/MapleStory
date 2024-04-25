@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreModel
 
 public struct Character: Codable, Equatable, Hashable, Identifiable {
     

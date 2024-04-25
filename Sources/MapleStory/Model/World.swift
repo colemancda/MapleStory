@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import CoreModel
 
 public struct World: Equatable, Hashable, Codable, Identifiable {
     

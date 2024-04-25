@@ -63,7 +63,7 @@ public extension Packet {
     func encrypt(
         key: Key = .default,
         nonce: Nonce = Nonce(),
-        version: Version = .v62
+        version: Version
     ) throws -> Packet.Encrypted {
         let iv = nonce.iv
         let length = self.data.count
@@ -90,7 +90,7 @@ public extension Packet {
         _ data: Data,
         key: Key = .default,
         nonce: Nonce,
-        version: Version = .v62
+        version: Version
     ) throws -> Packet {
         let iv = nonce.iv
         var decrypted = try Crypto.AES.decrypt(

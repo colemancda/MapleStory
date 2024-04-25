@@ -12,4 +12,9 @@ public struct KeyBinding: Codable, Equatable, Hashable {
     public let type: UInt8
     
     public let action: UInt32
+    
+    public init(type: UInt8, action: UInt32) {
+        self.type = type
+        self.action = action
+    }
 }

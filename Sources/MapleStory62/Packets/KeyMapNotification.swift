@@ -21,7 +21,7 @@ extension KeyMapNotification: MapleStoryCodable {
     public init(from container: MapleStoryDecodingContainer) throws {
         let value0 = try container.decode(UInt8.self)
         guard value0 == 0 else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.decoder.codingPath, debugDescription: "Unexpected value"))
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Unexpected value"))
         }
         self.keyMap = [:]
         self.keyMap.reserveCapacity(Int(Self.count))

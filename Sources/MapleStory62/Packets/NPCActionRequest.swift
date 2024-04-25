@@ -32,7 +32,7 @@ extension NPCActionRequest: MapleStoryDecodable {
             let data = try container.decode(Data.self, length: length - 9)
             self = .move(data)
         } else {
-            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.decoder.codingPath, debugDescription: "Not enough bytes"))
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Not enough bytes"))
         }
     }
 }
