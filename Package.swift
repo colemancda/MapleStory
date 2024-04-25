@@ -28,10 +28,6 @@ let package = Package(
             targets: ["MapleStory"]
         ),
         .executable(
-            name: "MapleStoryLoginServer",
-            targets: ["MapleStoryLoginServer"]
-        ),
-        .executable(
             name: "MapleStoryServer62",
             targets: ["MapleStoryServer62"]
         ),
@@ -93,32 +89,6 @@ let package = Package(
                 "MapleStory"
             ]
         ),
-        .target(
-            name: "MapleStory83",
-            dependencies: [
-                "MapleStory"
-            ]
-        ),
-        .executableTarget(
-            name: "MapleStoryLoginServer",
-            dependencies: [
-                "MapleStory",
-                .product(
-                    name: "ArgumentParser",
-                    package: "swift-argument-parser"
-                ),
-                .product(
-                    name: "MongoSwift",
-                    package: "mongo-swift-driver"
-                )
-            ],
-            swiftSettings: [
-              // Enable better optimizations when building in Release configuration. Despite the use of
-              // the `.unsafeFlags` construct required by SwiftPM, this flag is recommended for Release
-              // builds. See <https://github.com/swift-server/guides#building-for-production> for details.
-              .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
-            ]
-        ),
         .executableTarget(
             name: "MapleStoryServer62",
             dependencies: [
@@ -130,6 +100,10 @@ let package = Package(
                 .product(
                     name: "MongoSwift",
                     package: "mongo-swift-driver"
+                ),
+                .product(
+                    name: "MongoDBModel",
+                    package: "CoreModel-MongoDB"
                 )
             ],
             swiftSettings: [
@@ -145,6 +119,13 @@ let package = Package(
         .testTarget(
             name: "MapleStoryTests",
             dependencies: ["MapleStory"]
+        ),
+        .testTarget(
+            name: "MapleStory62Tests",
+            dependencies: [
+                "MapleStory",
+                "MapleStory62"
+            ]
         ),
     ]
 )
