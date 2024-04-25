@@ -185,3 +185,45 @@ public extension Class {
         }
     }
 }
+
+public extension Class {
+    
+    func isCompatible(for version: MapleStory.Version) -> Bool {
+        switch self {
+        case .beginner:
+            return true
+        case .warrior:
+            return true
+        case .magician:
+            return true
+        case .bowman:
+            return true
+        case .thief:
+            return true
+        case .pirate:
+            return version >= .v62
+        case .mapleLeaf:
+            return true
+        case .gm:
+            return true
+        case .noblesse:
+            return version >= .v73
+        case .dawnWarrior:
+            return version >= .v73
+        case .blazeWizard:
+            return version >= .v73
+        case .windArcher:
+            return version >= .v73
+        case .nightWalker:
+            return version >= .v73
+        case .thunderBreaker:
+            return version >= .v73
+        case .legend:
+            return version >= .v80
+        case .aran:
+            return version >= .v80
+        case .evan:
+            return version >= .v83
+        }
+    }
+}
