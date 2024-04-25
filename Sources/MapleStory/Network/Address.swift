@@ -9,7 +9,7 @@ import Foundation
 import Socket
 
 /// MapleStory Socket Address
-public struct MapleStoryAddress: Equatable, Hashable, Codable {
+public struct MapleStoryAddress: Equatable, Hashable, Codable, Sendable {
     
     /// IP Address
     public var address: String {
