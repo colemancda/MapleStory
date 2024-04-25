@@ -214,7 +214,7 @@ extension CharacterListResponse.Equipment: ExpressibleByDictionaryLiteral {
         }
     }
 }
-
+/*
 extension CharacterListResponse.Equipment: CustomStringConvertible, CustomDebugStringConvertible {
     
     public var description: String {
@@ -225,7 +225,7 @@ extension CharacterListResponse.Equipment: CustomStringConvertible, CustomDebugS
         return description
     }
 }
-
+*/
 extension CharacterListResponse.Equipment: Codable {
     
     public init(from decoder: Decoder) throws {
@@ -286,7 +286,7 @@ public extension CharacterListResponse.Character {
             maxMp: character.maxMp,
             ap: character.ap,
             sp: character.sp,
-            exp: character.exp,
+            exp: character.exp.rawValue,
             fame: character.fame,
             isMarried: character.isMarried ? 1 : 0,
             currentMap: character.currentMap,

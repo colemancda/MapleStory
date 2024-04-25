@@ -2,7 +2,7 @@ import Foundation
 import ArgumentParser
 import SystemPackage
 import MapleStory
-
+/*
 /// MapleStory Classic Server
 public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: MapleStoryServerDataSource> {
     
@@ -244,11 +244,6 @@ internal extension MapleStoryServer {
             self.log = log
             self.address = address
             self.server = server
-            self.connection = await MapleStory.Connection(socket: socket, log: log) { error in
-                let username = await server.storage.connections[address]?.connection.username
-                await server.storage.removeConnection(address)
-                await server.dataSource.didDisconnect(address, username: username)
-            }
             await self.registerHandlers()
             Task {
                 try await self.sendHandshake()
@@ -322,15 +317,7 @@ internal extension MapleStoryServer {
         private func register <Request, Response> (
             _ callback: @escaping (Request) async throws -> (Response)
         ) async -> UInt where Request: MapleStoryPacket, Request: Decodable, Response: MapleStoryPacket, Response: Encodable {
-            await self.connection.register { [unowned self] request in
-                do {
-                    let response = try await callback(request)
-                    try await self.respond(response)
-                }
-                catch {
-                    await self.close(error)
-                }
-            }
+            fatalError()
         }
         
         internal func sendHandshake() async throws {
@@ -551,3 +538,4 @@ internal extension MapleStoryServer {
         }
     }
 }
+*/

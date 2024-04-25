@@ -115,8 +115,11 @@ internal extension ServerListResponse {
 
 public extension ServerListResponse.World {
     
-    init(_ world: MapleStory.World) {
-        self.id = world.id
+    init(
+        world: MapleStory.World,
+        channels: [Channel]
+    ) {
+        self.id = world.index
         self.name = world.name
         self.flags = world.flags
         self.eventMessage = world.eventMessage
@@ -125,7 +128,7 @@ public extension ServerListResponse.World {
         self.rateModifier2 = world.rateModifier
         self.dropRate = world.dropRate
         self.value0 = 0x00
-        self.channels = world.channels.map { .init($0) }
+        self.channels = channels.map { .init($0) }
         self.value1 = 0x00
     }
 }
@@ -137,7 +140,7 @@ public extension ServerListResponse.Channel {
             name: channel.name,
             load: channel.load,
             value0: 0x01,
-            id: numericCast(channel.id)
+            id: numericCast(channel.index)
         )
     }
 }

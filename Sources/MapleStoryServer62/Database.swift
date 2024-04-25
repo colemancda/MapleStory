@@ -11,7 +11,7 @@ import MapleStory
 import SwiftBSON
 import MongoSwift
 import NIOPosix
-
+/*
 final class MapleStoryDatabase: MapleStoryServerDataSource {
     
     let url: URL
@@ -339,3 +339,4 @@ final class MapleStoryDatabase: MapleStoryServerDataSource {
         try await characters.deleteOne(filter)
     }
 }
+*/
