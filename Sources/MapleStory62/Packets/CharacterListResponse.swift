@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MapleStory
 
 public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
@@ -173,21 +174,10 @@ public extension CharacterListResponse {
     
     struct Equipment: Equatable, Hashable {
         
-        struct Element: Equatable, Hashable {
-            
-            let key: UInt8
-            
-            let value: UInt32
-        }
+        var value: MapleStory.Character.Equipment
         
-        var values: [Element]
-        
-        public init(_ values: [UInt8: UInt32] = [:]) {
-            self.values = []
-            self.values.reserveCapacity(values.count)
-            for (key, value) in values.lazy.sorted(by: { $0.key < $1.key }) {
-                self.values.append(Element(key: key, value: value))
-            }
+        public init(_ value: MapleStory.Character.Equipment = [:]) {
+            self.value = value
         }
     }
 }
@@ -195,46 +185,26 @@ public extension CharacterListResponse {
 internal extension CharacterListResponse.Equipment {
     
     var dictionary: [UInt8: UInt32] {
-        var values = [UInt8: UInt32]()
-        values.reserveCapacity(self.values.count)
-        for element in self.values {
-            values[element.key] = element.value
-        }
-        return values
+        [UInt8: UInt32].init(value)
     }
 }
 
 extension CharacterListResponse.Equipment: ExpressibleByDictionaryLiteral {
     
     public init(dictionaryLiteral elements: (UInt8, UInt32)...) {
-        self.init()
-        self.values.reserveCapacity(elements.count)
-        elements.forEach {
-            self.values.append(Element(key: $0.0, value: $0.1))
-        }
+        self.init(.init(uniqueKeysWithValues: elements))
     }
 }
-/*
-extension CharacterListResponse.Equipment: CustomStringConvertible, CustomDebugStringConvertible {
-    
-    public var description: String {
-        return "[" + values.reduce("", { $0 + ($0.isEmpty ? "" : ", ") + "\($1.key): 0x\($1.value.toHexadecimal())" }) + "]"
-    }
-    
-    public var debugDescription: String {
-        return description
-    }
-}
-*/
+
 extension CharacterListResponse.Equipment: Codable {
     
     public init(from decoder: Decoder) throws {
-        let values = try [UInt8: UInt32].init(from: decoder)
-        self.init(values)
+        let value = try MapleStory.Character.Equipment.init(from: decoder)
+        self.init(value)
     }
     
     public func encode(to encoder: Encoder) throws {
-        try dictionary.encode(to: encoder)
+        try value.encode(to: encoder)
     }
 }
 
@@ -246,14 +216,14 @@ extension CharacterListResponse.Equipment: MapleStoryCodable {
         while key != 0xFF {
             // read value
             let value = try container.decode(UInt32.self, isLittleEndian: false)
-            self.values.append(Element(key: key, value: value))
+            self.value[key] = value
             // read next
             key = try container.decode(UInt8.self)
         }
     }
     
     public func encode(to container: MapleStoryEncodingContainer) throws {
-        for element in self.values {
+        for element in self.value {
             try container.encode(element.key)
             try container.encode(element.value, isLittleEndian: false)
         }
@@ -265,7 +235,7 @@ public extension CharacterListResponse.Character {
     
     init(_ character: Character) {
         self.stats = .init(
-            id: character.id,
+            id: character.index,
             name: character.name,
             gender: character.gender,
             skinColor: character.skinColor,

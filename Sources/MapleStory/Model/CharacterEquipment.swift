@@ -7,15 +7,27 @@
 
 import Foundation
 import Collections
+import CoreModel
 
 public extension Character {
     
     struct Equipment: Equatable, Hashable, Sendable {
         
-        internal var elements: [Element]
+        internal typealias Dictionary = OrderedDictionary<Element.Key, Element.Value>
         
-        internal init(_ elements: [Element]) {
+        internal var elements: Dictionary
+        
+        internal init(_ elements: Dictionary) {
             self.elements = elements
+        }
+        
+        public init() {
+            self.init([:])
+        }
+        
+        public init(uniqueKeysWithValues elements: [(Element.Key, Element.Value)]) {
+            let dictionary = Character.Equipment.Dictionary(uniqueKeysWithValues: elements)
+            self.init(dictionary)
         }
     }
 }
@@ -37,8 +49,8 @@ extension Character.Equipment: CustomStringConvertible, CustomDebugStringConvert
 
 extension Character.Equipment: ExpressibleByDictionaryLiteral {
     
-    public init(dictionaryLiteral elements: (UInt8, UInt32)...) {
-        self.init(elements.map { Element(key: $0.0, value: $0.1) })
+    public init(dictionaryLiteral elements: (Element.Key, Element.Value)...) {
+        self.init(uniqueKeysWithValues: elements)
     }
 }
 
@@ -47,12 +59,28 @@ extension Character.Equipment: ExpressibleByDictionaryLiteral {
 extension Character.Equipment: Codable {
     
     public init(from decoder: Decoder) throws {
-        let json = try String(from: decoder)
-        try self.init(decodeJSON: json)
+        self.elements = try Dictionary(from: decoder)
     }
     
     public func encode(to encoder: Encoder) throws {
-        try encodeJSON().encode(to: encoder)
+        try elements.encode(to: encoder)
+    }
+}
+
+// MARK: - AttributeCodable
+
+extension Character.Equipment: AttributeCodable {
+    
+    public init?(attributeValue: AttributeValue) {
+        guard let string = String(attributeValue: attributeValue),
+              let value = try? Character.Equipment(decodeJSON: string) else {
+            return nil
+        }
+        self = value
+    }
+    
+    public var attributeValue: AttributeValue {
+        try! encodeJSON().attributeValue
     }
 }
 
@@ -63,7 +91,7 @@ internal extension Character.Equipment {
     static var decoder: JSONDecoder { JSONDecoder() }
     
     init(decodeJSON json: String) throws {
-        let elements = try Self.decoder.decode([Element].self, from: Data(json.utf8))
+        let elements = try Self.decoder.decode(Dictionary.self, from: Data(json.utf8))
         self.init(elements)
     }
     
@@ -90,19 +118,21 @@ extension Character.Equipment: Collection {
     }
     
     public var startIndex: Int {
-        elements.startIndex
+        0
     }
     
     public var endIndex: Int {
-        elements.endIndex
+        count
     }
     
     public func index(after i: Int) -> Int {
-        elements.index(after: i)
+       i + 1
     }
     
     public subscript(index: Int) -> Character.Equipment.Element {
-        elements[index]
+        let key = elements.keys[index]
+        let value = elements.values[index]
+        return .init(key: key, value: value)
     }
     
     public subscript(bounds: Range<Int>) -> Slice<Character.Equipment> {
@@ -110,7 +140,14 @@ extension Character.Equipment: Collection {
     }
     
     public subscript(key: Element.Key) -> Element.Value? {
-        elements.first(where: { $0.key == key })?.value
+        get { elements[key] }
+        set {
+            if let newValue {
+                elements.updateValue(newValue, forKey: key)
+            } else {
+                elements.removeValue(forKey: key)
+            }
+        }
     }
 }
 
@@ -134,5 +171,7 @@ public extension Character.Equipment {
 
 public extension Dictionary where Key == Character.Equipment.Element.Key, Value == Character.Equipment.Element.Value {
     
-    
+    init(_ equipment: Character.Equipment) {
+        self.init(uniqueKeysWithValues: equipment.lazy.map { ($0.key, $0.value) })
+    }
 }
