@@ -6,7 +6,7 @@
 //
 
 /// Skin Color
-public enum SkinColor: UInt8, Codable, CaseIterable {
+public enum SkinColor: UInt8, Codable, CaseIterable, Sendable {
     
     case normal     = 0
     case dark       = 1
