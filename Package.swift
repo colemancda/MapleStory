@@ -46,16 +46,16 @@ let package = Package(
             branch: "master"
         ),
         .package(
-            url: "https://github.com/krzyzanowskim/CryptoSwift.git",
-            from: "1.6.0"
+            url: "https://github.com/apple/swift-collections.git",
+            from: "1.1.0"
         ),
         .package(
             url: "https://github.com/apple/swift-argument-parser",
             from: "1.2.0"
         ),
         .package(
-            url: "https://github.com/mongodb/mongo-swift-driver",
-            from: "1.3.1"
+            url: "https://github.com/krzyzanowskim/CryptoSwift.git",
+            from: "1.6.0"
         ),
         .package(
             url: "https://github.com/ekscrypto/SwiftEmailValidator.git",
@@ -70,6 +70,10 @@ let package = Package(
                 "CryptoSwift",
                 "Socket",
                 "SwiftEmailValidator",
+                .product(
+                    name: "Collections",
+                    package: "swift-collections"
+                ),
                 .product(
                     name: "CoreModel",
                     package: "CoreModel"
@@ -101,10 +105,6 @@ let package = Package(
                 .product(
                     name: "ArgumentParser",
                     package: "swift-argument-parser"
-                ),
-                .product(
-                    name: "MongoSwift",
-                    package: "mongo-swift-driver"
                 ),
                 .product(
                     name: "MongoDBModel",
