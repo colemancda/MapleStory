@@ -13,31 +13,40 @@ public extension MapleStoryServer.Connection {
     
     /// Handle a user logging in.
     func login(
-        username: Username,
-        password: Password,
+        username: String,
+        password: String,
         autoregister: Bool = true
     ) async throws {
-        let username = username.sanitized()
+        
+        log("Login - \(username)")
+        
         let database = server.dataSource.storage
         let ipAddress = self.address.address
         
         // fetch existing user
         let user: User
         if var existingUser = try await User.fetch(username: username, in: database) {
-            log("Login - \(username)")
             guard existingUser.isGuest == false else {
                 // cannot login as guest
-                throw MapleStoryError.invalidRequest //return .success(username: request.username) // TODO: Failure
+                throw LoginError.notRegistered
             }
             // validate password
             guard try await User.validate(password: password, for: username, in: database) else {
-                throw MapleStoryError.invalidPassword //return .success(username: request.username) // TODO: Failure
+                throw LoginError.invalidPassword
             }
             // update IP address
             existingUser.ipAddress = ipAddress
             try await database.insert(existingUser)
             user = existingUser
         } else if autoregister {
+            // validate username
+            guard let username = Username(rawValue: username) else {
+                throw LoginError.blocked
+            }
+            // validate password
+            guard let password = Password(rawValue: password) else {
+                throw LoginError.invalidPassword
+            }
             // auto register
             let newUser = try await User.create(
                 username: username,
@@ -48,12 +57,12 @@ public extension MapleStoryServer.Connection {
             log("Registered User - \(username)")
             user = newUser
         } else {
-            throw MapleStoryError.unknownUser(username.rawValue)
+            throw LoginError.notRegistered
         }
         
-        assert(user.username == username)
+        assert(user.username.rawValue.lowercased() == username.lowercased())
         
         // upgrade connection
-        await connection.authenticate(username: username)
+        await connection.authenticate(username: user.username)
     }
 }
