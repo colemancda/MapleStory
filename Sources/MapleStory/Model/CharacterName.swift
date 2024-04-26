@@ -6,7 +6,7 @@
 //
 
 /// Character Name
-public struct CharacterName: RawRepresentable, Equatable, Hashable, Codable, CustomStringConvertible, ExpressibleByStringLiteral {
+public struct CharacterName: RawRepresentable, Equatable, Hashable, Codable, Sendable, CustomStringConvertible, ExpressibleByStringLiteral {
     
     public let rawValue: String
     
