@@ -1,12 +1,14 @@
 import Foundation
 import SystemPackage
+import CoreModel
+@_exported import MapleStory
 
 /// MapleStory Classic Server
-public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: MapleStoryServerDataSource> {
+public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreModel.ModelStorage> {
     
     // MARK: - Properties
     
-    public let configuration: MapleStory.ServerConfiguration
+    public let configuration: ServerConfiguration
         
     public let dataSource: DataSource
     
@@ -16,7 +18,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
     
     private var tcpListenTask: Task<(), Never>?
     
-    let storage = Storage()
+    let connections = Connections()
     
     // MARK: - Initialization
     
@@ -25,7 +27,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
     }
     
     public init(
-        configuration: MapleStory.ServerConfiguration,
+        configuration: ServerConfiguration,
         log: ((String) -> ())? = nil,
         dataSource: DataSource,
         socket: Socket.Type
@@ -61,8 +63,8 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
                     if let self = self {
                         self.log?("[\(newSocket.address.address)] New connection")
                         let connection = await MapleStoryServer.Connection(socket: newSocket, server: self)
-                        await self.storage.newConnection(connection)
-                        await self.dataSource.didConnect(newSocket.address)
+                        await self.connections.newConnection(connection)
+                        //await self.dataSource.didConnect(newSocket.address)
                     }
                 }
                 catch _ as CancellationError { }
@@ -78,12 +80,12 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
     
     public func stop() {
         assert(tcpListenTask != nil)
-        let storage = self.storage
+        let connections = self.connections
         self.tcpListenTask?.cancel()
         self.tcpListenTask = nil
         self.log?("Stopped Server")
         Task {
-            await storage.removeAllConnections()
+            await connections.removeAllConnections()
         }
     }
     
@@ -91,7 +93,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
         _ packet: T,
         to address: MapleStoryAddress
     ) async throws where T: MapleStoryPacket, T: Encodable {
-        guard let connection = await self.storage.connections[address] else {
+        guard let connection = await self.connections.connections[address] else {
             throw MapleStoryError.disconnected(address)
         }
         try await connection.send(packet)
@@ -100,17 +102,19 @@ public final class MapleStoryServer <Socket: MapleStorySocket, DataSource: Maple
 
 // MARK: - Supporting Types
 
-/// MapleStory Server Data Source
-public protocol MapleStoryServerDataSource: AnyObject {
-        
-    func didConnect(_ address: MapleStoryAddress) async
+public extension MapleStoryServer {
     
-    func didDisconnect(_ address: MapleStoryAddress, username: String?) async
+    struct DataSource {
+        
+        let storage: Storage
+        
+        //let handlers: [(any PacketHandler).self]
+    }
 }
 
 internal extension MapleStoryServer {
     
-    actor Storage {
+    actor Connections {
         
         var connections = [MapleStoryAddress: Connection](minimumCapacity: 100)
         
@@ -140,7 +144,9 @@ internal extension MapleStoryServer.Connection {
     }
 }
 
-internal extension MapleStoryServer {
+// MARK: - Connection
+
+public extension MapleStoryServer {
     
     actor Connection {
         
@@ -152,7 +158,7 @@ internal extension MapleStoryServer {
         
         private unowned var server: MapleStoryServer
         
-        private let log: (String) -> ()
+        let log: (String) -> ()
         
         var state = ClientState()
         
@@ -175,17 +181,17 @@ internal extension MapleStoryServer {
                 region: server.configuration.region,
                 key: server.configuration.key
             ) { error in
-                let username = await server.storage.connections[address]?.connection.username
-                await server.storage.removeConnection(address)
-                await server.dataSource.didDisconnect(address, username: username)
+                //let username = await server.connections.connections[address]?.connection.username
+                await server.connections.removeConnection(address)
+                //await server.dataSource.didDisconnect(address, username: username)
             }
-            await self.registerHandlers()
+            // always send handshake on connection
             Task {
                 try await self.sendHandshake()
             }
         }
         
-        private func registerHandlers() async {
+        private func registerLoginHandlers() async {
             
             // login
             //await register { [unowned self] in try await self.login($0) }
@@ -203,7 +209,7 @@ internal extension MapleStoryServer {
         }
         
         /// Respond to a client-initiated PDU message.
-        internal func send <Request, Response> (
+        public func send <Request, Response> (
             _ request: Request,
             response: Response.Type
         ) async throws -> Response where Request: MapleStoryPacket, Request: Encodable, Response: MapleStoryPacket, Response: Decodable {
@@ -219,7 +225,7 @@ internal extension MapleStoryServer {
         }
         
         /// Respond to a client-initiated PDU message.
-        internal func respond <T> (_ response: T) async throws where T: MapleStoryPacket, T: Encodable {
+        public func respond <T> (_ response: T) async throws where T: MapleStoryPacket, T: Encodable {
             log("Response: \(response)")
             return try await withCheckedThrowingContinuation { continuation in
                 Task {
@@ -230,7 +236,7 @@ internal extension MapleStoryServer {
         }
         
         /// Send a server-initiated PDU message.
-        internal func send <T> (_ notification: T) async throws where T: MapleStoryPacket, T: Encodable  {
+        public func send <T> (_ notification: T) async throws where T: MapleStoryPacket, T: Encodable  {
             log("Notification: \(notification)")
             return try await withCheckedThrowingContinuation { continuation in
                 Task {
@@ -240,9 +246,9 @@ internal extension MapleStoryServer {
             }
         }
         
-        internal func close(_ error: Error) async {
+        public func close(_ error: Error) async {
             log("Error: \(error)")
-            await self.connection.socket.close()
+            await self.connection.close()
         }
         
         @discardableResult
@@ -261,7 +267,7 @@ internal extension MapleStoryServer {
         }
         
         internal func sendHandshake() async throws {
-            let packet = HelloPacket(
+            let packet = await HelloPacket(
                 version: self.connection.version,
                 recieveNonce: await self.connection.recieveNonce,
                 sendNonce: await self.connection.sendNonce,

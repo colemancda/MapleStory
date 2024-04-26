@@ -12,6 +12,10 @@ let package = Package(
             targets: ["MapleStory"]
         ),
         .library(
+            name: "MapleStoryServer",
+            targets: ["MapleStoryServer"]
+        ),
+        .library(
             name: "MapleStory28",
             targets: ["MapleStory"]
         ),
@@ -81,6 +85,16 @@ let package = Package(
             ]
         ),
         .target(
+            name: "MapleStoryServer",
+            dependencies: [
+                "MapleStory",
+                .product(
+                    name: "CoreModel",
+                    package: "CoreModel"
+                )
+            ]
+        ),
+        .target(
             name: "MapleStory28",
             dependencies: [
                 "MapleStory"
@@ -102,6 +116,7 @@ let package = Package(
             name: "MapleStoryServer62",
             dependencies: [
                 "MapleStory62",
+                "MapleStoryServer",
                 .product(
                     name: "ArgumentParser",
                     package: "swift-argument-parser"

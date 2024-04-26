@@ -1,30 +1,29 @@
 //
-//  ChannelServer.swift
-//  
+//  WorldServer.swift
 //
-//  Created by Alsey Coleman Miller on 12/20/22.
+//
+//  Created by Alsey Coleman Miller on 4/25/24.
 //
 
 import Foundation
 import ArgumentParser
-import MapleStory
+import MapleStoryServer
 import Socket
 import CoreModel
 import MongoDBModel
 
-struct ChannelServer: AsyncParsableCommand {
+struct WorldServerCommand: AsyncParsableCommand {
     
     static let configuration = CommandConfiguration(
-        commandName: "MapleStoryServer",
-        abstract: "MapleStory v62 Channel Server emulator",
-        version: "1.0.0"
+        commandName: "world",
+        abstract: "Run the world server."
     )
     
     @Option(help: "Address to bind server.")
     var address: String?
     
     @Option(help: "Port to bind server.")
-    var port: UInt16 = 8484
+    var port: UInt16 = 8485
     
     @Option(help: "Server backlog.")
     var backlog: Int = 1000
@@ -51,7 +50,7 @@ struct ChannelServer: AsyncParsableCommand {
             throw MapleStoryError.invalidAddress(ipAddress)
         }
         
-        let configuration = MapleStory.ServerConfiguration(
+        let configuration = ServerConfiguration(
             address: address,
             backlog: backlog,
             version: .v62
@@ -69,7 +68,7 @@ struct ChannelServer: AsyncParsableCommand {
         )
         
         let server = try await MapleStoryServer(
-            configuration: configuration, 
+            configuration: configuration,
             dataSource: database,
             socket: MapleStorySocketIPv4TCP.self
         )
@@ -78,7 +77,7 @@ struct ChannelServer: AsyncParsableCommand {
         #if DEBUG
         NSLog("Users: \(try await database.userCount)")
         #endif
-        */
+         */
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
         
         // retain

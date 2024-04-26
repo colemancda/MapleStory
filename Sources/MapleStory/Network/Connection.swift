@@ -9,15 +9,15 @@ import Foundation
 import Socket
 
 /// MapleStory Connection
-internal actor Connection <Socket: MapleStorySocket> {
-        
+public actor Connection <Socket: MapleStorySocket> {
+    
     let socket: Socket
     
     let log: ((String) -> ())?
     
-    let version: Version
+    public let version: Version
     
-    let region: Region
+    public let region: Region
     
     let timestamp = Date()
     
@@ -25,13 +25,13 @@ internal actor Connection <Socket: MapleStorySocket> {
     
     var isConnected = true
     
-    var recieveNonce = Nonce()
+    public var recieveNonce = Nonce()
     
-    var sendNonce = Nonce()
+    public var sendNonce = Nonce()
     
-    let key: Key
+    public let key: Key
     
-    var username: String?
+    public var username: String?
         
     let encoder = MapleStoryEncoder()
     
@@ -72,7 +72,11 @@ internal actor Connection <Socket: MapleStorySocket> {
     
     // MARK: - Methods
     
-    internal func startEncryption() {
+    public func close() async {
+        await socket.close()
+    }
+    
+    public func startEncryption() {
         self.shouldEncrypt = true
     }
     

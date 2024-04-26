@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MapleStory
 
 /// Server Configuration
 public struct ServerConfiguration: Equatable, Hashable, Sendable {
