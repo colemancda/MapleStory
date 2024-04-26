@@ -152,15 +152,15 @@ public extension MapleStoryServer {
         
         // MARK: - Properties
         
-        let address: MapleStoryAddress
+        public let address: MapleStoryAddress
         
-        private let connection: MapleStory.Connection<Socket>
+        internal let connection: MapleStory.Connection<Socket>
         
-        private unowned var server: MapleStoryServer
+        internal unowned var server: MapleStoryServer
         
-        let log: (String) -> ()
+        internal let log: (String) -> ()
         
-        var state = ClientState()
+        internal var state = ClientState()
         
         // MARK: - Initialization
         

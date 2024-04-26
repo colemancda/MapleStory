@@ -31,8 +31,8 @@ public actor Connection <Socket: MapleStorySocket> {
     
     public let key: Key
     
-    public var username: String?
-        
+    public var username: Username?
+    
     let encoder = MapleStoryEncoder()
     
     let decoder = MapleStoryDecoder()
@@ -80,7 +80,7 @@ public actor Connection <Socket: MapleStorySocket> {
         self.shouldEncrypt = true
     }
     
-    internal func authenticate(username: String) {
+    public func authenticate(username: Username) {
         self.username = username
     }
     
