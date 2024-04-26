@@ -6,13 +6,18 @@
 //
 
 import Foundation
+import CoreModel
 
 /// MapleStory User
-public struct User: Codable, Equatable, Hashable {
+public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     // MARK: - Properties
     
-    public let username: String
+    public let id: Username
+    
+    public var username: Username {
+        id
+    }
     
     public var password: String
     
@@ -30,10 +35,12 @@ public struct User: Codable, Equatable, Hashable {
     
     public var isAdmin: Bool
     
+    public var characters: [Character.ID]
+    
     // MARK: - Initialization
     
     public init(
-        username: String,
+        username: Username,
         password: String,
         created: Date = Date(),
         pinCode: String? = nil,
@@ -41,9 +48,10 @@ public struct User: Codable, Equatable, Hashable {
         birthday: Date = Date(timeIntervalSinceReferenceDate: 0),
         email: String? = nil,
         termsAccepted: Bool = false,
-        isAdmin: Bool = false
+        isAdmin: Bool = false,
+        characters: [Character.ID] = []
     ) {
-        self.username = username
+        self.id = username
         self.password = password
         self.created = created
         self.pinCode = pinCode
@@ -52,14 +60,56 @@ public struct User: Codable, Equatable, Hashable {
         self.email = email
         self.termsAccepted = termsAccepted
         self.isAdmin = isAdmin
+        self.characters = characters
+    }
+    
+    public enum CodingKeys: String, CodingKey {
+        case id
+        case password
+        case created
+        case pinCode
+        case picCode
+        case birthday
+        case email
+        case termsAccepted
+        case isAdmin
+        case characters
     }
 }
 
-// MARK: - Identifiable
+// MARK: - Entity
 
-extension User: Identifiable {
+extension User: Entity {
     
-    public var id: String {
-        username
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .password: .string,
+            .created: .date,
+            .pinCode: .string,
+            .picCode: .string,
+            .birthday: .date,
+            .email: .string,
+            .termsAccepted: .bool,
+            .isAdmin: .bool,
+        ]
+    }
+    
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .characters: Relationship(
+                id: .characters,
+                entity: User.self,
+                destination: Character.self,
+                type: .toMany,
+                inverseRelationship: .user
+            )
+        ]
+    }
+}
+
+extension Username: ObjectIDConvertible {
+    
+    public init?(objectID: ObjectID) {
+        self.init(rawValue: objectID.rawValue)
     }
 }
