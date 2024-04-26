@@ -107,7 +107,7 @@ public extension World {
                 let channel = Channel(
                     index: numericCast(channelIndex),
                     world: world.id,
-                    name: world.name + " - " + "Channel 1"
+                    name: world.name + " - Channel \(channelIndex)"
                 )
                 world.channels.append(channel.id)
                 // save world and channel
