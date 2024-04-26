@@ -64,6 +64,10 @@ let package = Package(
         .package(
             url: "https://github.com/ekscrypto/SwiftEmailValidator.git",
             from: "1.0.4"
+        ),
+        .package(
+            url: "https://github.com/tmthecoder/Argon2Swift.git",
+            branch: "main"
         )
     ],
     targets: [
@@ -88,6 +92,10 @@ let package = Package(
             name: "MapleStoryServer",
             dependencies: [
                 "MapleStory",
+                .product(
+                    name: "Argon2Swift",
+                    package: "Argon2Swift"
+                ),
                 .product(
                     name: "CoreModel",
                     package: "CoreModel"
