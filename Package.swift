@@ -47,7 +47,7 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/krzyzanowskim/CryptoSwift.git",
-            .upToNextMajor(from: "1.6.0")
+            from: "1.6.0"
         ),
         .package(
             url: "https://github.com/apple/swift-argument-parser",
@@ -55,7 +55,11 @@ let package = Package(
         ),
         .package(
             url: "https://github.com/mongodb/mongo-swift-driver",
-            .upToNextMajor(from: "1.3.1")
+            from: "1.3.1"
+        ),
+        .package(
+            url: "https://github.com/ekscrypto/SwiftEmailValidator.git",
+            from: "1.0.4"
         )
     ],
     targets: [
@@ -65,6 +69,7 @@ let package = Package(
                 "CMapleStory",
                 "CryptoSwift",
                 "Socket",
+                "SwiftEmailValidator",
                 .product(
                     name: "CoreModel",
                     package: "CoreModel"
