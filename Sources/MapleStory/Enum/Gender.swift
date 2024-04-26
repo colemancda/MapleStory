@@ -6,9 +6,11 @@
 //
 
 /// Character Gender
-public enum Gender: UInt8, Codable, CaseIterable {
+public enum Gender: UInt8, Codable, CaseIterable, Sendable {
     
+    /// Male
     case male       = 0
     
+    /// Female
     case female     = 1
 }
