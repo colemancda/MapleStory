@@ -8,9 +8,17 @@
 import Foundation
 import CoreModel
 
-public struct Character: Codable, Equatable, Hashable, Identifiable {
+public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
-    public let id: UInt32
+    public typealias Index = UInt32
+    
+    public let id: UUID
+    
+    public let index: Index
+    
+    public let user: User.ID
+    
+    public let channel: Channel.ID
     
     public let created: Date
     
@@ -64,9 +72,9 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
     
     public var cashWeapon: UInt32
     
-    public var equipment: [UInt8: UInt32]
+    public var equipment: Character.Equipment
     
-    public var maskedEquipment: [UInt8: UInt32]
+    public var maskedEquipment: Character.Equipment
     
     public var isRankEnabled: Bool
     
@@ -79,7 +87,10 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
     public var jobRankMove: UInt32
     
     public init(
-        id: UInt32,
+        id: UUID,
+        index: Index,
+        user: User.ID,
+        channel: Channel.ID,
         created: Date = Date(),
         name: CharacterName,
         gender: Gender = .male,
@@ -106,8 +117,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
         spawnPoint: UInt8 = 2,
         isMega: Bool = true,
         cashWeapon: UInt32 = 0,
-        equipment: [UInt8 : UInt32] = [:],
-        maskedEquipment: [UInt8 : UInt32] = [:],
+        equipment: Character.Equipment = [:],
+        maskedEquipment: Character.Equipment = [:],
         isRankEnabled: Bool = true,
         worldRank: UInt32 = 0,
         rankMove: UInt32 = 0,
@@ -115,6 +126,9 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
         jobRankMove: UInt32 = 0
     ) {
         self.id = id
+        self.index = index
+        self.user = user
+        self.channel = channel
         self.created = created
         self.name = name
         self.gender = gender
@@ -148,5 +162,109 @@ public struct Character: Codable, Equatable, Hashable, Identifiable {
         self.rankMove = rankMove
         self.jobRank = jobRank
         self.jobRankMove = jobRankMove
+    }
+    
+    public enum CodingKeys: CodingKey {
+        case id
+        case index
+        case user
+        case channel
+        case created
+        case name
+        case gender
+        case skinColor
+        case face
+        case hair
+        case hairColor
+        case level
+        case job
+        case str
+        case dex
+        case int
+        case luk
+        case hp
+        case maxHp
+        case mp
+        case maxMp
+        case ap
+        case sp
+        case exp
+        case fame
+        case isMarried
+        case currentMap
+        case spawnPoint
+        case isMega
+        case cashWeapon
+        case equipment
+        case maskedEquipment
+        case isRankEnabled
+        case worldRank
+        case rankMove
+        case jobRank
+        case jobRankMove
+    }
+}
+
+// MARK: - Entity
+
+extension Character: Entity {
+    
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .index: .int64,
+            .created: .date,
+            .name: .string,
+            .gender: .int16,
+            .skinColor: .int16,
+            .face: .int64,
+            .hair: .int64,
+            .hairColor: .int64,
+            .level: .int16,
+            .job: .int32,
+            .str: .int32,
+            .dex: .int32,
+            .int: .int32,
+            .luk: .int32,
+            .hp: .int32,
+            .maxHp: .int32,
+            .mp: .int32,
+            .maxMp: .int32,
+            .hp: .int32,
+            .ap: .int32,
+            .sp: .int32,
+            .exp: .int64,
+            .fame: .int32,
+            .isMarried: .bool,
+            .currentMap: .int64,
+            .spawnPoint: .int16,
+            .isMega: .bool,
+            .cashWeapon: .int64,
+            .equipment: .string,
+            .maskedEquipment: .string,
+            .isRankEnabled: .bool,
+            .worldRank: .int64,
+            .rankMove: .int64,
+            .jobRank: .int64,
+            .jobRankMove: .int64
+        ]
+    }
+    
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .user: Relationship(
+                id: .user,
+                entity: Character.self,
+                destination: User.self,
+                type: .toOne,
+                inverseRelationship: .characters
+            ),
+            .channel: Relationship(
+                id: .channel,
+                entity: Character.self,
+                destination: Channel.self,
+                type: .toOne,
+                inverseRelationship: .characters
+            )
+        ]
     }
 }
