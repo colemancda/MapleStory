@@ -19,7 +19,8 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         id
     }
     
-    public var password: String
+    /// Password hash
+    public var password: Data
     
     public var created: Date
     
@@ -41,7 +42,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public init(
         username: Username,
-        password: String,
+        password: Data = Data(),
         created: Date = Date(),
         pinCode: String? = nil,
         picCode: String? = nil,
@@ -83,7 +84,7 @@ extension User: Entity {
     
     public static var attributes: [CodingKeys: AttributeType] {
         [
-            .password: .string,
+            .password: .data,
             .created: .date,
             .pinCode: .string,
             .picCode: .string,
@@ -106,6 +107,8 @@ extension User: Entity {
         ]
     }
 }
+
+// MARK: - ObjectIDConvertible
 
 extension Username: ObjectIDConvertible {
     
