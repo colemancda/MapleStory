@@ -6,12 +6,34 @@
 //
 
 import Foundation
+import MapleStory
+import CoreModel
 
-public protocol PacketHandler {
+public protocol ServerHandler {
     
-    associatedtype Event
+    associatedtype Socket: MapleStorySocket
     
-    init(event: Event)
+    associatedtype Storage: ModelStorage
     
-    func evaluate() async throws
+    var connection: MapleStoryServer<Socket, Storage>.Connection { get }
+    
+    init(connection: MapleStoryServer<Socket, Storage>.Connection)
+    
+    func didConnect()
+    
+    func didDisconnect()
+}
+
+public extension ServerHandler {
+    
+    func didConnect() { }
+    
+    func didDisconnect() { }
+}
+
+public protocol PacketHandler: ServerHandler {
+    
+    associatedtype Packet: MapleStoryPacket
+    
+    func handle(packet: Packet) async throws
 }
