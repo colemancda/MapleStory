@@ -6,14 +6,15 @@
 //
 
 import Foundation
+import Collections
 
 public extension Character {
     
     struct Equipment: Equatable, Hashable, Sendable {
         
-        internal var elements: [Item]
+        internal var elements: [Element]
         
-        internal init(_ elements: [Item]) {
+        internal init(_ elements: [Element]) {
             self.elements = elements
         }
     }
@@ -37,7 +38,7 @@ extension Character.Equipment: CustomStringConvertible, CustomDebugStringConvert
 extension Character.Equipment: ExpressibleByDictionaryLiteral {
     
     public init(dictionaryLiteral elements: (UInt8, UInt32)...) {
-        self.init(elements.map { Item(key: $0.0, value: $0.1) })
+        self.init(elements.map { Element(key: $0.0, value: $0.1) })
     }
 }
 
@@ -62,7 +63,7 @@ internal extension Character.Equipment {
     static var decoder: JSONDecoder { JSONDecoder() }
     
     init(decodeJSON json: String) throws {
-        let elements = try Self.decoder.decode([Item].self, from: Data(json.utf8))
+        let elements = try Self.decoder.decode([Element].self, from: Data(json.utf8))
         self.init(elements)
     }
     
@@ -72,14 +73,66 @@ internal extension Character.Equipment {
     }
 }
 
+// MARK: - Collection
+
+extension Character.Equipment: Collection {
+    
+    public var isEmpty: Bool {
+        elements.isEmpty
+    }
+    
+    public var count: Int {
+        elements.count
+    }
+    
+    public func makeIterator() -> IndexingIterator<Self> {
+        IndexingIterator(_elements: self)
+    }
+    
+    public var startIndex: Int {
+        elements.startIndex
+    }
+    
+    public var endIndex: Int {
+        elements.endIndex
+    }
+    
+    public func index(after i: Int) -> Int {
+        elements.index(after: i)
+    }
+    
+    public subscript(index: Int) -> Character.Equipment.Element {
+        elements[index]
+    }
+    
+    public subscript(bounds: Range<Int>) -> Slice<Character.Equipment> {
+        Slice(base: self, bounds: bounds)
+    }
+    
+    public subscript(key: Element.Key) -> Element.Value? {
+        elements.first(where: { $0.key == key })?.value
+    }
+}
+
 // MARK: - Supporting Types
 
 public extension Character.Equipment {
     
-    struct Item: Equatable, Hashable, Codable, Sendable {
+    struct Element: Equatable, Hashable, Codable, Sendable {
         
-        public let key: UInt8
+        public typealias Key = UInt8
         
-        public let value: UInt32
+        public typealias Value = UInt32
+        
+        public let key: Key
+        
+        public let value: Value
     }
+}
+
+// MARK: - Extensions
+
+public extension Dictionary where Key == Character.Equipment.Element.Key, Value == Character.Equipment.Element.Value {
+    
+    
 }
