@@ -12,6 +12,64 @@ import XCTest
 
 final class LoginTests: XCTestCase {
     
+    func testPing() throws {
+        
+        let encryptedData = Data([0x48, 0x7D, 0x4A, 0x7D, 0x01, 0x5C])
+        let encryptedParameters = Data([0x01, 0x5C])
+        let packetData = Data([0x11, 0x00])
+        let nonce: Nonce = 0x27568982
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = PingPacket()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        
+        let encrypted = try packet.encrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(encrypted.length, packet.data.count)
+        XCTAssertEqual(encrypted.data.suffix(2), encryptedParameters)
+        XCTAssertEqual(encrypted.parametersSize, 2)
+        XCTAssertEqual(encrypted.parameters, encryptedParameters)
+        XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x487D4A7D))
+        XCTAssertEqual(encrypted.data, encryptedData)
+        
+        let decrypted = try encrypted.decrypt(
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(decrypted, packet)
+    }
+    
+    func testPong() throws {
+        
+        let encryptedData = Data([0x05, 0x28])
+        let packetData = Data([0x18, 0x00])
+        let nonce: Nonce = 0x56CFECDD
+                
+        let packet = try Packet.decrypt(
+            encryptedData,
+            key: .default,
+            nonce: nonce,
+            version: .v62
+        )
+        
+        XCTAssertEqual(packet.data, packetData)
+        
+        let value = PongPacket()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
     func testGuestLoginRequest() throws {
         
         let encryptedData = Data([0xC9, 0x12, 0xA9, 0x11])

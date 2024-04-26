@@ -49,7 +49,7 @@ final class MapleStoryTests: XCTestCase {
     
     func testWorldName() {
         
-        func name(for id: World.ID) -> String {
+        func name(for id: World.Index) -> String {
             switch id {
             case 0:
                 return "Scania"
@@ -87,19 +87,19 @@ final class MapleStoryTests: XCTestCase {
         }
         
         XCTAssertEqual(World.Name.scania.rawValue, name(for: 0))
-        XCTAssertEqual(World.Name.scania.id, 0)
-        XCTAssertEqual(World.Name(id: 0), .scania)
+        XCTAssertEqual(World.Name.scania.index, 0)
+        XCTAssertEqual(World.Name(index: 0), .scania)
         
-        XCTAssertNil(World.Name(id: 15))
+        XCTAssertNil(World.Name(index: 15))
         XCTAssertEqual(World.name(for: 15), "World 16")
         XCTAssertEqual(World.name(for: 15), name(for: 15))
         
         for (index, value) in World.Name.allCases.enumerated() {
-            let id = UInt8(index)
-            XCTAssertEqual(value.id, id)
-            XCTAssertEqual(World.Name(id: id), value)
-            XCTAssertEqual(value.rawValue, name(for: id))
-            XCTAssertEqual(World.Name(rawValue: name(for: id)), value)
+            let index = UInt8(index)
+            XCTAssertEqual(value.index, index)
+            XCTAssertEqual(World.Name(index: index), value)
+            XCTAssertEqual(value.rawValue, name(for: index))
+            XCTAssertEqual(World.Name(rawValue: name(for: index)), value)
         }
     }
     
@@ -119,64 +119,6 @@ final class MapleStoryTests: XCTestCase {
             region: .global
         )
         
-        XCTAssertEncode(value, packet)
-        XCTAssertDecode(value, packet)
-    }
-    
-    func testPing() throws {
-        
-        let encryptedData = Data([0x48, 0x7D, 0x4A, 0x7D, 0x01, 0x5C])
-        let encryptedParameters = Data([0x01, 0x5C])
-        let packetData = Data([0x11, 0x00])
-        let nonce: Nonce = 0x27568982
-        
-        guard let packet = Packet(data: packetData) else {
-            XCTFail()
-            return
-        }
-        
-        let value = PingPacket()
-        XCTAssertEncode(value, packet)
-        XCTAssertDecode(value, packet)
-        
-        let encrypted = try packet.encrypt(
-            key: .default,
-            nonce: nonce,
-            version: .v62
-        )
-        
-        XCTAssertEqual(encrypted.length, packet.data.count)
-        XCTAssertEqual(encrypted.data.suffix(2), encryptedParameters)
-        XCTAssertEqual(encrypted.parametersSize, 2)
-        XCTAssertEqual(encrypted.parameters, encryptedParameters)
-        XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x487D4A7D))
-        XCTAssertEqual(encrypted.data, encryptedData)
-        
-        let decrypted = try encrypted.decrypt(
-            key: .default,
-            nonce: nonce,
-            version: .v62
-        )
-        
-        XCTAssertEqual(decrypted, packet)
-    }
-    
-    func testPong() throws {
-        
-        let encryptedData = Data([0x05, 0x28])
-        let packetData = Data([0x18, 0x00])
-        let nonce: Nonce = 0x56CFECDD
-                
-        let packet = try Packet.decrypt(
-            encryptedData,
-            key: .default,
-            nonce: nonce,
-            version: .v62
-        )
-        
-        XCTAssertEqual(packet.data, packetData)
-        
-        let value = PongPacket()
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
     }
