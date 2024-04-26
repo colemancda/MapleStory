@@ -9,6 +9,17 @@ import Foundation
 import MapleStory
 import Argon2Swift
 
+public extension User {
+    
+    func validate(password: String) throws -> Bool {
+        guard let password = Password(rawValue: password) else {
+            return false
+        }
+        let hash = self.password
+        return try password.validate(hash: hash)
+    }
+}
+
 public extension Password {
     
     /// Hash password.
