@@ -53,7 +53,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
     
     private func start() {
         assert(tcpListenTask == nil)
-        log?("Started MapleStory Server")
+        log?("Started MapleStory v\(configuration.version.rawValue) Server")
         // listening run loop
         self.tcpListenTask = Task.detached(priority: .high) { [weak self] in
             while let socket = self?.socket {
@@ -106,9 +106,17 @@ public extension MapleStoryServer {
     
     struct DataSource {
         
-        let storage: Storage
+        public let storage: Storage
         
-        //let handlers: [(any PacketHandler).self]
+        public let handlers: [(any ServerHandler.Type)]
+        
+        public init(
+            storage: Storage,
+            handlers: [any ServerHandler.Type]
+        ) {
+            self.storage = storage
+            self.handlers = handlers
+        }
     }
 }
 
