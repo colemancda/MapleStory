@@ -8,7 +8,7 @@
 import Foundation
 import CoreModel
 
-public struct World: Equatable, Hashable, Codable, Identifiable {
+public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
     
     public typealias Index = UInt8
     
