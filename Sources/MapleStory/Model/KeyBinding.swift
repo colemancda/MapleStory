@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct KeyBinding: Codable, Equatable, Hashable {
+public struct KeyBinding: Codable, Equatable, Hashable, Sendable {
     
     public let type: UInt8
     
