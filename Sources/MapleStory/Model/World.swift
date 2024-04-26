@@ -70,7 +70,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         self.lastCharacter = lastCharacter
     }
     
-    public enum CodingKeys: CodingKey {
+    public enum CodingKeys: String, CodingKey, CaseIterable {
         
         case id
         case index
@@ -109,7 +109,7 @@ extension World: Entity {
             .name: .string,
             .index: .int16,
             .region: .int16,
-            .version: .int16,
+            .version: .int32,
             .name: .string,
             .address: .string,
             .region: .int16,

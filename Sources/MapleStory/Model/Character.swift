@@ -164,7 +164,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.jobRankMove = jobRankMove
     }
     
-    public enum CodingKeys: CodingKey {
+    public enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case index
         case user

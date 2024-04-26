@@ -72,7 +72,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.characters = characters
     }
     
-    public enum CodingKeys: String, CodingKey {
+    public enum CodingKeys: String, CodingKey, CaseIterable {
         case id
         case password
         case created
