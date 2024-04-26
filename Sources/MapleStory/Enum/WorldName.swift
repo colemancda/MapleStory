@@ -42,13 +42,3 @@ public extension World.Name {
         World.Index(Self.allCases.firstIndex(of: self)!)
     }
 }
-
-public extension World {
-    
-    static func name(for index: World.Index) -> String {
-        guard let name = Name(index: index) else {
-            return "World \(index + 1)"
-        }
-        return name.rawValue
-    }
-}

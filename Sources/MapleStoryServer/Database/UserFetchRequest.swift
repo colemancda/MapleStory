@@ -123,31 +123,6 @@ public extension User {
         return newUser
     }
     
-    /// Attempt to register the specified user with the provided password.
-    static func autoRegisterLogin<Storage: ModelStorage>(
-        username: Username,
-        password: Password,
-        ipAddress: String,
-        in context: Storage
-    ) async throws -> User {
-        // check if user exists
-        if var user = try await User.fetch(username: username, in: context) {
-            // update IP address
-            user.ipAddress = ipAddress
-            try await context.insert(user)
-            return user
-        } else {
-            // TODO: check if can create new user?
-            // create new user
-            return try await User.create(
-                username: username,
-                password: password,
-                ipAddress: ipAddress,
-                in: context
-            )
-        }
-    }
-    
     /// Validate the provided password for the specified user.
     static func validate<Storage: ModelStorage>(
         password: Password,
