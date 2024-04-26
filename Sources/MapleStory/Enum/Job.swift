@@ -6,7 +6,7 @@
 //
 
 /// MapleStory Character Job
-public enum Job: UInt16, Codable, CaseIterable {
+public enum Job: UInt16, Codable, CaseIterable, Sendable {
     
     case beginner           = 0
     
@@ -117,7 +117,7 @@ public extension Job {
 
 // MARK: - Class
 
-public enum Class: UInt8 {
+public enum Class: UInt8, Codable, CaseIterable, Sendable {
     
     case beginner       = 0
     
