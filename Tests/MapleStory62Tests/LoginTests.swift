@@ -291,8 +291,8 @@ final class LoginTests: XCTestCase {
         let value = CharacterListResponse(
             value0: 0x00,
             characters: [
-                MapleStory.CharacterListResponse.Character(
-                    stats: MapleStory.CharacterListResponse.CharacterStats(
+                MapleStory62.CharacterListResponse.Character(
+                    stats: MapleStory62.CharacterListResponse.CharacterStats(
                         id: 1,
                         name: "Admin",
                         gender: .male,
@@ -321,7 +321,7 @@ final class LoginTests: XCTestCase {
                         spawnPoint: 1,
                         value3: 0
                     ),
-                    appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                    appearance: MapleStory62.CharacterListResponse.CharacterAppeareance(
                         gender: .male,
                         skinColor: .normal,
                         face: 20000,
@@ -333,7 +333,7 @@ final class LoginTests: XCTestCase {
                         value0: 0,
                         value1: 0
                     ),
-                    rank: MapleStory.CharacterListResponse.Rank(
+                    rank: MapleStory62.CharacterListResponse.Rank(
                         worldRank: 1,
                         rankMove: 0,
                         jobRank: 1,
@@ -372,8 +372,8 @@ final class LoginTests: XCTestCase {
         }
         
         let value = AllCharactersResponse.characters(world: 0, characters: [
-            MapleStory.CharacterListResponse.Character(
-                stats: MapleStory.CharacterListResponse.CharacterStats(
+            MapleStory62.CharacterListResponse.Character(
+                stats: MapleStory62.CharacterListResponse.CharacterStats(
                     id: 1,
                     name: "Admin",
                     gender: .male,
@@ -402,7 +402,7 @@ final class LoginTests: XCTestCase {
                     spawnPoint: 1,
                     value3: 0
                 ),
-                appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                appearance: MapleStory62.CharacterListResponse.CharacterAppeareance(
                     gender: .male,
                     skinColor: .normal,
                     face: 20000,
@@ -414,7 +414,7 @@ final class LoginTests: XCTestCase {
                     value0: 0,
                     value1: 0
                 ),
-                rank: MapleStory.CharacterListResponse.Rank(
+                rank: MapleStory62.CharacterListResponse.Rank(
                     worldRank: 1,
                     rankMove: 0,
                     jobRank: 1,
@@ -698,8 +698,8 @@ final class LoginTests: XCTestCase {
         
         let value = CreateCharacterResponse(
             error: false,
-            character: MapleStory.CharacterListResponse.Character(
-                stats: MapleStory.CharacterListResponse.CharacterStats(
+            character: MapleStory62.CharacterListResponse.Character(
+                stats: MapleStory62.CharacterListResponse.CharacterStats(
                     id: 15,
                     name: "cda1",
                     gender: .male,
@@ -728,7 +728,7 @@ final class LoginTests: XCTestCase {
                     spawnPoint: 0,
                     value3: 0
                 ),
-                appearance: MapleStory.CharacterListResponse.CharacterAppeareance(
+                appearance: MapleStory62.CharacterListResponse.CharacterAppeareance(
                     gender: .male,
                     skinColor: .normal,
                     face: 20000,
@@ -740,7 +740,7 @@ final class LoginTests: XCTestCase {
                     value0: 0,
                     value1: 0
                 ),
-                rank: MapleStory.CharacterListResponse.Rank(
+                rank: MapleStory62.CharacterListResponse.Rank(
                     worldRank: 0,
                     rankMove: 0,
                     jobRank: 0,

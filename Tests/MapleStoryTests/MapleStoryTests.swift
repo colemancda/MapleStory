@@ -103,6 +103,33 @@ final class MapleStoryTests: XCTestCase {
         }
     }
     
+    func testUsername() {
+        
+        XCTAssertNil(Username(rawValue: ""))
+        XCTAssertNil(Username(rawValue: "coleman 1"))
+        XCTAssertNil(Username(rawValue: "coleman "))
+        XCTAssertNil(Username(rawValue: " coleman"))
+        XCTAssertNil(Username(rawValue: "coleman\n"))
+        
+        XCTAssertNotNil(Username(rawValue: "a"))
+        XCTAssertNotNil(Username(rawValue: "abc"))
+        XCTAssertNotNil(Username(rawValue: "abc125"))
+        XCTAssertNotNil(Username(rawValue: "colemancda"))
+        XCTAssertNotNil(Username(rawValue: "test1234"))
+    }
+    
+    func testEmail() {
+        
+        XCTAssertNil(Email(rawValue: ""))
+        XCTAssertNil(Email(rawValue: "coleman@"))
+        XCTAssertNil(Email(rawValue: "coleman@fakedomain.xyz1"))
+        XCTAssertNil(Email(rawValue: "coleman@gmail.com "))
+        
+        XCTAssertNotNil(Email(rawValue: "alseycmiller@gmail.com"))
+        XCTAssertNotNil(Email(rawValue: "colemancda@icloud.com"))
+        XCTAssertNotNil(Email(rawValue: "steve@apple.com"))
+    }
+    
     func testHello() throws {
         
         let data = Data([0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08])
@@ -121,87 +148,5 @@ final class MapleStoryTests: XCTestCase {
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
-    }
-}
-
-// MARK: - Extensions
-
-extension Data {
-    
-    init?(hexString: String) {
-      let len = hexString.count / 2
-      var data = Data(capacity: len)
-      var i = hexString.startIndex
-      for _ in 0..<len {
-        let j = hexString.index(i, offsetBy: 2)
-        let bytes = hexString[i..<j]
-        if var num = UInt8(bytes, radix: 16) {
-          data.append(&num, count: 1)
-        } else {
-          return nil
-        }
-        i = j
-      }
-      self = data
-    }
-}
-
-func XCTAssertEncode<T>(
-    _ value: T,
-    _ packet: Packet,
-    file: StaticString = #file,
-    line: UInt = #line
-) where T: Equatable, T: Encodable, T: MapleStoryPacket {
-    
-    var encoder = MapleStoryEncoder()
-    encoder.log = { print("Encoder:", $0) }
-    
-    do {
-        let encodedPacket = try encoder.encodePacket(value)
-        XCTAssertFalse(encodedPacket.data.isEmpty, file: file, line: line)
-        XCTAssertEqual(encodedPacket.data, packet.data, "\(encodedPacket.data.hexString) is not equal to \(packet.data.hexString)", file: file, line: line)
-    } catch {
-        XCTFail(error.localizedDescription, file: file, line: line)
-        dump(error)
-    }
-}
-
-func XCTAssertEncrypt<T>(
-    _ value: T,
-    _ packet: Packet,
-    file: StaticString = #file,
-    line: UInt = #line
-) where T: Equatable, T: Encodable, T: MapleStoryPacket {
-    
-    var encoder = MapleStoryEncoder()
-    encoder.log = { print("Encoder:", $0) }
-    
-    do {
-        let encodedPacket = try encoder.encodePacket(value)
-        XCTAssertFalse(encodedPacket.data.isEmpty, file: file, line: line)
-        XCTAssertEqual(encodedPacket.data, packet.data, "\(encodedPacket.data.hexString) is not equal to \(packet.data.hexString)", file: file, line: line)
-    } catch {
-        XCTFail(error.localizedDescription, file: file, line: line)
-        dump(error)
-    }
-}
-
-
-func XCTAssertDecode<T>(
-    _ value: T,
-    _ packet: Packet,
-    file: StaticString = #file,
-    line: UInt = #line
-) where T: MapleStoryPacket, T: Equatable, T: Decodable {
-    
-    var decoder = MapleStoryDecoder()
-    decoder.log = { print("Decoder:", $0) }
-    
-    do {
-        let decodedValue = try decoder.decodePacket(T.self, from: packet.data)
-        XCTAssertEqual(decodedValue, value, file: file, line: line)
-    } catch {
-        XCTFail(error.localizedDescription, file: file, line: line)
-        dump(error)
     }
 }
