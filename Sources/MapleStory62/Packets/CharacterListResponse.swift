@@ -176,7 +176,7 @@ public extension CharacterListResponse {
         
         var value: MapleStory.Character.Equipment
         
-        public init(_ value: MapleStory.Character.Equipment = [:]) {
+        init(_ value: MapleStory.Character.Equipment = [:]) {
             self.value = value
         }
     }

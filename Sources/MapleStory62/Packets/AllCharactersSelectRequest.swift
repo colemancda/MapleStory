@@ -11,7 +11,7 @@ public struct AllCharactersSelectRequest: MapleStoryPacket, Decodable, Equatable
     
     public static var opcode: Opcode { 0x0E }
     
-    public let character: Character.ID
+    public let character: Character.Index
     
     public let macAddresses: String
 }

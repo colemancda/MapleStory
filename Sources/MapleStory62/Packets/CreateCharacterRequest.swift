@@ -44,7 +44,11 @@ public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hash
 public extension Character {
     
     init?(
-        id: Character.ID,
+        id: UUID = UUID(),
+        index: Character.Index,
+        user: Username,
+        channel: Channel.ID,
+        created: Date = Date(),
         request: CreateCharacterRequest
     ) {
         guard let name = CharacterName(rawValue: request.name),
@@ -54,7 +58,10 @@ public extension Character {
         }
         self.init(
             id: id,
-            created: Date(),
+            index: index,
+            user: user,
+            channel: channel,
+            created: created,
             name: name,
             gender: request.gender,
             skinColor: skinColor,
