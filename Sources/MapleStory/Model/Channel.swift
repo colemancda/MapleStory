@@ -17,9 +17,9 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public let index: Index
     
-    public var name: String
-    
     public let world: World.ID
+    
+    public var name: String
     
     public let characters: [Character.ID]
     
@@ -30,8 +30,8 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     public init(
         id: UUID = UUID(),
         index: Index,
-        name: String,
         world: World.ID,
+        name: String,
         characters: [Character.ID] = [],
         load: UInt32 = 0,
         status: Channel.Status = .normal

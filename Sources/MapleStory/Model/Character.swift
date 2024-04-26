@@ -19,10 +19,10 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let user: User.ID
     
     public let channel: Channel.ID
+        
+    public var name: CharacterName
     
     public let created: Date
-    
-    public var name: CharacterName
     
     public var gender: Gender
     

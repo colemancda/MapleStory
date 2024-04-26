@@ -36,6 +36,10 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
             
     public var channels: [Channel.ID]
     
+    public var lastCharacter: Character.Index?
+    
+    public var lastGuest: UInt32?
+    
     public init(
         id: UUID = UUID(),
         index: Index = 0,
@@ -48,7 +52,8 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         rateModifier: UInt8 = 0x64,
         eventXP: UInt8 = 0,
         dropRate: UInt8 = 0,
-        channels: [Channel.ID] = []
+        channels: [Channel.ID] = [],
+        lastCharacter: Character.Index? = nil
     ) {
         self.id = id
         self.index = index
@@ -62,6 +67,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         self.eventXP = eventXP
         self.dropRate = dropRate
         self.channels = channels
+        self.lastCharacter = lastCharacter
     }
     
     public enum CodingKeys: CodingKey {
@@ -78,6 +84,19 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         case eventXP
         case dropRate
         case channels
+        case lastCharacter
+    }
+}
+
+// MARK: - Methods
+
+public extension World {
+    
+    mutating func newCharacter() -> Character.Index {
+        var index = self.lastCharacter ?? 0
+        index += 1
+        self.lastCharacter = index
+        return index
     }
 }
 
@@ -99,6 +118,7 @@ extension World: Entity {
             .rateModifier: .int16,
             .eventXP: .int16,
             .dropRate: .int16,
+            .lastCharacter: .int64
         ]
     }
     

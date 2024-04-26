@@ -24,11 +24,13 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var created: Date
     
+    public var ipAddress: String
+    
     public var pinCode: String?
     
     public var picCode: String?
     
-    public var birthday: Date
+    public var birthday: Date?
     
     public var email: String?
     
@@ -36,6 +38,8 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var isAdmin: Bool
     
+    public var isGuest: Bool
+        
     public var characters: [Character.ID]
     
     // MARK: - Initialization
@@ -44,23 +48,27 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         username: Username,
         password: Data = Data(),
         created: Date = Date(),
+        ipAddress: String,
         pinCode: String? = nil,
         picCode: String? = nil,
-        birthday: Date = Date(timeIntervalSinceReferenceDate: 0),
+        birthday: Date? = nil,
         email: String? = nil,
         termsAccepted: Bool = false,
         isAdmin: Bool = false,
+        isGuest: Bool = false,
         characters: [Character.ID] = []
     ) {
         self.id = username
         self.password = password
         self.created = created
+        self.ipAddress = ipAddress
         self.pinCode = pinCode
         self.picCode = picCode
         self.birthday = birthday
         self.email = email
         self.termsAccepted = termsAccepted
         self.isAdmin = isAdmin
+        self.isGuest = isGuest
         self.characters = characters
     }
     
@@ -68,12 +76,14 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         case id
         case password
         case created
-        case pinCode
-        case picCode
+        case ipAddress = "ip"
+        case pinCode = "pin"
+        case picCode = "pic"
         case birthday
         case email
         case termsAccepted
-        case isAdmin
+        case isAdmin = "admin"
+        case isGuest = "guest"
         case characters
     }
 }
@@ -86,12 +96,14 @@ extension User: Entity {
         [
             .password: .data,
             .created: .date,
+            .ipAddress: .string,
             .pinCode: .string,
             .picCode: .string,
             .birthday: .date,
             .email: .string,
             .termsAccepted: .bool,
             .isAdmin: .bool,
+            .isGuest: .bool
         ]
     }
     
