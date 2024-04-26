@@ -17,9 +17,11 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public let index: Index
     
+    public var name: String
+    
     public let world: World.ID
     
-    public var name: String
+    public let characters: [Character.ID]
     
     public var load: UInt32
     
@@ -28,8 +30,9 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     public init(
         id: UUID = UUID(),
         index: Index,
-        world: World.ID,
         name: String,
+        world: World.ID,
+        characters: [Character.ID] = [],
         load: UInt32 = 0,
         status: Channel.Status = .normal
     ) {
@@ -39,6 +42,7 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.load = load
         self.status = status
         self.world = world
+        self.characters = characters
     }
     
     public enum CodingKeys: CodingKey {
@@ -46,6 +50,7 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         case id
         case index
         case world
+        case characters
         case name
         case load
         case status
@@ -74,6 +79,13 @@ extension Channel: Entity {
                 destination: World.self,
                 type: .toOne,
                 inverseRelationship: .channels
+            ),
+            .characters: Relationship(
+                id: .characters,
+                entity: Channel.self,
+                destination: Character.self,
+                type: .toMany,
+                inverseRelationship: .channel
             )
         ]
     }
