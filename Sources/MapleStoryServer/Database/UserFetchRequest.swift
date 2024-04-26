@@ -65,24 +65,69 @@ public extension FetchRequest.Predicate {
 
 public extension User {
     
-    func exists<Storage: ModelStorage>(
+    static func exists<Storage: ModelStorage>(
         with username: Username,
         in context: Storage
     ) async throws -> Bool {
         try await context.count(.init(fetchRequest: .username(username))) > 0
     }
     
-    func fetch<Storage: ModelStorage>(
+    static func fetch<Storage: ModelStorage>(
         with username: Username,
         in context: Storage
     ) async throws -> User? {
         try await context.fetch(User.self, predicate: .init(predicate: .username(username)), fetchLimit: 1).first
     }
     
-    func fetch<Storage: ModelStorage>(
+    static func fetch<Storage: ModelStorage>(
         with email: Email,
         in context: Storage
     ) async throws -> User? {
-        try await context.fetch(User.self, predicate: .init(predicate: .username(username)), fetchLimit: 1).first
+        try await context.fetch(User.self, predicate: .init(predicate: .email(email)), fetchLimit: 1).first
+    }
+    
+    static func create<Storage: ModelStorage>(
+        username: Username,
+        password: Password,
+        in context: Storage
+    ) async throws {
+        let hash = try password.hash()
+        let newUser = User(
+            username: username.sanitized(),
+            password: hash
+        )
+        try await context.insert(newUser)
+    }
+    
+    /// Attempt to register the specified user with the provided password.
+    static func register<Storage: ModelStorage>(
+        username: Username,
+        password: Password,
+        in context: Storage
+    ) async throws -> Bool {
+        // check if user exists
+        guard try await User.exists(with: username, in: context) == false else {
+            return false
+        }
+        // TODO: check if can create new user?
+        // create new user
+        try await User.create(
+            username: username,
+            password: password,
+            in: context
+        )
+        return true
+    }
+    
+    /// Validate the provided password for the specified user.
+    static func validate<Storage: ModelStorage>(
+        password: Password,
+        for username: Username,
+        in context: Storage
+    ) async throws -> Bool {
+        guard let user = try await fetch(with: username, in: context) else {
+            throw MapleStoryError.unknownUser(username.rawValue)
+        }
+        return try password.validate(hash: user.password)
     }
 }
