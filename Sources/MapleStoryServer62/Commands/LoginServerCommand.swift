@@ -92,7 +92,7 @@ struct LoginServerCommand: AsyncParsableCommand {
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
         
         // retain
-        //let _ = server
+        let _ = server
     }
 }
 
@@ -104,7 +104,9 @@ public extension MapleStoryServer.DataSource {
         Self.init(
             storage: storage,
             handlers: [
-                MapleStoryServer.LoginHandler.self
+                MapleStoryServer.LoginHandler.self,
+                MapleStoryServer.GuestLoginHandler.self,
+                MapleStoryServer.WorldListHandler.self
             ]
         )
     }

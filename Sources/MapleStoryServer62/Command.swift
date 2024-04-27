@@ -20,8 +20,8 @@ struct Server: AsyncParsableCommand {
         version: "1.0.0",
         subcommands: [
             LoginServerCommand.self,
-            WorldServerCommand.self,
             ChannelServerCommand.self
         ]
     )
 }
+
