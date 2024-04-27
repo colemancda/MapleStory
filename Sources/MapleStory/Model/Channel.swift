@@ -65,7 +65,6 @@ extension Channel: Entity {
         [
             .name: .string,
             .index: .int16,
-            .name: .string,
             .load: .int64,
             .status: .int16
         ]

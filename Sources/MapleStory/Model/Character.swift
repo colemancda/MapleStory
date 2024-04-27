@@ -229,7 +229,6 @@ extension Character: Entity {
             .maxHp: .int32,
             .mp: .int32,
             .maxMp: .int32,
-            .hp: .int32,
             .ap: .int32,
             .sp: .int32,
             .exp: .int64,
