@@ -11,29 +11,24 @@ import CoreModel
 
 public protocol ServerHandler {
     
-    associatedtype Socket: MapleStorySocket
+    func didConnect<Socket: MapleStorySocket, Storage: ModelStorage>(connection: MapleStoryServer<Socket, Storage>.Connection)
     
-    associatedtype Storage: ModelStorage
-    
-    var connection: MapleStoryServer<Socket, Storage>.Connection { get }
-    
-    init(connection: MapleStoryServer<Socket, Storage>.Connection)
-    
-    func didConnect()
-    
-    func didDisconnect()
+    func didDisconnect(address: MapleStoryAddress)
 }
 
 public extension ServerHandler {
     
-    func didConnect() { }
+    func didConnect<Socket: MapleStorySocket, Storage: ModelStorage>(connection: MapleStoryServer<Socket, Storage>.Connection) { }
     
-    func didDisconnect() { }
+    func didDisconnect(address: MapleStoryAddress) { }
 }
 
 public protocol PacketHandler: ServerHandler {
     
-    associatedtype Packet: MapleStoryPacket
+    associatedtype Packet: MapleStoryPacket & Decodable
     
-    func handle(packet: Packet) async throws
+    func handle<Socket: MapleStorySocket, Storage: ModelStorage>(
+        packet: Packet,
+        connection: MapleStoryServer<Socket, Storage>.Connection
+    ) async throws
 }

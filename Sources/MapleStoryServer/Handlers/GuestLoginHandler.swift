@@ -14,7 +14,7 @@ public extension MapleStoryServer.Connection {
     /// Handle guest login.
     func guestLogin() async throws -> User {
         log("Guest Login")
-        let database = server.dataSource.storage
+        let database = server.database
         let ipAddress = self.address.address
         // find guest user with ip address
         if let user = try await User.fetch(ipAddress: ipAddress, in: database), user.isGuest {

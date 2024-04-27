@@ -10,35 +10,34 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
-public extension MapleStoryServer {
+/// MapleStory v62 World List Server handler
+public struct WorldListHandler: PacketHandler {
     
-    /// MapleStory v62 World List Server handler
-    struct WorldListHandler: PacketHandler {
-                
-        public let connection: MapleStoryServer<Socket, Storage>.Connection
-        
-        public init(connection: MapleStoryServer<Socket, Storage>.Connection) {
-            self.connection = connection
+    public typealias Packet = MapleStory62.ServerListRequest
+    
+    public init() { }
+    
+    public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
+        packet: Packet,
+        connection: MapleStoryServer<Socket, Database>.Connection
+    ) async throws {
+        do {
+            let responses = try await worldList(packet, connection: connection)
+            for response in responses {
+                try await connection.respond(response)
+            }
         }
-        
-        public func handle(packet request: MapleStory62.ServerListRequest) async throws {
-            do {
-                let responses = try await worldList(request)
-                for response in responses {
-                    try await connection.respond(response)
-                }
-            }
-            catch {
-                await connection.close(error)
-            }
+        catch {
+            await connection.close(error)
         }
     }
 }
 
-internal extension MapleStoryServer.WorldListHandler {
+internal extension WorldListHandler {
     
-    func worldList(
-        _ request: MapleStory62.ServerListRequest
+    func worldList<Socket: MapleStorySocket, Database: ModelStorage>(
+        _ request: MapleStory62.ServerListRequest,
+        connection: MapleStoryServer<Socket, Database>.Connection
     ) async throws -> [MapleStory62.ServerListResponse] {
         try await connection.listWorlds()
             .map { .world(.init(world: $0.world, channels: $0.channels)) } + [.end]

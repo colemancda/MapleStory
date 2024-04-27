@@ -4,13 +4,13 @@ import CoreModel
 @_exported import MapleStory
 
 /// MapleStory Classic Server
-public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreModel.ModelStorage> {
+public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.ModelStorage> {
     
     // MARK: - Properties
     
     public let configuration: ServerConfiguration
         
-    public let dataSource: DataSource
+    public let database: Database
     
     internal let log: ((String) -> ())?
     
@@ -18,7 +18,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
     
     private var tcpListenTask: Task<(), Never>?
     
-    let connections = Connections()
+    let storage = InternalStorage()
     
     // MARK: - Initialization
     
@@ -29,7 +29,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
     public init(
         configuration: ServerConfiguration,
         log: ((String) -> ())? = nil,
-        dataSource: DataSource,
+        database: Database,
         socket: Socket.Type
     ) async throws {
         #if DEBUG
@@ -39,7 +39,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
         #endif
         self.configuration = configuration
         self.log = log
-        self.dataSource = dataSource
+        self.database = database
         // create listening socket
         self.socket = try await Socket.server(
             address: configuration.address,
@@ -63,8 +63,8 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
                     if let self = self {
                         self.log?("[\(newSocket.address.address)] New connection")
                         let connection = await MapleStoryServer.Connection(socket: newSocket, server: self)
-                        await self.connections.newConnection(connection)
-                        //await self.dataSource.didConnect(newSocket.address)
+                        await self.storage.newConnection(connection)
+                        self.didConnect(connection: connection)
                     }
                 }
                 catch _ as CancellationError { }
@@ -80,12 +80,12 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
     
     public func stop() {
         assert(tcpListenTask != nil)
-        let connections = self.connections
+        let storage = self.storage
         self.tcpListenTask?.cancel()
         self.tcpListenTask = nil
         self.log?("Stopped Server")
         Task {
-            await connections.removeAllConnections()
+            await storage.removeAllConnections()
         }
     }
     
@@ -93,38 +93,54 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Storage: CoreMode
         _ packet: T,
         to address: MapleStoryAddress
     ) async throws where T: MapleStoryPacket, T: Encodable {
-        guard let connection = await self.connections.connections[address] else {
+        guard let connection = await self.storage.connections[address] else {
             throw MapleStoryError.disconnected(address)
         }
         try await connection.send(packet)
+    }
+    
+    /// Registers a callback for an opcode and returns the ID associated with that callback.
+    internal func register <Packet> (
+        _ callback: @escaping (Packet, Connection) async -> ()
+    ) async where Packet: MapleStoryPacket, Packet: Decodable {
+        let registerBlock: (Connection) async -> () = { connection in
+            await connection.register { [unowned connection] (packet: Packet) in
+                await callback(packet, connection)
+            }
+        }
+        // run block when client connects
+        return await storage.register(handler: registerBlock)
+    }
+    
+    public func register<T: PacketHandler>(_ handler: T) async {
+        await register { (packet, connection) in
+            do {
+                try await handler.handle(packet: packet, connection: connection)
+            }
+            catch {
+                await connection.close(error)
+            }
+        }
+    }
+    
+    internal func didConnect(connection: Connection) {
+        
+    }
+    
+    internal func didDisconnect(address: MapleStoryAddress) {
+        
     }
 }
 
 // MARK: - Supporting Types
 
-public extension MapleStoryServer {
-    
-    struct DataSource {
-        
-        public let storage: Storage
-        
-        public let handlers: [(any ServerHandler.Type)]
-        
-        public init(
-            storage: Storage,
-            handlers: [any ServerHandler.Type]
-        ) {
-            self.storage = storage
-            self.handlers = handlers
-        }
-    }
-}
-
 internal extension MapleStoryServer {
     
-    actor Connections {
+    actor InternalStorage {
         
-        var connections = [MapleStoryAddress: Connection](minimumCapacity: 100)
+        var connections = [MapleStoryAddress: Connection](minimumCapacity: 10_000)
+        
+        var handlers = [(Connection) async -> ()]()
         
         fileprivate init() { }
         
@@ -133,11 +149,15 @@ internal extension MapleStoryServer {
         }
         
         func removeConnection(_ address: MapleStoryAddress) {
-            self.connections[address] = nil
+            connections[address] = nil
         }
         
         func removeAllConnections() {
-            self.connections.removeAll()
+            connections.removeAll()
+        }
+        
+        func register(handler: @escaping (Connection) async -> ()) {
+            handlers.append(handler)
         }
     }
 }
@@ -160,7 +180,17 @@ public extension MapleStoryServer {
         
         // MARK: - Properties
         
-        public let address: MapleStoryAddress
+        public nonisolated var address: MapleStoryAddress {
+            connection.address
+        }
+        
+        public var region: MapleStory.Region {
+            connection.region
+        }
+        
+        public var version: MapleStory.Version {
+            connection.version
+        }
         
         internal let connection: MapleStory.Connection<Socket>
         
@@ -180,7 +210,6 @@ public extension MapleStoryServer {
             let serverLog = server.log
             let log: (String) -> () = { serverLog?("[\(address.address)] \($0)") }
             self.log = log
-            self.address = address
             self.server = server
             self.connection = await MapleStory.Connection(
                 socket: socket, 
@@ -189,31 +218,23 @@ public extension MapleStoryServer {
                 region: server.configuration.region,
                 key: server.configuration.key
             ) { error in
-                //let username = await server.connections.connections[address]?.connection.username
-                await server.connections.removeConnection(address)
-                //await server.dataSource.didDisconnect(address, username: username)
+                await server.storage.removeConnection(address)
+                server.didDisconnect(address: address)
             }
+            // register packet handlers
+            await registerPacketHandlers()
             // always send handshake on connection
             Task {
                 try await self.sendHandshake()
             }
         }
         
-        private func registerLoginHandlers() async {
-            
-            // login
-            //await register { [unowned self] in try await self.login($0) }
-            //await register { [unowned self] in try await self.guestLogin($0) }
-            //await register { [unowned self] in try await self.pinOperation($0) }
-            //await connection.register { [unowned self] in await self.serverList($0) }
-            //await register { [unowned self] in try await self.serverStatus($0) }
-            //await register { [unowned self] in try await self.characterList($0) }
-            //await connection.register { [unowned self] in await self.allCharacters($0) }
-            //await register { [unowned self] in try await self.selectCharacter($0) }
-            //await register { [unowned self] in try await self.selectAllCharacter($0) }
-            //await register { [unowned self] in try await self.createCharacter($0) }
-            //await register { [unowned self] in try await self.deleteCharacter($0) }
-            //await register { [unowned self] in try await self.checkCharacterName($0) }
+        // MARK: - Methods
+        
+        /// Registers a callback for an opcode and returns the ID associated with that callback.
+        @discardableResult
+        internal func register <T> (_ callback: @escaping (T) async -> ()) async -> UInt where T: MapleStoryPacket, T: Decodable {
+            await connection.register(callback)
         }
         
         /// Respond to a client-initiated PDU message.
@@ -259,23 +280,8 @@ public extension MapleStoryServer {
             await self.connection.close()
         }
         
-        @discardableResult
-        private func register <Request, Response> (
-            _ callback: @escaping (Request) async throws -> (Response)
-        ) async -> UInt where Request: MapleStoryPacket, Request: Decodable, Response: MapleStoryPacket, Response: Encodable {
-            await self.connection.register { [unowned self] request in
-                do {
-                    let response = try await callback(request)
-                    try await self.respond(response)
-                }
-                catch {
-                    await self.close(error)
-                }
-            }
-        }
-        
         internal func sendHandshake() async throws {
-            let packet = await HelloPacket(
+            let packet = HelloPacket(
                 version: self.connection.version,
                 recieveNonce: await self.connection.recieveNonce,
                 sendNonce: await self.connection.sendNonce,
@@ -283,6 +289,13 @@ public extension MapleStoryServer {
             )
             try await send(packet)
             await connection.startEncryption()
+        }
+        
+        private func registerPacketHandlers() async {
+            let handlers = await server.storage.handlers
+            for handler in handlers {
+                await handler(self) // register handler
+            }
         }
     }
 }

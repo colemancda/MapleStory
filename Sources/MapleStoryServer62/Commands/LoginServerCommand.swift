@@ -83,9 +83,14 @@ struct LoginServerCommand: AsyncParsableCommand {
             model: .mapleStory
         )
         
+        try await store.initializeMapleStory(
+            version: configuration.version,
+            region: configuration.region
+        )
+        
         let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage>(
             configuration: configuration,
-            dataSource: .loginServer(storage: store),
+            database: store,
             socket: MapleStorySocketIPv4TCP.self
         )
         
@@ -96,18 +101,11 @@ struct LoginServerCommand: AsyncParsableCommand {
     }
 }
 
-public extension MapleStoryServer.DataSource {
+public extension MapleStoryServer {
     
-    static func loginServer(
-        storage: Storage
-    ) -> MapleStoryServer.DataSource {
-        Self.init(
-            storage: storage,
-            handlers: [
-                MapleStoryServer.LoginHandler.self,
-                MapleStoryServer.GuestLoginHandler.self,
-                MapleStoryServer.WorldListHandler.self
-            ]
-        )
+    func registerLoginServer() async {
+        await register(LoginHandler())
+        await register(GuestLoginHandler())
+        await register(WorldListHandler())
     }
 }

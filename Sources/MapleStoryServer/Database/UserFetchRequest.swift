@@ -9,42 +9,6 @@ import Foundation
 import CoreModel
 import MapleStory
 
-public extension User {
-    
-    enum FetchRequest {
-        
-        case username(String)
-        case email(Email)
-        case ipAddress(String)
-    }
-}
-
-public extension FetchRequest {
-    
-    init(fetchRequest: User.FetchRequest) {
-        switch fetchRequest {
-        case .username(let username):
-            self.init(
-                entity: User.entityName,
-                predicate: .init(predicate: .username(username)),
-                fetchLimit: 1
-            )
-        case .email(let email):
-            self.init(
-                entity: User.entityName,
-                predicate: .init(predicate: .email(email)),
-                fetchLimit: 1
-            )
-        case .ipAddress(let ipAddress):
-            self.init(
-                entity: User.entityName,
-                predicate: .init(predicate: .ipAddress(ipAddress)),
-                fetchLimit: 1
-            )
-        }
-    }
-}
-
 // MARK: - Predicate
 
 public extension User {
@@ -54,6 +18,7 @@ public extension User {
         case username(String)
         case email(Email)
         case ipAddress(String)
+        case isGuest(Bool)
     }
 }
 
@@ -67,6 +32,8 @@ public extension FetchRequest.Predicate {
             self = User.CodingKeys.email.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(email.rawValue)))
         case .ipAddress(let ipAddress):
             self = User.CodingKeys.ipAddress.stringValue.compare(.equalTo, .attribute(.string(ipAddress)))
+        case .isGuest(let isGuest):
+            self = User.CodingKeys.isGuest.stringValue.compare(.equalTo, .attribute(.bool(isGuest)))
         }
     }
 }
@@ -79,7 +46,12 @@ public extension User {
         username: String,
         in context: Storage
     ) async throws -> Bool {
-        try await context.count(.init(fetchRequest: .username(username))) > 0
+        let fetchRequest = FetchRequest(
+            entity: User.entityName,
+            predicate: .init(predicate: .username(username)),
+            fetchLimit: 1
+        )
+        return try await context.count(fetchRequest) > 0
     }
     
     static func fetch<Storage: ModelStorage>(

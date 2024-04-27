@@ -14,24 +14,13 @@ public extension MapleStoryServer.Connection {
     /// Handle a user logging in.
     func listWorlds() async throws -> [(world: World, channels: [Channel])] {
         log("World List")
-        let database = server.dataSource.storage
-        let version = await self.connection.version
-        let region = await self.connection.region
+        let database = server.database
         // fetch worlds
-        var worlds = try await World.fetch(
+        let worlds = try await World.fetch(
             version: version,
             region: region,
             in: database
         )
-        // lazily create worlds if none
-        if worlds.isEmpty {
-            // TODO: Global syncronized task
-            worlds = try await World.insert(
-                region: region,
-                version: version,
-                in: database
-            )
-        }
         // fetch channels
         var results = [(world: World, channels: [Channel])]()
         results.reserveCapacity(worlds.count)

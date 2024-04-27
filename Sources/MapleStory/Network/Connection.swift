@@ -11,13 +11,17 @@ import Socket
 /// MapleStory Connection
 public actor Connection <Socket: MapleStorySocket> {
     
+    public nonisolated var address: MapleStoryAddress {
+        socket.address
+    }
+    
     let socket: Socket
     
     let log: ((String) -> ())?
     
-    public let version: Version
+    public nonisolated let version: Version
     
-    public let region: Region
+    public nonisolated let region: Region
     
     let timestamp = Date()
     
@@ -33,9 +37,9 @@ public actor Connection <Socket: MapleStorySocket> {
     
     public var username: Username?
     
-    let encoder = MapleStoryEncoder()
+    nonisolated let encoder = MapleStoryEncoder()
     
-    let decoder = MapleStoryDecoder()
+    nonisolated let decoder = MapleStoryDecoder()
     
     private var shouldEncrypt = false
         

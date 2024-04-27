@@ -20,7 +20,7 @@ public extension MapleStoryServer.Connection {
         
         log("Login - \(username)")
         
-        let database = server.dataSource.storage
+        let database = server.database
         let ipAddress = self.address.address
         
         // fetch existing user

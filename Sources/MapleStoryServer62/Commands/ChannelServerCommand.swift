@@ -59,6 +59,9 @@ struct ChannelServerCommand: AsyncParsableCommand {
         guard let databaseURL = URL(string: databaseURL) else {
             throw MapleStoryError.invalidAddress(databaseURL)
         }
+        
+        
+        
         /*
         let database = try await MapleStoryDatabase(
             url: databaseURL,
