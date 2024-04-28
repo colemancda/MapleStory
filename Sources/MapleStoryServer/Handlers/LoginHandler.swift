@@ -41,7 +41,7 @@ public extension MapleStoryServer.Connection {
         } else if autoregister {
             // validate username
             guard let username = Username(rawValue: username) else {
-                throw LoginError.blocked
+                throw LoginError.invalidUsername
             }
             // validate password
             guard let password = Password(rawValue: password) else {
@@ -61,6 +61,11 @@ public extension MapleStoryServer.Connection {
         }
         
         assert(user.username.rawValue.lowercased() == username.lowercased())
+        
+        // check if terms of service was accepted
+        guard user.termsAccepted else {
+            throw LoginError.licenseAgreement
+        }
         
         // upgrade connection
         await connection.authenticate(username: user.username)
