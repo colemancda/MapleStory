@@ -7,14 +7,14 @@
 
 import Foundation
 
-/// MapleStory Hello packet
+/// MapleStory v62 Hello packet
 ///
 /// This is the first packet sent by the server when a client connects.
 public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
     
     public static var opcode: Opcode { 0x000D }
     
-    public var version: Version
+    public let version: Version
     
     internal let value0: UInt16
         
@@ -25,12 +25,11 @@ public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
     public var region: Region
     
     public init(
-        version: Version,
         recieveNonce: Nonce,
         sendNonce: Nonce,
         region: Region = .global
     ) {
-        self.version = version
+        self.version = .v62
         self.recieveNonce = recieveNonce
         self.sendNonce = sendNonce
         self.region = region
