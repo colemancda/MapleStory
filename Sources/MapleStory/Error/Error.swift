@@ -19,8 +19,8 @@ public enum MapleStoryError: Error {
     case notAuthenticated
     
     case unknownUser(String)
-    
-    case invalidPassword
-    
+        
     case invalidRequest
+    
+    case login(LoginError)
 }
