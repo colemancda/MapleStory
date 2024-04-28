@@ -12,8 +12,17 @@ import CoreModel
 
 public struct HandshakeHandler: ServerHandler {
     
-    public func didConnect<Socket: MapleStorySocket, Storage: ModelStorage>(connection: MapleStoryServer<Socket, Storage>.Connection) async throws {
-        try await sendHandshake(connection: connection)
+    public func didConnect<Socket, Storage>(
+        connection: MapleStoryServer<Socket, Storage>.Connection
+    ) where Socket : MapleStorySocket, Storage : ModelStorage {
+        Task {
+            do {
+                try await sendHandshake(connection: connection)
+            }
+            catch {
+                await connection.close(error)
+            }
+        }
     }
 }
 

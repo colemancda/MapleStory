@@ -94,6 +94,8 @@ struct LoginServerCommand: AsyncParsableCommand {
             socket: MapleStorySocketIPv4TCP.self
         )
         
+        await server.registerLoginServer()
+        
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
         
         // retain
