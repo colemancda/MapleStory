@@ -23,7 +23,7 @@ public extension ServerHandler {
     func didDisconnect(address: MapleStoryAddress) { }
 }
 
-public protocol PacketHandler: ServerHandler {
+public protocol PacketHandler {
     
     associatedtype Packet: MapleStoryPacket & Decodable
     
