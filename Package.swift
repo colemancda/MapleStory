@@ -35,6 +35,10 @@ let package = Package(
             name: "MapleStoryServer62",
             targets: ["MapleStoryServer62"]
         ),
+        .executable(
+            name: "MapleStoryServer83",
+            targets: ["MapleStoryServer83"]
+        ),
     ],
     dependencies: [
         .package(
@@ -120,10 +124,37 @@ let package = Package(
                 "MapleStory"
             ]
         ),
+        .target(
+            name: "MapleStory83",
+            dependencies: [
+                "MapleStory"
+            ]
+        ),
         .executableTarget(
             name: "MapleStoryServer62",
             dependencies: [
                 "MapleStory62",
+                "MapleStoryServer",
+                .product(
+                    name: "ArgumentParser",
+                    package: "swift-argument-parser"
+                ),
+                .product(
+                    name: "MongoDBModel",
+                    package: "CoreModel-MongoDB"
+                )
+            ],
+            swiftSettings: [
+              // Enable better optimizations when building in Release configuration. Despite the use of
+              // the `.unsafeFlags` construct required by SwiftPM, this flag is recommended for Release
+              // builds. See <https://github.com/swift-server/guides#building-for-production> for details.
+              .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
+            ]
+        ),
+        .executableTarget(
+            name: "MapleStoryServer83",
+            dependencies: [
+                "MapleStory83",
                 "MapleStoryServer",
                 .product(
                     name: "ArgumentParser",
