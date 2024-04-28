@@ -8,6 +8,30 @@
 import Foundation
 import ArgumentParser
 import MapleStory
+import CoreModel
+
+public extension ModelStorage {
+    
+    func initializeMapleStory(
+        version: MapleStory.Version,
+        region: MapleStory.Region
+    ) async throws {
+        // create worlds
+        var worlds = try await World.fetch(
+            version: version,
+            region: region,
+            in: self
+        )
+        // lazily create worlds if none
+        if worlds.isEmpty {
+            worlds = try await World.insert(
+                region: region,
+                version: version,
+                in: self
+            )
+        }
+    }
+}
 
 /*
 final class MapleStoryDatabase: MapleStoryServerDataSource {
