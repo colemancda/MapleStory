@@ -104,6 +104,7 @@ struct LoginServerCommand: AsyncParsableCommand {
 public extension MapleStoryServer {
     
     func registerLoginServer() async {
+        await register(HandshakeHandler())
         await register(LoginHandler())
         await register(GuestLoginHandler())
         await register(WorldListHandler())
