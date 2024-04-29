@@ -27,6 +27,7 @@ final class LoginTests: XCTestCase {
             region: .global
         )
         
+        XCTAssertEqual(value.version, .v62)
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
     }
