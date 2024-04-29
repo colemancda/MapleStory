@@ -109,6 +109,7 @@ public extension MapleStoryServer {
         await register(HandshakeHandler())
         await register(LoginHandler())
         await register(GuestLoginHandler())
+        await register(PinCodeHandler())
         await register(WorldListHandler())
     }
 }
