@@ -110,6 +110,7 @@ public extension MapleStoryServer {
         await register(LoginHandler())
         await register(GuestLoginHandler())
         await register(PinCodeHandler())
+        await register(AcceptLicenseHandler())
         await register(WorldListHandler())
     }
 }
