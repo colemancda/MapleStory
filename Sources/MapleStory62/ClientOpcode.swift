@@ -16,7 +16,7 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     case pong = 0x18
     
     /// Login password packet header.
-    case loginPassword = 0x01
+    case loginRequest = 0x01
     
     /// Guest login packet header.
     case guestLogin = 0x02
@@ -341,4 +341,11 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     
     /// Teleport rock add map packet header.
     case trockAddMap = 0x5E
+}
+
+public extension MapleStory.Opcode {
+    
+    init(client opcode: ClientOpcode) {
+        self.init(rawValue: opcode.rawValue)
+    }
 }

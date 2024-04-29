@@ -441,3 +441,10 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable {
     /// Teleport rock locations packet header.
     case trockLocations = 0x27
 }
+
+public extension MapleStory.Opcode {
+    
+    init(server opcode: ServerOpcode) {
+        self.init(rawValue: opcode.rawValue)
+    }
+}

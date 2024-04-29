@@ -12,7 +12,7 @@ import Foundation
 /// A packet detailing a server and its channels.
 public enum ServerListResponse: MapleStoryPacket, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x0A }
+    public static var opcode: Opcode { .init(server: .serverList) }
     
     case world(World)
     case end
