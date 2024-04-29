@@ -25,13 +25,29 @@ public enum LoginResponse: MapleStoryPacket, Equatable, Codable, Hashable, Senda
 
 // MARK: - Codable
 
-extension LoginResponse: MapleStoryEncodable {
+extension LoginResponse: MapleStoryCodable {
     
     enum MapleCodingKeys: String, CodingKey {
         case header
         case success
         case ban
         case failure
+    }
+    
+    public init(from container: MapleStoryDecodingContainer) throws {
+        let header = try container.decode(Header.self, forKey: MapleCodingKeys.header)
+        switch header.status {
+        case 0x00:
+            let value = try container.decode(Success.self, forKey: MapleCodingKeys.success)
+            self = .success(value)
+        case 0x02:
+            fatalError("TODO")
+        default:
+            guard let reason = LoginError(rawValue: header.status) else {
+                throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: container.codingPath, debugDescription: "Invalid status \(header.status)"))
+            }
+            self = .failure(reason)
+        }
     }
     
     public func encode(to container: MapleStoryEncodingContainer) throws {
@@ -80,7 +96,7 @@ public extension LoginResponse {
         
         internal let account: User.Index
         
-        public let gender: Gender
+        public let gender: LoginResponse.Success.Gender
         
         public let isAdmin: Bool
         
@@ -140,7 +156,7 @@ public extension LoginResponse.Success {
     init(user: User) {
         self.init(
             account: user.index,
-            gender: user.gender,
+            gender: .init(user.gender),
             isAdmin: user.isAdmin,
             adminType: user.isAdmin ? 0x80 : 0x00,
             countryCode: 0, // TODO: Country code
@@ -167,6 +183,28 @@ public extension LoginResponse.Success {
         
         /// Disabled
         case disabled
+    }
+}
+
+public extension LoginResponse.Success {
+    
+    enum Gender: UInt8, Codable, CaseIterable, Sendable {
+        
+        case male       = 0
+        case female     = 1
+        case none       = 10
+    }
+}
+
+public extension LoginResponse.Success.Gender {
+    
+    init(_ gender: MapleStory.Gender) {
+        switch gender {
+        case .male:
+            self = .male
+        case .female:
+            self = .female
+        }
     }
 }
 
