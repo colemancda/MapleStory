@@ -30,7 +30,7 @@ public extension FetchRequest.Predicate {
         case .index(let index):
             self = User.CodingKeys.index.stringValue.compare(.equalTo, .attribute(.int64(numericCast(index))))
         case .username(let username):
-            self = User.CodingKeys.id.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(username)))
+            self = User.CodingKeys.username.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(username)))
         case .email(let email):
             self = User.CodingKeys.email.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(email.rawValue)))
         case .ipAddress(let ipAddress):
