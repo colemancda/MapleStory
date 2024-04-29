@@ -18,7 +18,7 @@ public extension Character {
         case name(CharacterName)
         case index(Character.Index)
         case channel(Channel.ID)
-        case user(Username)
+        case user(User.ID)
     }
 }
 
@@ -32,8 +32,8 @@ public extension FetchRequest.Predicate {
             self = Character.CodingKeys.index.stringValue.compare(.equalTo, .attribute(.int64(numericCast(index))))
         case .channel(let channel):
             self = Character.CodingKeys.channel.stringValue.compare(.equalTo, .relationship(.toOne(.init(channel))))
-        case .user(let username):
-            self = Character.CodingKeys.channel.stringValue.compare(.equalTo, .relationship(.toOne(.init(username))))
+        case .user(let user):
+            self = Character.CodingKeys.user.stringValue.compare(.equalTo, .relationship(.toOne(.init(user))))
         }
     }
 }
