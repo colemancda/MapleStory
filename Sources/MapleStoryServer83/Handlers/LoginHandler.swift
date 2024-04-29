@@ -33,16 +33,16 @@ internal extension LoginHandler {
     ) async throws -> MapleStory83.LoginResponse {
         do {
             // update database
-            try await connection.login(
+            let user = try await connection.login(
                 username: request.username,
                 password: request.password,
                 autoregister: true // TODO: Add server configuration
             )
-            return .success(username: request.username)
+            return .success(.init(user: user))
         }
         catch let loginError as LoginError {
             // TODO: handle failures
-            return .success(username: request.username)
+            return .failure(loginError)
         }
     }
 }

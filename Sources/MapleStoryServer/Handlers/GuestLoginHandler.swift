@@ -18,15 +18,16 @@ public extension MapleStoryServer.Connection {
         let ipAddress = self.address.address
         // find guest user with ip address
         let user: User
-        if let existingUser = try await User.fetch(ipAddress: ipAddress, in: database), existingUser.isGuest {
+        if let existingUser = try await User.fetch(ipAddress: ipAddress, in: database).first(where: { $0.isGuest }) {
             user = existingUser
         } else {
             // create new guest user
             let userCount = try await database.count(User.self)
             let rawUsername = "Guest\(userCount)"
+            let rawPassword = "Guest\(Int(Date().timeIntervalSince1970))"
             guard let username = Username(rawValue: rawUsername),
-                  let password = Password(rawValue: rawUsername) else {
-                fatalError("Invalid username or password \(rawUsername)")
+                  let password = Password(rawValue: rawPassword) else {
+                fatalError("Invalid username or password \(rawUsername) \(rawPassword)")
             }
             // create new user
             user = try await User.create(

@@ -16,7 +16,7 @@ public extension MapleStoryServer.Connection {
         username: String,
         password: String,
         autoregister: Bool = true
-    ) async throws {
+    ) async throws -> User {
         
         log("Login - \(username)")
         
@@ -67,7 +67,22 @@ public extension MapleStoryServer.Connection {
             throw LoginError.licenseAgreement
         }
         
+        // check for ban
+        
+        
         // upgrade connection
         await connection.authenticate(username: user.username)
+        
+        return user
+    }
+}
+
+public extension MapleStoryServer.Connection {
+    
+    func authenticatedUser() async throws -> User? {
+        guard let username = await self.connection.username else {
+            return nil
+        }
+        return try await User.fetch(username: username.rawValue, in: server.database)
     }
 }
