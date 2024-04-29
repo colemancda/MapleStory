@@ -6,43 +6,210 @@
 //
 
 import Foundation
+import MapleStory
 
 /// Login Response
-public enum LoginResponse: MapleStoryPacket, Equatable, Hashable {
+public enum LoginResponse: MapleStoryPacket, Equatable, Codable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x00 }
+    public static var opcode: Opcode { .init(server: .loginStatus) }
     
     /// Successful authentication and PIN Request packet.
-    case success(username: String)
+    case success(Success)
+    
+    case permanentBan
+    
+    case temporaryBan(LoginError, KoreanDate)
+    
+    case failure(LoginError)
 }
 
-// MARK: - Encodable
+// MARK: - Codable
 
-extension LoginResponse: Encodable {
+extension LoginResponse: MapleStoryEncodable {
     
-    enum CodingKeys: String, CodingKey {
-        case username
+    enum MapleCodingKeys: String, CodingKey {
+        case header
+        case success
+        case ban
+        case failure
     }
     
-    public func encode(to encoder: Encoder) throws {
-        var container = encoder.container(keyedBy: CodingKeys.self)
+    public func encode(to container: MapleStoryEncodingContainer) throws {
         switch self {
-        case let .success(username):
-            try container.encode(username, forKey: CodingKeys.username)
+        case let .success(value):
+            try container.encode(Header(status: value.status), forKey: MapleCodingKeys.header)
+            try container.encode(value, forKey: MapleCodingKeys.success)
+        case .permanentBan:
+            let value = Ban.permanent
+            try container.encode(Header(status: value.status), forKey: MapleCodingKeys.header)
+            try container.encode(value, forKey: MapleCodingKeys.ban)
+        case let .temporaryBan(reason, timestamp):
+            let value = Ban(reason: reason, timestamp: timestamp)
+            try container.encode(Header(status: value.status), forKey: MapleCodingKeys.header)
+        case let .failure(failure):
+            try container.encode(Header(status: failure.rawValue), forKey: MapleCodingKeys.header)
         }
     }
 }
 
-// MARK: - MapleStoryEncodable
+// MARK: - Supporting Types
 
-extension LoginResponse: MapleStoryEncodable {
+internal extension LoginResponse {
     
-    public func encode(to container: MapleStoryEncodingContainer) throws {
-        switch self {
-        case let .success(username):
-            try container.encode(Data([0, 0, 0, 0, 0, 0, 0xFF, 0x6A, 1, 0, 0, 0, 0x4E]))
-            try container.encode(username, forKey: CodingKeys.username)
-            try container.encode(Data([3, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0xDC, 0x3D, 0x0B, 0x28, 0x64, 0xC5, 1, 8, 0, 0, 0]))
+    struct Header: Equatable, Hashable, Codable, Sendable  {
+        
+        var status: UInt8
+        
+        let value0: UInt8
+        
+        let value1: UInt32
+        
+        init(status: UInt8) {
+            self.status = status
+            self.value0 = 0
+            self.value1 = 0
+        }
+    }
+}
+
+public extension LoginResponse {
+    
+    struct Success: Equatable, Hashable, Codable, Sendable {
+        
+        var status: UInt8 { 0x00 }
+        
+        internal let account: User.Index
+        
+        public let gender: Gender
+        
+        public let isAdmin: Bool
+        
+        public let adminType: UInt8 // 0x80, 0x40, 0x20
+        
+        public let countryCode: UInt8
+                
+        public let username: String
+        
+        public let value2: UInt8
+        
+        public let isQuietBan: Bool
+        
+        public let quietBanTimeStamp: UInt64
+        
+        public let creationTimeStamp: UInt64
+        
+        public let skipWorldSelectionPrompt: Bool
+        
+        public let skipPin: Bool
+        
+        public let picMode: PicMode
+        
+        public init(
+            account: User.Index,
+            gender: Gender,
+            isAdmin: Bool = false,
+            adminType: UInt8 = 0,
+            countryCode: UInt8 = 0,
+            username: String,
+            isQuietBan: Bool = false,
+            quietBanTimeStamp: UInt64 = 0,
+            creationTimeStamp: UInt64 = 0,
+            skipWorldSelectionPrompt: Bool = true,
+            skipPin: Bool = true,
+            picMode: PicMode = .disabled
+        ) {
+            self.account = account
+            self.gender = gender
+            self.isAdmin = isAdmin
+            self.adminType = adminType
+            self.countryCode = countryCode
+            self.username = username
+            self.value2 = 0
+            self.isQuietBan = isQuietBan
+            self.quietBanTimeStamp = quietBanTimeStamp
+            self.creationTimeStamp = creationTimeStamp
+            self.skipWorldSelectionPrompt = skipWorldSelectionPrompt
+            self.skipPin = skipPin
+            self.picMode = picMode
+        }
+    }
+}
+
+public extension LoginResponse.Success {
+    
+    init(user: User) {
+        self.init(
+            account: user.index,
+            gender: user.gender,
+            isAdmin: user.isAdmin,
+            adminType: user.isAdmin ? 0x80 : 0x00,
+            countryCode: 0, // TODO: Country code
+            username: user.username.rawValue,
+            isQuietBan: false,
+            quietBanTimeStamp: 0,
+            creationTimeStamp: 0,
+            skipWorldSelectionPrompt: true, // TODO: Customize world selection
+            skipPin: true,  // TODO: Customize PIN code
+            picMode: .disabled
+        )
+    }
+}
+
+public extension LoginResponse.Success {
+    
+    enum PicMode: UInt8, Codable, CaseIterable, Sendable {
+        
+        /// Register PIC
+        case register
+        
+        /// Ask for PIC
+        case enabled
+        
+        /// Disabled
+        case disabled
+    }
+}
+
+internal extension LoginResponse {
+    
+    struct Failure: Equatable, Hashable, Codable, Sendable  {
+        
+        var status: UInt8
+        
+        let value0: UInt8
+        
+        let value1: UInt32
+        
+        init(status: UInt8) {
+            self.status = status
+            self.value0 = 0
+            self.value1 = 0
+        }
+    }
+}
+
+internal extension LoginResponse {
+    
+    struct Ban: Equatable, Hashable, Codable, Sendable, Error {
+        
+        var status: UInt8 { 0x02 }
+        
+        let reason: UInt8
+        
+        let timestamp: KoreanDate
+        
+        init(reason: LoginError, timestamp: KoreanDate) {
+            self.reason = reason.rawValue
+            self.timestamp = timestamp
+        }
+        
+        init(reason: UInt8, timestamp: KoreanDate) {
+            self.reason = reason
+            self.timestamp = timestamp
+        }
+        
+        static var permanent: Ban {
+            .init(reason: 0x00, timestamp: .default)
         }
     }
 }
