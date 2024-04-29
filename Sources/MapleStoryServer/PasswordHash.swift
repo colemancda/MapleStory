@@ -26,7 +26,7 @@ public extension Password {
     func hash() throws -> Data {
         let salt = Salt.newSalt()
         let result = try Argon2Swift.hashPasswordBytes(password: Data(rawValue.utf8), salt: salt)
-        return result.hashData()
+        return result.encodedData()
     }
     
     func validate(hash: Data) throws -> Bool {
