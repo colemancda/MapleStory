@@ -85,6 +85,22 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.length, packet.data.count)
         XCTAssertEqual(encrypted.parametersSize, 8)
     }
+
+    func testLoginGenderPrompt() throws {
+        
+        let packetData = Data([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02])
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let decoder = MapleStoryDecoder()
+        let value = try decoder.decode(MapleStory83.LoginResponse.self, from: packet)
+        print(value)
+        
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+    }
     
     func testSuccessLoginResponse() throws {
         
