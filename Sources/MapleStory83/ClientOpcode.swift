@@ -25,8 +25,8 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     /// Serverstatus request opcode. (0x06)
     case serverstatusRequest = 0x06
     
-    /// Accept TOS opcode. (0x07)
-    case acceptTOS = 0x07
+    /// Accept Terms of Service opcode. (0x07)
+    case acceptLicense = 0x07
     
     /// Set gender opcode. (0x08)
     case setGender = 0x08
