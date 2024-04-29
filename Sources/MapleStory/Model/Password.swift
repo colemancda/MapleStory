@@ -28,7 +28,7 @@ internal extension Password {
     
     static let regex = Regex {
         OneOrMore(.word)
-        OneOrMore(.digit)
+        ZeroOrMore(.digit)
     }
     .asciiOnlyWordCharacters()
     
