@@ -11,20 +11,24 @@ import CoreModel
 /// MapleStory User
 public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
+    public typealias Index = UInt32
+    
     // MARK: - Properties
     
-    public let id: Username
+    public let id: UUID
     
-    public var username: Username {
-        id
-    }
+    public let index: Index
+    
+    public let username: Username
     
     /// Password hash
     public var password: Data
     
     public var created: Date
     
-    public var ipAddress: String
+    public let gender: Gender
+    
+    public var ipAddress: String?
     
     public var pinCode: String?
     
@@ -45,10 +49,13 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     // MARK: - Initialization
     
     public init(
+        id: UUID = UUID(),
+        index: Index,
         username: Username,
         password: Data = Data(),
         created: Date = Date(),
-        ipAddress: String,
+        gender: Gender = .male,
+        ipAddress: String? = nil,
         pinCode: String? = nil,
         picCode: String? = nil,
         birthday: Date? = nil,
@@ -58,7 +65,10 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         isGuest: Bool = false,
         characters: [Character.ID] = []
     ) {
-        self.id = username
+        self.id = id
+        self.index = index
+        self.username = username
+        self.gender = gender
         self.password = password
         self.created = created
         self.ipAddress = ipAddress
@@ -73,9 +83,13 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     }
     
     public enum CodingKeys: String, CodingKey, CaseIterable {
+        
         case id
+        case index
+        case username
         case password
         case created
+        case gender
         case ipAddress = "ip"
         case pinCode = "pin"
         case picCode = "pic"
@@ -94,8 +108,11 @@ extension User: Entity {
     
     public static var attributes: [CodingKeys: AttributeType] {
         [
+            .index: .int64,
+            .username: .string,
             .password: .data,
             .created: .date,
+            .gender: .int16,
             .ipAddress: .string,
             .pinCode: .string,
             .picCode: .string,
@@ -117,14 +134,5 @@ extension User: Entity {
                 inverseRelationship: .user
             )
         ]
-    }
-}
-
-// MARK: - ObjectIDConvertible
-
-extension Username: ObjectIDConvertible {
-    
-    public init?(objectID: ObjectID) {
-        self.init(rawValue: objectID.rawValue)
     }
 }

@@ -46,7 +46,7 @@ public extension Character {
     init?(
         id: UUID = UUID(),
         index: Character.Index,
-        user: Username,
+        user: User.ID,
         channel: Channel.ID,
         created: Date = Date(),
         request: CreateCharacterRequest
