@@ -15,6 +15,7 @@ public extension Model {
             User.self,
             World.self,
             Channel.self,
-            Character.self
+            Character.self,
+            Configuration.self
     )
 }
