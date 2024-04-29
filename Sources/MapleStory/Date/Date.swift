@@ -80,3 +80,13 @@ public extension Date {
         self.init(timeIntervalSince1970: date.timeIntervalSince1970)
     }
 }
+
+// MARK: - Constants
+
+public extension Date {
+    
+    /// The date MapleGlobal released (May 11 2005)
+    static var mapleGlobalRelease: Date {
+        Date(timeIntervalSince1970: 1_715_385_600) // 2005-05-11
+    }
+}
