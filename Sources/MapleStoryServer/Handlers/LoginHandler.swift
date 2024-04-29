@@ -61,17 +61,17 @@ public extension MapleStoryServer.Connection {
         }
         
         assert(user.username.rawValue.lowercased() == username.lowercased())
-        
-        // check if terms of service was accepted
-        guard user.termsAccepted else {
-            throw LoginError.licenseAgreement
-        }
-        
+                
         // check for ban
         
         
         // upgrade connection
         await connection.authenticate(username: user.username)
+        
+        // check if terms of service was accepted
+        guard user.termsAccepted else {
+            throw LoginError.licenseAgreement
+        }
         
         return user
     }
