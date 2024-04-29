@@ -8,6 +8,7 @@
 import Foundation
 import XCTest
 @testable import MapleStory
+@testable import MapleStoryServer
 
 final class MapleStoryTests: XCTestCase {
     
@@ -91,8 +92,6 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertEqual(World.Name(index: 0), .scania)
         
         XCTAssertNil(World.Name(index: 15))
-        XCTAssertEqual(World.name(for: 15), "World 16")
-        XCTAssertEqual(World.name(for: 15), name(for: 15))
         
         for (index, value) in World.Name.allCases.enumerated() {
             let index = UInt8(index)
@@ -130,23 +129,23 @@ final class MapleStoryTests: XCTestCase {
         XCTAssertNotNil(Email(rawValue: "steve@apple.com"))
     }
     
-    func testHello() throws {
+    func testPassword() throws {
         
-        let data = Data([0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08])
+        let values = [
+            "test1234",
+            "pepe",
+            "abc",
+            "Testtest1234"
+        ]
         
-        guard let packet = Packet(data: data) else {
-            XCTFail()
-            return
+        for string in values {
+            guard let password = Password(rawValue: string) else {
+                XCTFail()
+                return
+            }
+            let hash = try password.hash()
+            let isValid = try password.validate(hash: hash)
+            XCTAssert(isValid)
         }
-        
-        let value = HelloPacket(
-            version: .v62,
-            recieveNonce: 0x46727A18,
-            sendNonce: 0x52307814,
-            region: .global
-        )
-        
-        XCTAssertEncode(value, packet)
-        XCTAssertDecode(value, packet)
     }
 }

@@ -12,6 +12,25 @@ import XCTest
 
 final class LoginTests: XCTestCase {
     
+    func testHello() throws {
+        
+        let data = Data([0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08])
+        
+        guard let packet = Packet(data: data) else {
+            XCTFail()
+            return
+        }
+        
+        let value = HelloPacket(
+            recieveNonce: 0x46727A18,
+            sendNonce: 0x52307814,
+            region: .global
+        )
+        
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
     func testPing() throws {
         
         let encryptedData = Data([0x48, 0x7D, 0x4A, 0x7D, 0x01, 0x5C])

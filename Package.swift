@@ -177,7 +177,10 @@ let package = Package(
         ),
         .testTarget(
             name: "MapleStoryTests",
-            dependencies: ["MapleStory"]
+            dependencies: [
+                "MapleStory",
+                "MapleStoryServer"
+            ]
         ),
         .testTarget(
             name: "MapleStory62Tests",
