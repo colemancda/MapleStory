@@ -27,7 +27,7 @@ public extension FetchRequest.Predicate {
     init(predicate: Character.Predicate) {
         switch predicate {
         case .name(let name):
-            self = Character.CodingKeys.id.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(name.rawValue)))
+            self = Character.CodingKeys.name.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(name.rawValue)))
         case .index(let index):
             self = Character.CodingKeys.index.stringValue.compare(.equalTo, .attribute(.int64(numericCast(index))))
         case .channel(let channel):
@@ -35,5 +35,43 @@ public extension FetchRequest.Predicate {
         case .user(let user):
             self = Character.CodingKeys.user.stringValue.compare(.equalTo, .relationship(.toOne(.init(user))))
         }
+    }
+}
+
+public extension Character {
+    
+    static func exists<Storage: ModelStorage>(
+        name: CharacterName,
+        world: World.ID,
+        in database: Storage
+    ) async throws -> Bool {
+        // TODO: Filter by world
+        let predicate = FetchRequest.Predicate(predicate: Character.Predicate.name(name))
+        let count = try await database.count(Character.self, predicate: predicate, fetchLimit: 1)
+        return count > 0
+    }
+    
+    static func fetch<Storage: ModelStorage>(
+        user: User.ID,
+        world: World.ID? = nil,
+        channel: Channel.ID? = nil,
+        in database: Storage
+    ) async throws -> [Character] {
+        var predicates = [
+            FetchRequest.Predicate.init(predicate: Character.Predicate.user(user))
+        ]
+        if let world {
+            predicates.append(
+                .init(predicate: .world(world))
+            )
+        }
+        if let channel {
+            predicates.append(
+                .init(predicate: .channel(channel))
+            )
+        }
+        let predicate = FetchRequest.Predicate.compound(.and(predicates))
+        return try await database.fetch(
+            Character.self, sortDescriptors: [.init(property: .init(Character.CodingKeys.index), ascending: true)], predicate: predicate)
     }
 }
