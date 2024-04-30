@@ -7,6 +7,7 @@
 
 import Foundation
 import ArgumentParser
+import NIO
 import MapleStoryServer
 import Socket
 import CoreModel
@@ -56,34 +57,57 @@ struct ChannelServerCommand: AsyncParsableCommand {
             version: .v62
         )
         
-        guard let databaseURL = URL(string: databaseURL) else {
-            throw MapleStoryError.invalidAddress(databaseURL)
+        let elg = MultiThreadedEventLoopGroup(numberOfThreads: 2)
+        
+        defer {
+            try? elg.syncShutdownGracefully()
         }
         
-        
-        
-        /*
-        let database = try await MapleStoryDatabase(
-            url: databaseURL,
-            name: databaseName,
-            username: databaseUsername,
-            password: databasePassword
+        let mongoClient = try MongoClient(
+            databaseURL,
+            using: elg,
+            options: MongoClientOptions(
+                credential: MongoCredential(
+                    username: databaseUsername,
+                    password: databasePassword
+                )
+            )
         )
         
-        let server = try await MapleStoryServer(
-            configuration: configuration, 
-            dataSource: database,
+        defer {
+            try? mongoClient.syncClose()
+        }
+        
+        let store = MongoModelStorage(
+            database: mongoClient.db(databaseName),
+            model: .mapleStory
+        )
+        
+        try await store.initializeMapleStory(
+            version: configuration.version,
+            region: configuration.region
+        )
+        
+        let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage>(
+            configuration: configuration,
+            database: store,
             socket: MapleStorySocketIPv4TCP.self
         )
         
-        // create DB tables
-        #if DEBUG
-        NSLog("Users: \(try await database.userCount)")
-        #endif
-        */
+        await server.registerChannelServer()
+        
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
         
         // retain
-        //let _ = server
+        let _ = server
+    }
+}
+
+public extension MapleStoryServer {
+    
+    func registerChannelServer() async {
+        await register(HandshakeHandler())
+        await register(PingHandler())
+        
     }
 }

@@ -112,7 +112,7 @@ public extension Packet.Encrypted {
     func decrypt(
         key: Key = .default,
         nonce: Nonce,
-        version: Version = .v62
+        version: Version
     ) throws -> Packet {
         return try Packet.decrypt(
             self.parameters,

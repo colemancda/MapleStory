@@ -7,12 +7,12 @@
 
 import Foundation
 import CoreModel
-import MapleStory83
+import MapleStory62
 import MapleStoryServer
 
 public struct SetGenderHandler: PacketHandler {
     
-    public typealias Packet = MapleStory83.SetGenderRequest
+    public typealias Packet = MapleStory62.SetGenderRequest
     
     public init() { }
     
@@ -28,13 +28,13 @@ public struct SetGenderHandler: PacketHandler {
 internal extension SetGenderHandler {
     
     func setGender<Socket: MapleStorySocket, Database: ModelStorage>(
-        _ request: MapleStory83.SetGenderRequest,
+        _ request: MapleStory62.SetGenderRequest,
         connection: MapleStoryServer<Socket, Database>.Connection
-    ) async throws -> MapleStory83.LoginResponse {
+    ) async throws -> MapleStory62.LoginResponse {
         let user = try await connection.setGender(
             request.gender,
             didConfirm: request.confirmed
         )
-        return .success(LoginResponse.Success(user: user))
+        return .success(username: user.username.rawValue)
     }
 }
