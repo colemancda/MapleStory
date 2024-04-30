@@ -10,7 +10,7 @@ import Foundation
 /// Guest Login Request
 public struct GuestLoginRequest: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x02 }
+    public static var opcode: Opcode { .init(client: .guestLoginRequest) }
     
     internal let value: UInt16
     

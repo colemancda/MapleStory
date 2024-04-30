@@ -16,6 +16,6 @@ public extension Model {
             World.self,
             Channel.self,
             Character.self,
-            Configuration.self
+            Configuration.ElementEntity.self
     )
 }
