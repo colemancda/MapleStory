@@ -32,6 +32,8 @@ internal extension GuestLoginHandler {
         connection: MapleStoryServer<Socket, Database>.Connection
     ) async throws -> MapleStory83.LoginResponse {
         let user = try await connection.guestLogin()
-        return .success(.init(user: user))
+        let database = await connection.server.database
+        let configuration = try await database.fetch(Configuration.self)
+        return .success(.init(user: user, configuration: configuration))
     }
 }

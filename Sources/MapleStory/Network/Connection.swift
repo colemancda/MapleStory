@@ -146,7 +146,9 @@ public actor Connection <Socket: MapleStorySocket> {
             // parse encrypted header
             let encryptedHeader = UInt32(bytes: (recievedData[0], recievedData[1], recievedData[2], recievedData[3]))
             let length = Packet.Encrypted.length(encryptedHeader)
+            #if DEBUG
             log?("Recieved encrypted packet length \(length)")
+            #endif
             let encryptedPacketData = try await socket.recieve(length)
             #if DEBUG
             log?("Encrypted data: \(encryptedPacketData.hexString)")

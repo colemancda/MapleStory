@@ -95,7 +95,9 @@ public extension User {
         in context: Storage
     ) async throws -> User {
         // fetch and modify user ID
-        let index = try await Configuration.newUserIndex(in: context)
+        var index = try await context.fetch(configuration: .lastUserIndex)?.intValue ?? 0
+        index += 1
+        try await context.insert(.init(integer: index), for: .lastUserIndex)
         // create user
         let hash = try password.hash()
         let newUser = User(

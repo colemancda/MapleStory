@@ -14,14 +14,15 @@ public extension MapleStoryServer.Connection {
     /// Handle a user logging in.
     func login(
         username: String,
-        password: String,
-        autoregister: Bool = true
+        password: String
     ) async throws -> User {
         
         log("Login - \(username)")
         
         let database = server.database
         let ipAddress = self.address.address
+        let configuration = try await database.fetch(Configuration.self)
+        let autoregister = configuration.isAutoRegisterEnabled ?? true
         
         // fetch existing user
         let user: User

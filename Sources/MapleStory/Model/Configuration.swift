@@ -22,34 +22,6 @@ public struct Configuration: Equatable, Hashable, Sendable {
     }
 }
 
-public extension Configuration {
-    
-    func boolValue(for key: Key) -> Bool? {
-        guard let value = self[key] else {
-            return nil
-        }
-        switch value {
-        case "0":
-            return false
-        case "1":
-            return true
-        default:
-            return nil
-        }
-    }
-    
-    func intValue(for key: Key) -> UInt32? {
-        guard let value = self[key] else {
-            return nil
-        }
-        return UInt32(value)
-    }
-    
-    mutating func setIntValue(_ newValue: UInt32?, for key: Key) {
-        self[key] = newValue?.description
-    }
-}
-
 // MARK: - ExpressibleByDictionaryLiteral
 
 extension Configuration: ExpressibleByDictionaryLiteral {
@@ -135,6 +107,12 @@ public extension ModelStorage {
         return Configuration(elements)
     }
     
+    func fetch(
+        configuration key: Configuration.Key
+    ) async throws -> Configuration.Value? {
+        try await fetch(Configuration.ElementEntity.self, for: key)?.value
+    }
+    
     func insert(
         _ configuration: Configuration
     ) async throws {
@@ -178,24 +156,27 @@ public extension Configuration {
     
     var website: URL? {
         self[.website]
-            .flatMap { URL(string: $0) }
+            .flatMap { URL(string: $0.rawValue) }
     }
     
     var lastUserIndex: User.Index? {
-        self[.lastUserIndex]
-            .flatMap { User.Index($0) }
+        self[.lastUserIndex]?.intValue
     }
     
     var isPinEnabled: Bool? {
-        boolValue(for: .pinEnabled)
+        self[.pinEnabled]?.boolValue
     }
     
     var isPicEnabled: Bool? {
-        boolValue(for: .picEnabled)
+        self[.picEnabled]?.boolValue
     }
     
     var isAutoRegisterEnabled: Bool? {
-        boolValue(for: .autoRegister)
+        self[.autoRegister]?.boolValue
+    }
+    
+    var worldSelection: WorldSelectionMode? {
+        self[.worldSelection]?.intValue.flatMap { .init(rawValue: $0) }
     }
 }
 
@@ -228,12 +209,93 @@ extension Configuration.ElementEntity: Entity {
     }
 }
 
-// MARK: - Key
+// MARK: - Value
 
 public extension Configuration {
     
-    typealias Value = String
+    struct Value: RawRepresentable, Equatable, Hashable, Codable, Sendable {
+        
+        public let rawValue: String
+        
+        public init(rawValue: String) {
+            self.rawValue = rawValue
+        }
+    }
+}
+
+// MARK: ExpressibleByStringLiteral
+
+extension Configuration.Value: ExpressibleByStringLiteral {
     
+    public init(stringLiteral value: String) {
+        self.init(rawValue: value)
+    }
+}
+
+// MARK: ExpressibleByBooleanLiteral
+
+extension Configuration.Value: ExpressibleByBooleanLiteral {
+    
+    public init(booleanLiteral value: Bool) {
+        self.init(bool: value)
+    }
+}
+
+public extension Configuration.Value {
+    
+    init(bool value: Bool) {
+        self.init(rawValue: value ? "1" : "0")
+    }
+    
+    var boolValue: Bool? {
+        switch rawValue {
+        case "0":
+            return false
+        case "1":
+            return true
+        default:
+            return nil
+        }
+    }
+}
+
+// MARK: ExpressibleByIntegerLiteral
+
+extension Configuration.Value: ExpressibleByIntegerLiteral {
+    
+    public init(integerLiteral value: UInt32) {
+        self.init(integer: value)
+    }
+}
+
+public extension Configuration.Value {
+    
+    init(integer value: UInt32) {
+        self.init(rawValue: value.description)
+    }
+    
+    var intValue: UInt32? {
+        UInt32(rawValue)
+    }
+}
+
+// MARK: CustomStringConvertible
+
+extension Configuration.Value: CustomStringConvertible, CustomDebugStringConvertible {
+    
+    public var description: String {
+        rawValue
+    }
+    
+    public var debugDescription: String {
+        rawValue
+    }
+}
+
+// MARK: - Key
+
+public extension Configuration {
+        
     struct Key: RawRepresentable, Equatable, Hashable, Codable, Sendable {
         
         public let rawValue: String
@@ -299,17 +361,20 @@ public extension Configuration.Key {
         "autoregister"
     }
     
+    static var worldSelection: Configuration.Key {
+        "worldSelection"
+    }
 }
 
 public extension Configuration {
     
     static var `default`: Configuration {
         [
-            .lastUserIndex: 1,
             .website: "https://github.com/ColemanCDA/MapleStory",
             .pinEnabled: false,
             .picEnabled: false,
-            .autoRegister: true
+            .autoRegister: true,
+            .worldSelection: .init(integer: WorldSelectionMode.skipPrompt.rawValue)
         ]
     }
 }

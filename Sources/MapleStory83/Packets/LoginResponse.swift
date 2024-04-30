@@ -150,7 +150,7 @@ public extension LoginResponse.Success {
         user: User,
         worldSelection: WorldSelectionMode = .skipPrompt,
         skipPin: Bool = true,
-        picMode: PicMode = .disabled
+        skipPic: Bool = true
     ) {
         self.init(
             account: user.index,
@@ -164,18 +164,20 @@ public extension LoginResponse.Success {
             creationTimeStamp: 0,
             worldSelection: worldSelection,
             skipPin: skipPin,
-            picMode: picMode
+            picMode: skipPic ? .disabled : (user.picCode == nil ? .register : .enabled)
         )
     }
-}
-
-public extension LoginResponse.Success {
     
-    enum WorldSelectionMode: UInt32, Codable, CaseIterable, Sendable {
-        
-        case showPrompt = 0
-        
-        case skipPrompt = 1
+    init(
+        user: User,
+        configuration: Configuration
+    ) {
+        self.init(
+            user: user,
+            worldSelection: configuration.worldSelection ?? .skipPrompt,
+            skipPin: (configuration.isPinEnabled ?? false) == false,
+            skipPic: (configuration.isPicEnabled ?? false) == false
+        )
     }
 }
 

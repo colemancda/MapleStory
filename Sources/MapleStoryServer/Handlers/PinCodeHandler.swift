@@ -19,8 +19,14 @@ public extension MapleStoryServer.Connection {
         
         log("Check Pin - \(username)")
         
-        //let database = server.database
+        let database = server.database
         let ipAddress = self.address.address
+        let configuration = try await database.fetch(Configuration.self)
+        let isPinEnabled = configuration.isPinEnabled ?? false
+        
+        guard isPinEnabled else {
+            return .success
+        }
         
         guard let user = try await authenticatedUser() else {
             return .systemError

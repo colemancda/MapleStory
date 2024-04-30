@@ -230,7 +230,7 @@ public extension MapleStoryServer {
         
         internal let connection: MapleStory.Connection<Socket>
         
-        internal unowned var server: MapleStoryServer
+        public unowned var server: MapleStoryServer
         
         internal let log: (String) -> ()
         

@@ -34,8 +34,7 @@ internal extension LoginHandler {
         do {
             let user = try await connection.login(
                 username: request.username,
-                password: request.password,
-                autoregister: true // TODO: Add server configuration
+                password: request.password
             )
             return .success(username: request.username)
         }

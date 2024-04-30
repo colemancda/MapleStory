@@ -35,13 +35,13 @@ internal extension LoginHandler {
             // update database
             let user = try await connection.login(
                 username: request.username,
-                password: request.password,
-                autoregister: true // TODO: Add server configuration
+                password: request.password
             )
-            return .success(.init(user: user))
+            let database = await connection.server.database
+            let configuration = try await database.fetch(Configuration.self)
+            return .success(.init(user: user, configuration: configuration))
         }
         catch let loginError as LoginError {
-            // TODO: handle failures
             return .failure(loginError)
         }
     }
