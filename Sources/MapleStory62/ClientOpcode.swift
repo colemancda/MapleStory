@@ -22,13 +22,13 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     case guestLogin = 0x02
     
     /// Server list re-request packet header.
-    case serverlistRerequest = 0x04
+    case serverListRerequest = 0x04
     
     /// Character list request packet header.
-    case charlistRequest = 0x05
+    case characterListRequest = 0x05
     
     /// Server status request packet header.
-    case serverstatusRequest = 0x06
+    case serverStatusRequest = 0x06
     
     /// Set gender packet header.
     case setGender = 0x08
@@ -40,7 +40,7 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     case registerPin = 0x0A
     
     /// Server list request packet header.
-    case serverlistRequest = 0x0B
+    case serverListRequest = 0x0B
     
     /// View all characters packet header.
     case viewAllChar = 0x0D
@@ -49,7 +49,7 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     case pickAllChar = 0x0E
     
     /// Character select packet header.
-    case charSelect = 0x13
+    case characterSelect = 0x13
     
     /// Check character name packet header.
     //case checkCharName = 0x13_02
