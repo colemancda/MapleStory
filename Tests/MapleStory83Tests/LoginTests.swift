@@ -117,6 +117,22 @@ final class LoginTests: XCTestCase {
         XCTAssertDecode(value, packet)
     }
     
+    func testSetGender() throws {
+        
+        let packetData = Data([0x08, 0x00, 0x01, 0x00])
+        
+        guard let packet = Packet(data: packetData) else {
+            XCTFail()
+            return
+        }
+        
+        let value = SetGenderRequest(gender: .male)
+        XCTAssertEqual(packet, Packet(packetData))
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
     func testPong() throws {
         
         let encryptedData = Data([0x46, 0xD3])
