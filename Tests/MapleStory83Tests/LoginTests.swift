@@ -86,7 +86,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.parametersSize, 8)
     }
 
-    func testLoginGenderPrompt() throws {
+    func testSuccessLoginResponse() throws {
         
         let packetData = Data([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02])
         
@@ -95,30 +95,10 @@ final class LoginTests: XCTestCase {
             return
         }
         
-        let decoder = MapleStoryDecoder()
-        let value = try decoder.decode(MapleStory83.LoginResponse.self, from: packet)
-        print(value)
-        
-        XCTAssertEqual(packet.opcode, type(of: value).opcode)
-    }
-    
-    func testSuccessLoginResponse() throws {
-        
-        let encryptedData = Data([0x97, 0xA3, 0xBB, 0xA3, 0x57, 0xDB, 0x8D, 0xC2, 0x52, 0x8A, 0x72, 0x1F, 0xBC, 0x22, 0xD5, 0xE4, 0x4D, 0x40, 0xD9, 0x3B, 0xC7, 0x31, 0xC2, 0xA5, 0x8D, 0xB4, 0x1E, 0xE7, 0x68, 0xCF, 0x6E, 0xAC, 0xB8, 0x80, 0x7A, 0xEA, 0xD8, 0xA9, 0x20, 0x93, 0xF2, 0x63, 0xC0, 0x72, 0x07, 0x1F, 0xA4, 0xE5])
-        
-        let packetData = Data([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x02])
-        
-        let nonce: Nonce = 0x6E473B5C
-        
-        guard let packet = Packet(data: packetData) else {
-            XCTFail()
-            return
-        }
-        
         let value = MapleStory83.LoginResponse.success(
             MapleStory83.LoginResponse.Success(
-                account: 3,
-                gender: .male,
+                account: 2,
+                gender: .none,
                 isAdmin: false,
                 adminType: 0,
                 countryCode: 0,
@@ -126,22 +106,35 @@ final class LoginTests: XCTestCase {
                 isQuietBan: false,
                 quietBanTimeStamp: 0,
                 creationTimeStamp: 0,
-                skipWorldSelectionPrompt: true,
+                worldSelection: .skipPrompt,
                 skipPin: true,
                 picMode: .disabled
             )
         )
+        
         XCTAssertEqual(packet.opcode, type(of: value).opcode)
         XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testPong() throws {
         
-        let encrypted = try packet.encrypt(
+        let encryptedData = Data([0x46, 0xD3])
+        
+        let packetData = Data([0x18, 0x00])
+        
+        let nonce: Nonce = 0x0A627F70
+        
+        let packet = try Packet.decrypt(
+            encryptedData,
             key: .default,
             nonce: nonce,
             version: .v83
         )
         
-        XCTAssertEqual(encrypted.data, encryptedData)
-        XCTAssertEqual(encrypted.length, packet.data.count)
-        XCTAssertEqual(encrypted.parametersSize, 44)
+        let value = PongPacket()
+        XCTAssertEqual(packet, Packet(packetData))
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        XCTAssertDecode(value, packet)
     }
 }
