@@ -16,8 +16,9 @@ public struct LoginRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
     public var password: String
     
-    public init(username: String, password: String) {
-        self.username = username
-        self.password = password
-    }
+    internal let value0: UInt16
+    
+    internal let value1: UInt32
+    
+    public var hardwareID: UInt32
 }

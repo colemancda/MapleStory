@@ -49,7 +49,10 @@ final class LoginTests: XCTestCase {
                 
         let value = LoginRequest(
             username: "admin",
-            password: "admin"
+            password: "admin",
+            value0: 0,
+            value1: 0,
+            hardwareID: 0x025B6E83
         )
         
         XCTAssertEqual(packet.opcode, LoginRequest.opcode)
