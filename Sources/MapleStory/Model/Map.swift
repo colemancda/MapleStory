@@ -6,18 +6,33 @@
 //
 
 /// MapleStory Map Identifier
-public struct Map: RawRepresentable, Equatable, Hashable, Codable, Sendable {
+public struct Map: Equatable, Hashable, Codable, Identifiable, Sendable {
     
-    public let rawValue: UInt32
+    public let id: ID
     
-    public init(rawValue: UInt32) {
-        self.rawValue = rawValue
+    public let name: String
+    
+    public let streetName: String
+}
+
+// MARK: - Supporting Types
+
+public extension Map {
+    
+    /// MapleStory Map Identifier
+    struct ID: RawRepresentable, Equatable, Hashable, Codable, Sendable {
+        
+        public let rawValue: UInt32
+        
+        public init(rawValue: UInt32) {
+            self.rawValue = rawValue
+        }
     }
 }
 
 // MARK: - ExpressibleByIntegerLiteral
 
-extension Map: ExpressibleByIntegerLiteral {
+extension Map.ID: ExpressibleByIntegerLiteral {
     
     public init(integerLiteral value: UInt32) {
         self.init(rawValue: value)
@@ -26,7 +41,7 @@ extension Map: ExpressibleByIntegerLiteral {
 
 // MARK: - CustomStringConvertible
 
-extension Map: CustomStringConvertible, CustomDebugStringConvertible {
+extension Map.ID: CustomStringConvertible, CustomDebugStringConvertible {
     
     public var description: String {
         rawValue.description
@@ -39,7 +54,7 @@ extension Map: CustomStringConvertible, CustomDebugStringConvertible {
 
 // MARK: - Constants
 
-public extension Map {
+public extension Map.ID {
     
     
 }
