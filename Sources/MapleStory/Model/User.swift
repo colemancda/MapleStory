@@ -26,7 +26,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var created: Date
     
-    public let gender: Gender
+    public var gender: Gender?
     
     public var ipAddress: String?
     
@@ -54,7 +54,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         username: Username,
         password: Data = Data(),
         created: Date = Date(),
-        gender: Gender = .male,
+        gender: Gender? = nil,
         ipAddress: String? = nil,
         pinCode: String? = nil,
         picCode: String? = nil,
