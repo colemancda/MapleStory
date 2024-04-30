@@ -9,7 +9,7 @@ import Foundation
 
 public struct PinOperationRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x09 }
+    public static var opcode: Opcode { .init(client: .afterLogin) }
     
     public let value0: UInt8
     

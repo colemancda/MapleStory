@@ -10,16 +10,11 @@ import Foundation
 /// Enum representing packet headers for network communication.
 public enum ClientOpcode: UInt16, Codable, CaseIterable {
     
-    /// PONG packet header.
-    ///
-    /// Used for ping-pong communication to check server/client connection.
-    case pong = 0x18
-    
     /// Login password packet header.
     case loginRequest = 0x01
     
     /// Guest login packet header.
-    case guestLogin = 0x02
+    case guestLoginRequest = 0x02
     
     /// Server list re-request packet header.
     case serverListRerequest = 0x04
@@ -30,6 +25,9 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     /// Server status request packet header.
     case serverStatusRequest = 0x06
     
+    /// Accept Terms of Service opcode. (0x07)
+    case acceptLicense = 0x07
+    
     /// Set gender packet header.
     case setGender = 0x08
     
@@ -37,37 +35,43 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable {
     case afterLogin = 0x09
     
     /// Register PIN packet header.
-    case registerPin = 0x0A
+    case registerPIN = 0x0A
     
     /// Server list request packet header.
     case serverListRequest = 0x0B
     
+    /// Player DC opcode. (0x0C)
+    case playerDC = 0x0C
+    
     /// View all characters packet header.
-    case viewAllChar = 0x0D
+    case viewAllCharacters = 0x0D
     
     /// Pick all characters packet header.
-    case pickAllChar = 0x0E
+    case pickAllCCharacters = 0x0E
     
     /// Character select packet header.
     case characterSelect = 0x13
     
-    /// Check character name packet header.
-    //case checkCharName = 0x13_02
-    
-    /// Create character packet header.
-    //case createChar = 0x13_03
-    
-    /// Delete character packet header.
-    //case deleteChar = 0x13_04
-    
-    /// Client start packet header.
-    case clientStart = 0x19
-    
     /// Player logged in packet header.
     case playerLoggedin = 0x14
     
+    /// Check char name opcode. (0x15)
+    case checkCharacterName = 0x15
+    
+    /// Create char opcode. (0x16)
+    case createCharacter = 0x16
+    
+    /// Delete char opcode. (0x17)
+    case deleteCharacter = 0x17
+    
+    /// Pong opcode. (0x18)
+    case pong = 0x18
+    
+    /// Pong opcode. (0x18)
+    case clientStart = 0x19
+    
     /// Strange data packet header.
-    case strangeData = 0x1A
+    case clientError = 0x1A
     
     /// Change map packet header.
     case changeMap = 0x23

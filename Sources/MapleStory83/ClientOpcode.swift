@@ -14,16 +14,16 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     case loginRequest = 0x01
     
     /// Guest login opcode. (0x02)
-    case guestLogin = 0x02
+    case guestLoginRequest = 0x02
     
     /// Serverlist rerequest opcode. (0x04)
-    case serverlistRerequest = 0x04
+    case serverListRerequest = 0x04
     
     /// Charlist request opcode. (0x05)
-    case charlistRequest = 0x05
+    case characterListRequest = 0x05
     
     /// Serverstatus request opcode. (0x06)
-    case serverstatusRequest = 0x06
+    case serverStatusRequest = 0x06
     
     /// Accept Terms of Service opcode. (0x07)
     case acceptLicense = 0x07
@@ -38,16 +38,16 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     case registerPIN = 0x0A
     
     /// Serverlist request opcode. (0x0B)
-    case serverlistRequest = 0x0B
+    case serverListRequest = 0x0B
     
     /// Player DC opcode. (0x0C)
     case playerDC = 0x0C
     
     /// View all char opcode. (0x0D)
-    case viewAllChar = 0x0D
+    case viewAllCharacters = 0x0D
     
     /// Pick all char opcode. (0x0E)
-    case pickAllChar = 0x0E
+    case pickAllCharacters = 0x0E
     
     /// Name transfer opcode. (0x10)
     case nameTransfer = 0x10
@@ -62,19 +62,19 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     case playerLoggedin = 0x14
     
     /// Check char name opcode. (0x15)
-    case checkCharName = 0x15
+    case checkCharacterName = 0x15
     
     /// Create char opcode. (0x16)
-    case createChar = 0x16
+    case createCharacter = 0x16
     
     /// Delete char opcode. (0x17)
-    case deleteChar = 0x17
+    case deleteCharacter = 0x17
     
     /// Pong opcode. (0x18)
     case pong = 0x18
     
     /// Client start error opcode. (0x19)
-    case clientStartError = 0x19
+    case clientStart = 0x19
     
     /// Client error opcode. (0x1A)
     case clientError = 0x1A
