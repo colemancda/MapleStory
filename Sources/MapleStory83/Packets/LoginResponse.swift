@@ -198,12 +198,14 @@ public extension LoginResponse.Success {
 
 public extension LoginResponse.Success.Gender {
     
-    init(_ gender: MapleStory.Gender) {
+    init(_ gender: MapleStory.Gender?) {
         switch gender {
         case .male:
             self = .male
         case .female:
             self = .female
+        case .none:
+            self = .none
         }
     }
 }
