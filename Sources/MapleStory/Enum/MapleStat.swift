@@ -6,7 +6,7 @@
 //
 
 /// The `MapleStat` enum represents various stats that a character in the game can have.
-public struct MapleStat: OptionSet {
+public struct MapleStat: OptionSet, Codable, Sendable {
     
     public let rawValue: Int
     
