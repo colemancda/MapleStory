@@ -11,7 +11,7 @@ public struct CharacterListRequest: MapleStoryPacket, Decodable, Equatable, Hash
     
     public static var opcode: Opcode { .init(client: .characterListRequest) }
     
-    internal let value0: UInt8
+    internal var value0: UInt8
     
     public let world: World.Index
     

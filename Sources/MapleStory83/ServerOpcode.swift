@@ -44,7 +44,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case serverList = 0x0A
     
     /// Character list opcode. (0x0B)
-    case charList = 0x0B
+    case characterList = 0x0B
     
     /// Server IP opcode. (0x0C)
     case serverIp = 0x0C
