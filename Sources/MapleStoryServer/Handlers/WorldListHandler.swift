@@ -14,13 +14,13 @@ public extension MapleStoryServer.Connection {
     /// Handle a user logging in.
     func listWorlds() async throws -> [(world: World, channels: [Channel])] {
         log("World List")
-        let database = server.database
         // fetch worlds
         let worlds = try await World.fetch(
             version: version,
             region: region,
             in: database
         )
+        .filter { $0.isEnabled }
         // fetch channels
         var results = [(world: World, channels: [Channel])]()
         results.reserveCapacity(worlds.count)

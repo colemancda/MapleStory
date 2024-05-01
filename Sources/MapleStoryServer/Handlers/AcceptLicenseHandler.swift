@@ -13,7 +13,7 @@ public extension MapleStoryServer.Connection {
     /// Accept license.
     func acceptLicense() async throws -> User {
         log("Accept License")
-        guard var user = try await self.authenticatedUser() else {
+        guard var user = try await self.user else {
             throw MapleStoryError.notAuthenticated
         }
         guard user.termsAccepted == false else {

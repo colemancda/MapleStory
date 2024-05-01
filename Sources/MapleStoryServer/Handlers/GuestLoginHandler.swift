@@ -14,7 +14,6 @@ public extension MapleStoryServer.Connection {
     /// Handle guest login.
     func guestLogin() async throws -> User {
         log("Guest Login")
-        let database = server.database
         let ipAddress = self.address.address
         // find guest user with ip address
         let user: User
@@ -38,10 +37,15 @@ public extension MapleStoryServer.Connection {
                 in: database
             )
         }
+        
+        // stay logged in as user
+        await authenticate(user: user)
+        
         // check if terms of service was accepted
         guard user.termsAccepted else {
             throw LoginError.licenseAgreement
         }
+        
         return user
     }
 }

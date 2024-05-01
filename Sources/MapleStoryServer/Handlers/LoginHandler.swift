@@ -19,10 +19,19 @@ public extension MapleStoryServer.Connection {
         
         log("Login - \(username)")
         
-        let database = server.database
         let ipAddress = self.address.address
         let configuration = try await database.fetch(Configuration.self)
         let autoregister = configuration.isAutoRegisterEnabled ?? true
+        
+        // validate username
+        guard let username = Username(rawValue: username) else {
+            throw LoginError.invalidUsername
+        }
+        
+        // validate password
+        guard let password = Password(rawValue: password) else {
+            throw LoginError.invalidPassword
+        }
         
         // fetch existing user
         let user: User
@@ -40,14 +49,6 @@ public extension MapleStoryServer.Connection {
             try await database.insert(existingUser)
             user = existingUser
         } else if autoregister {
-            // validate username
-            guard let username = Username(rawValue: username) else {
-                throw LoginError.invalidUsername
-            }
-            // validate password
-            guard let password = Password(rawValue: password) else {
-                throw LoginError.invalidPassword
-            }
             // auto register
             let newUser = try await User.create(
                 username: username,
@@ -61,13 +62,13 @@ public extension MapleStoryServer.Connection {
             throw LoginError.notRegistered
         }
         
-        assert(user.username.rawValue.lowercased() == username.lowercased())
-                
+        assert(user.username.rawValue.lowercased() == username.rawValue.lowercased())
+        
         // check for ban
         
         
         // upgrade connection
-        await connection.authenticate(username: user.username)
+        await authenticate(user: user)
         
         // check if terms of service was accepted
         guard user.termsAccepted else {
@@ -75,15 +76,5 @@ public extension MapleStoryServer.Connection {
         }
         
         return user
-    }
-}
-
-public extension MapleStoryServer.Connection {
-    
-    func authenticatedUser() async throws -> User? {
-        guard let username = await self.connection.username else {
-            return nil
-        }
-        return try await User.fetch(username: username.rawValue, in: server.database)
     }
 }

@@ -18,10 +18,8 @@ public extension MapleStoryServer.Connection {
     ) async throws -> User {
         
         log("Set Gender - \(gender)")
-        
-        let database = server.database
-        
-        guard var user = try await authenticatedUser() else {
+                
+        guard var user = try await self.user else {
             throw MapleStoryError.notAuthenticated
         }
         

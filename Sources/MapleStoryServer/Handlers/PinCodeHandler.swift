@@ -11,24 +11,21 @@ import MapleStory
 
 public extension MapleStoryServer.Connection {
     
-    /// Handle a user logging in.
+    /// Handle a pin code check.
     func pinCodeStatus(
-        _ input: String,
-        for username: String
+        _ input: String?
     ) async throws -> PinCodeStatus {
         
-        log("Check Pin - \(username)")
+        log("Check Pin")
         
-        let database = server.database
         let ipAddress = self.address.address
-        let configuration = try await database.fetch(Configuration.self)
-        let isPinEnabled = configuration.isPinEnabled ?? false
+        let isPinEnabled = try await database.fetch(configuration: .pinEnabled)?.boolValue ?? false
         
         guard isPinEnabled else {
             return .success
         }
         
-        guard let user = try await authenticatedUser() else {
+        guard let user = try await self.user else {
             return .systemError
         }
         
@@ -37,6 +34,10 @@ public extension MapleStoryServer.Connection {
         }
         
         guard user.ipAddress == ipAddress else {
+            return .enterPin
+        }
+        
+        guard let input else {
             return .enterPin
         }
         
