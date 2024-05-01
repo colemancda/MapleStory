@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct NPCTalkDialogButtons: OptionSet, Equatable, Hashable, Codable {
+public struct NPCTalkDialogButtons: OptionSet, Equatable, Hashable, Codable, Sendable {
     
     public var rawValue: UInt16
     
