@@ -10,22 +10,52 @@ import Foundation
 /// Server List Response
 ///
 /// A packet detailing a server and its channels.
-public enum ServerListResponse: MapleStoryPacket, Equatable, Hashable {
+public enum ServerListResponse: MapleStoryPacket, Equatable, Hashable, Sendable {
     
     public static var opcode: Opcode { .init(server: .serverList) }
     
-    case world(World)
+    case world(MapleStory.World.Index, World)
     case end
 }
 
-extension ServerListResponse: Encodable {
+extension ServerListResponse: Identifiable {
+    
+    public var id: MapleStory.World.Index {
+        switch self {
+        case .world(let index, _):
+            return index
+        case .end:
+            return 0xFF
+        }
+    }
+}
+
+extension ServerListResponse: Codable {
+    
+    enum CodingKeys: String, CodingKey {
+        case id
+        case world
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let id = try container.decode(UInt8.self, forKey: .id)
+        if id == 0xFF {
+            self = .end
+        } else {
+            let world = try container.decode(World.self, forKey: .world)
+            self = .world(id, world)
+        }
+    }
     
     public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
         switch self {
-        case .world(let world):
+        case let .world(_, world):
             try world.encode(to: encoder)
         case .end:
-            try EndList().encode(to: encoder)
+            break
         }
     }
 }
@@ -34,10 +64,8 @@ extension ServerListResponse: Encodable {
 
 public extension ServerListResponse {
     
-    struct World: Encodable, Equatable, Hashable, Identifiable {
-        
-        public let id: UInt8
-        
+    struct World: Codable, Equatable, Hashable, Sendable {
+                
         public var name: String
         
         public var flags: UInt8
@@ -59,7 +87,6 @@ public extension ServerListResponse {
         public var value1: UInt16
         
         internal init(
-            id: UInt8,
             name: String,
             flags: UInt8,
             eventMessage: String,
@@ -71,7 +98,6 @@ public extension ServerListResponse {
             channels: [ServerListResponse.Channel],
             value1: UInt16
         ) {
-            self.id = id
             self.name = name
             self.flags = flags
             self.eventMessage = eventMessage
@@ -89,7 +115,7 @@ public extension ServerListResponse {
 public extension ServerListResponse {
     
     /// Channel
-    struct Channel: Encodable, Equatable, Hashable {
+    struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         
         public let name: String
         
@@ -101,25 +127,19 @@ public extension ServerListResponse {
     }
 }
 
-internal extension ServerListResponse {
+public extension ServerListResponse {
     
-    struct EndList: Encodable, Equatable, Hashable {
-        
-        let id: UInt8
-        
-        public init() {
-            self.id = 0xFF
-        }
+    static func world(_ world: MapleStory.World, channels: [MapleStory.Channel]) -> ServerListResponse {
+        .world(world.index, .init(world: world, channels: channels))
     }
 }
 
 public extension ServerListResponse.World {
-    
+        
     init(
         world: MapleStory.World,
-        channels: [Channel]
+        channels: [MapleStory.Channel]
     ) {
-        self.id = world.index
         self.name = world.name
         self.flags = world.flags
         self.eventMessage = world.eventMessage

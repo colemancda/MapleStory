@@ -47,6 +47,6 @@ internal extension WorldListHandler {
         connection: MapleStoryServer<Socket, Database>.Connection
     ) async throws -> [MapleStory83.ServerListResponse] {
         try await connection.listWorlds()
-            .map { .world(.init(world: $0.world, channels: $0.channels)) } + [.end]
+            .map { .world($0.world, channels: $0.channels) } + [.end]
     }
 }
