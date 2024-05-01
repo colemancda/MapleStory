@@ -66,7 +66,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
         defer { cleanupMongoSwift() }
         
         // start server
-        let ipAddress = self.address ?? IPv4Address.loopback.rawValue
+        let ipAddress = self.address ?? IPv4Address.any.rawValue
         guard let address = MapleStoryAddress(address: ipAddress, port: port) else {
             throw MapleStoryError.invalidAddress(ipAddress)
         }
