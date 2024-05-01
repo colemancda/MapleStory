@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum NPCTalkType: UInt8, Codable {
+public enum NPCTalkType: UInt8, Codable, CaseIterable, Sendable {
     
     /// Prev / Next Dialog
     case dialog                         = 0
