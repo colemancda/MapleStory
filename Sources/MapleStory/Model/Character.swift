@@ -33,10 +33,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var face: UInt32
     
-    public var hair: UInt32
-    
-    public var hairColor: UInt32
-    
+    public var hair: Hair
+        
     public var level: UInt16
     
     public var job: Job
@@ -98,10 +96,9 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         created: Date = Date(),
         name: CharacterName,
         gender: Gender = .male,
-        skinColor: SkinColor = .pale,
+        skinColor: SkinColor = .normal,
         face: UInt32,
-        hair: UInt32,
-        hairColor: UInt32,
+        hair: Hair = .buzz(.black),
         level: UInt16 = 1,
         job: Job = .beginner,
         str: UInt16 = 4,
@@ -140,7 +137,6 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.skinColor = skinColor
         self.face = face
         self.hair = hair
-        self.hairColor = hairColor
         self.level = level
         self.job = job
         self.str = str
@@ -181,7 +177,6 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case skinColor
         case face
         case hair
-        case hairColor
         case level
         case job
         case str
@@ -224,7 +219,6 @@ extension Character: Entity {
             .skinColor: .int16,
             .face: .int64,
             .hair: .int64,
-            .hairColor: .int64,
             .level: .int32,
             .job: .int32,
             .str: .int32,
@@ -291,9 +285,7 @@ public extension Character {
         
         public let face: UInt32
         
-        public let hair: UInt32
-        
-        public let hairColor: UInt32
+        public let hair: Hair
         
         public let skinColor: SkinColor
         
@@ -320,8 +312,7 @@ public extension Character {
         public init(
             name: CharacterName,
             face: UInt32,
-            hair: UInt32,
-            hairColor: UInt32,
+            hair: Hair,
             skinColor: SkinColor = .pale,
             top: UInt32,
             bottom: UInt32,
@@ -337,7 +328,6 @@ public extension Character {
             self.name = name
             self.face = face
             self.hair = hair
-            self.hairColor = hairColor
             self.skinColor = skinColor
             self.top = top
             self.bottom = bottom
@@ -385,7 +375,6 @@ public extension Character {
             skinColor: value.skinColor,
             face: value.face,
             hair: value.hair,
-            hairColor: value.hairColor,
             job: value.job,
             str: value.str,
             dex: value.dex,

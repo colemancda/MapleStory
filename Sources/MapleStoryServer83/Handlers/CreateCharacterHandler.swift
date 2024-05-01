@@ -38,18 +38,17 @@ internal extension CreateCharacterHandler {
         let values = Character.CreationValues(
             name: name,
             face: request.face,
-            hair: request.hair,
-            hairColor: request.hairColor,
+            hair: .init(rawValue: request.hair + request.hairColor),
             skinColor: skinColor,
             top: request.top,
             bottom: request.bottom,
             shoes: request.shoes,
             weapon: request.weapon,
             gender: request.gender,
-            str: .random(in: 4 ..< 7),
-            dex: .random(in: 4 ..< 7),
-            int: .random(in: 4 ..< 7),
-            luk: .random(in: 4 ..< 7),
+            str: .random(in: 4 ..< 9),
+            dex: .random(in: 4 ..< 9),
+            int: .random(in: 4 ..< 9),
+            luk: .random(in: 4 ..< 9),
             job: .init(initial: request.job)
         )
         let character = try await connection.createCharacter(values)

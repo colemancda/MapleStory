@@ -61,7 +61,7 @@ public extension CharacterListResponse {
         
         public let face: UInt32
         
-        public let hair: UInt32
+        public let hair: Hair
         
         public let value0: UInt64
         
@@ -119,7 +119,7 @@ public extension CharacterListResponse {
         
         public let mega: Bool
         
-        public let hair: UInt32
+        public let hair: Hair
         
         public let equipment: Equipment
         
