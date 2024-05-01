@@ -304,7 +304,6 @@ final class LoginTests: XCTestCase {
         }
         
         let value = CharacterListResponse(
-            value0: 0x00,
             characters: [
                 MapleStory62.CharacterListResponse.Character(
                     stats: MapleStory62.CharacterListResponse.CharacterStats(
@@ -720,7 +719,7 @@ final class LoginTests: XCTestCase {
                     gender: .male,
                     skinColor: .normal,
                     face: 20000,
-                    hair: 30030,
+                    hair: .buzz(.black),
                     value0: 0,
                     value1: 0,
                     value2: 0,
