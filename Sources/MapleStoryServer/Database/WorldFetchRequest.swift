@@ -84,21 +84,24 @@ public extension World {
         worlds names: [World.Name] = World.Name.allCases,
         region: Region = .global,
         version: Version,
+        address: String,
         in context: Storage
     ) async throws -> [World] {
         let worlds = names
             .filter { $0.isCompatible(for: version) }
             .enumerated()
             .map { (index, name) in
-            var address = MapleStoryAddress.channelServerDefault
-            address.port += UInt16(index)
+            let worldAddress = MapleStoryAddress(
+                address: address,
+                port: 7575 + UInt16(index)
+            ) ?? .channelServerDefault
             return World(
                 id: UUID(),
                 index: name.index,
                 name: name.rawValue,
                 region: region,
                 version: version,
-                address: address
+                address: worldAddress
             )
         }
         // insert new worlds

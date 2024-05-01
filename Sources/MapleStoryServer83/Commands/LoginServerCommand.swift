@@ -46,7 +46,7 @@ struct LoginServerCommand: AsyncParsableCommand {
         defer { cleanupMongoSwift() }
         
         // start server
-        let ipAddress = self.address ?? IPv4Address.any.rawValue
+        let ipAddress = self.address ?? IPv4Address.loopback.rawValue
         guard let address = MapleStoryAddress(address: ipAddress, port: port) else {
             throw MapleStoryError.invalidAddress(ipAddress)
         }
@@ -85,7 +85,8 @@ struct LoginServerCommand: AsyncParsableCommand {
         
         try await store.initializeMapleStory(
             version: configuration.version,
-            region: configuration.region
+            region: configuration.region,
+            address: ipAddress
         )
         
         let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage>(
@@ -118,5 +119,6 @@ public extension MapleStoryServer {
         await register(CharacterListHandler())
         await register(CheckCharacterNameHandler())
         await register(CreateCharacterHandler())
+        
     }
 }

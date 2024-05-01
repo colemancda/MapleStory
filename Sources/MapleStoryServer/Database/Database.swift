@@ -14,7 +14,8 @@ public extension ModelStorage {
     
     func initializeMapleStory(
         version: MapleStory.Version,
-        region: MapleStory.Region
+        region: MapleStory.Region,
+        address: String = "127.0.0.1"
     ) async throws {
         // create worlds
         var worlds = try await World.fetch(
@@ -27,6 +28,7 @@ public extension ModelStorage {
             worlds = try await World.insert(
                 region: region,
                 version: version,
+                address: address,
                 in: self
             )
         }

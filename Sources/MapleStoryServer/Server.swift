@@ -254,6 +254,8 @@ public extension MapleStoryServer {
                 await server.storage.removeConnection(address)
                 await server.didDisconnect(address: address)
             }
+            // set world
+            self.state.world = server.configuration.world
             // register packet handlers
             await registerPacketHandlers()
         }
