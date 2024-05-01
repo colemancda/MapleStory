@@ -84,7 +84,7 @@ public extension World {
         worlds names: [World.Name] = World.Name.allCases,
         region: Region = .global,
         version: Version,
-        address: String,
+        address: String = "127.0.0.1",
         in context: Storage
     ) async throws -> [World] {
         let worlds = names

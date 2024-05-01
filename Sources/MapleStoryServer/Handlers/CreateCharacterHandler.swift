@@ -30,12 +30,9 @@ public extension MapleStoryServer.Connection {
         )
         user.characters.append(newCharacter.id)
         world.characters.append(newCharacter.id)
-        let modelData = try [
-            newCharacter.encode(),
-            user.encode(),
-            world.encode()
-        ]
-        try await database.insert(modelData)
+        try await database.insert(newCharacter)
+        try await database.insert(user)
+        try await database.insert(world)
         return newCharacter
     }
 }

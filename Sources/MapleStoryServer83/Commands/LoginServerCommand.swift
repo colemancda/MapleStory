@@ -116,6 +116,7 @@ public extension MapleStoryServer {
         await register(SetGenderHandler())
         await register(WorldListHandler())
         await register(ServerStatusHandler())
+        await register(AllCharactersListHandler())
         await register(CharacterListHandler())
         await register(CheckCharacterNameHandler())
         await register(CreateCharacterHandler())
