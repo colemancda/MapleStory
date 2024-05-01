@@ -47,16 +47,16 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case characterList = 0x0B
     
     /// Server IP opcode. (0x0C)
-    case serverIp = 0x0C
+    case serverIP = 0x0C
     
     /// Character name response opcode. (0x0D)
-    case charNameResponse = 0x0D
+    case characterNameResponse = 0x0D
     
     /// Add new character entry opcode. (0x0E)
-    case addNewCharEntry = 0x0E
+    case createCharacterResponse = 0x0E
     
     /// Delete character response opcode. (0x0F)
-    case deleteCharResponse = 0x0F
+    case deleteCharacterResponse = 0x0F
     
     /// Change channel opcode. (0x10)
     case changeChannel = 0x10

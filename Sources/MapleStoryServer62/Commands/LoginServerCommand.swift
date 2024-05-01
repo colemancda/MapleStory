@@ -120,6 +120,6 @@ public extension MapleStoryServer {
         await register(CharacterListHandler())
         await register(CheckCharacterNameHandler())
         await register(CreateCharacterHandler())
-        
+        await register(DeleteCharacterHandler())
     }
 }

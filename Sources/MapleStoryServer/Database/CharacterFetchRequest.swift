@@ -85,4 +85,26 @@ public extension Character {
             predicate: predicate
         )
     }
+    
+    static func fetch<Storage: ModelStorage>(
+        _ index: Character.Index,
+        user: User.ID,
+        world: World.ID,
+        in database: Storage
+    ) async throws -> Character? {
+        let predicates = [
+            FetchRequest.Predicate(predicate: Character.Predicate.index(index)),
+            FetchRequest.Predicate(predicate: Character.Predicate.user(user)),
+            FetchRequest.Predicate(predicate: Character.Predicate.world(world))
+        ]
+        let predicate = FetchRequest.Predicate.compound(.and(predicates))
+        return try await database.fetch(
+            Character.self,
+            sortDescriptors: [
+                .init(property: .init(Character.CodingKeys.index), ascending: true)
+            ],
+            predicate: predicate,
+            fetchLimit: 1
+        ).first
+    }
 }

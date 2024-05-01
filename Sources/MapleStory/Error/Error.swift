@@ -27,4 +27,6 @@ public enum MapleStoryError: Error {
     case invalidRequest
     
     case login(LoginError)
+    
+    case invalidPicCode
 }

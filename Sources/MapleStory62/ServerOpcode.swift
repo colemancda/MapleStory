@@ -52,7 +52,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable {
     case createCharacterResponse = 0x0E
     
     /// Delete character response packet header.
-    case deleteCharResponse = 0x0F
+    case deleteCharacter = 0x0F
     
     /// Channel selected packet header.
     case channelSelected = 0x14
