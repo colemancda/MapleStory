@@ -106,7 +106,7 @@ public extension World {
             // create world
             try await context.insert(world)
             // insert channels
-            for channelIndex in 0 ..< 19 {
+            for channelIndex in 0 ..< 20 {
                 let channel = Channel(
                     index: numericCast(channelIndex),
                     world: world.id,
