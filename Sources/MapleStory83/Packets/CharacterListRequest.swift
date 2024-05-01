@@ -9,14 +9,17 @@ import Foundation
 
 public struct CharacterListRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x05 }
+    public static var opcode: Opcode { .init(client: .characterListRequest) }
     
-    public let world: UInt8
+    internal let value0: UInt8
     
-    public let channel: UInt8
+    public let world: World.Index
     
-    public init(world: UInt8, channel: UInt8) {
+    public let channel: Channel.Index
+    
+    public init(world: World.Index, channel: Channel.Index) {
         self.world = world
         self.channel = channel
+        self.value0 = 0x00
     }
 }
