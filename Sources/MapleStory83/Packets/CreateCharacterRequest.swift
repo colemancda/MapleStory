@@ -8,11 +8,13 @@
 import Foundation
 import MapleStory
 
-public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x16 }
+    public static var opcode: Opcode { .init(client: .createCharacter) }
     
     public let name: String
+    
+    public let job: Job
     
     public let face: UInt32
     
@@ -31,47 +33,35 @@ public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hash
     public let weapon: UInt32
     
     public let gender: Gender
-    
-    public let str: UInt8
-    
-    public let dex: UInt8
-    
-    public let int: UInt8
-    
-    public let luk: UInt8
 }
 
-public extension Character {
+// MARK: - Supporting Types
+
+public extension CreateCharacterRequest {
     
-    init?(
-        id: UUID = UUID(),
-        index: Character.Index,
-        user: User.ID,
-        channel: Channel.ID,
-        created: Date = Date(),
-        request: CreateCharacterRequest
-    ) {
-        guard let name = CharacterName(rawValue: request.name),
-              request.skinColor <= UInt8.max,
-              let skinColor = SkinColor(rawValue: UInt8(request.skinColor)) else {
-            return nil
+    enum Job: UInt32, Codable, CaseIterable, Sendable {
+        
+        /// Knights of Cygnus
+        case knights        = 0
+        
+        /// Adventurer / Explorer
+        case adventurer     = 1
+        
+        /// Aran / Legend
+        case legend         = 2
+    }
+}
+
+public extension Job {
+    
+    init(initial: CreateCharacterRequest.Job) {
+        switch initial {
+        case .adventurer:
+            self = .beginner
+        case .knights:
+            self = .noblesse
+        case .legend:
+            self = .legend
         }
-        self.init(
-            id: id,
-            index: index,
-            user: user,
-            channel: channel,
-            created: created,
-            name: name,
-            gender: request.gender,
-            skinColor: skinColor,
-            face: request.face,
-            hair: request.hair,
-            hairColor: request.hairColor,
-            str: numericCast(request.str),
-            dex: numericCast(request.dex),
-            int: numericCast(request.int),
-            luk: numericCast(request.luk)
-        )
     }
 }
