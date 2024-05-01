@@ -155,16 +155,67 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet, Packet(packetData))
         XCTAssertEqual(packet.opcode, type(of: value).opcode)
         XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testServerListResponse() throws {
+        
+        let packet: Packet = [0x0A, 0x00, 0x00, 0x06, 0x00, 0x53, 0x63, 0x61, 0x6E, 0x69, 0x61, 0x00, 0x07, 0x00, 0x53, 0x63, 0x61, 0x6E, 0x69, 0x61, 0x21, 0x64, 0x00, 0x64, 0x00, 0x00, 0x03, 0x08, 0x00, 0x53, 0x63, 0x61, 0x6E, 0x69, 0x61, 0x2D, 0x31, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x08, 0x00, 0x53, 0x63, 0x61, 0x6E, 0x69, 0x61, 0x2D, 0x32, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x08, 0x00, 0x53, 0x63, 0x61, 0x6E, 0x69, 0x61, 0x2D, 0x33, 0x00, 0x00, 0x00, 0x00, 0x01, 0x02, 0x00, 0x00, 0x00]
+        
+        let value = ServerListResponse.world(
+            0, MapleStory83.ServerListResponse.World(
+                name: "Scania",
+                flags: 0,
+                eventMessage: "Scania!",
+                rateModifier: 100,
+                eventXP: 0,
+                rateModifier2: 100,
+                dropRate: 0,
+                value0: 0,
+                channels: [
+                    MapleStory83.ServerListResponse.Channel(
+                        name: "Scania-1",
+                        load: 0,
+                        value0: 1,
+                        id: 0
+                    ),
+                    MapleStory83.ServerListResponse.Channel(
+                        name: "Scania-2",
+                        load: 0,
+                        value0: 1,
+                        id: 1
+                    ),
+                    MapleStory83.ServerListResponse.Channel(
+                        name: "Scania-3",
+                        load: 0,
+                        value0: 1,
+                        id: 2
+                    )
+                ],
+                value1: 0x00
+            )
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+        
+        XCTAssertDecode(ServerListResponse.end, [0x0A, 0x00, 0xFF])
+        XCTAssertEncode(ServerListResponse.end, [0x0A, 0x00, 0xFF])
     }
     
     func testCharacterListResquest() {
         
         let packet: Packet = [0x05, 0x00, 0x02, 0x00, 0x00, 0x0A, 0xD3, 0x37, 0x03]
                 
-        var value = CharacterListRequest(world: 0, channel: 0)
-        value.value0 = 0x02
+        let value = CharacterListRequest(
+            value0: 0x02,
+            world: 0,
+            channel: 0,
+            value1: 0x0337D30A
+        )
         
         XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
     }
     
     func testCharacterListResponse() {
@@ -314,5 +365,168 @@ final class LoginTests: XCTestCase {
         
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
+    }
+    
+    func testListAllCharactersResponse() {
+        
+        let packet: Packet = [0x08, 0x00, 0x00, 0x00, 0x03, 0x01, 0x00, 0x00, 0x00, 0x43, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x43, 0x44, 0x41, 0x00, 0x00, 0x00, 0x00, 0x03, 0x21, 0x4E, 0x00, 0x00, 0x47, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x0C, 0x00, 0x05, 0x00, 0x04, 0x00, 0x04, 0x00, 0x32, 0x00, 0x32, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x21, 0x4E, 0x00, 0x00, 0x01, 0x47, 0x75, 0x00, 0x00, 0x05, 0x82, 0xDE, 0x0F, 0x00, 0x06, 0xA2, 0x2C, 0x10, 0x00, 0x07, 0x85, 0x5B, 0x10, 0x00, 0x0B, 0x04, 0x05, 0x14, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x32, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x44, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x0C, 0x00, 0x05, 0x00, 0x04, 0x00, 0x04, 0x00, 0x32, 0x00, 0x32, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x01, 0x44, 0x75, 0x00, 0x00, 0x05, 0x86, 0xDE, 0x0F, 0x00, 0x06, 0xA2, 0x2C, 0x10, 0x00, 0x07, 0x85, 0x5B, 0x10, 0x00, 0x0B, 0xF0, 0xDD, 0x13, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x6E, 0x69, 0x67, 0x68, 0x74, 0x00, 0x00, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x47, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0xE8, 0x03, 0x0C, 0x00, 0x05, 0x00, 0x04, 0x00, 0x04, 0x00, 0x32, 0x00, 0x32, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0xB0, 0x19, 0xC0, 0x07, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x20, 0x4E, 0x00, 0x00, 0x01, 0x47, 0x75, 0x00, 0x00, 0x05, 0x82, 0xDE, 0x0F, 0x00, 0x06, 0xA2, 0x2C, 0x10, 0x00, 0x07, 0x85, 0x5B, 0x10, 0x00, 0x0B, 0xF0, 0xDD, 0x13, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02]
+        
+        let value = AllCharactersResponse.characters(
+            world: 0,
+            characters: [
+                MapleStory83.AllCharactersResponse.Character(
+                    stats: MapleStory83.AllCharactersResponse.CharacterStats(
+                        id: 1,
+                        name: "ColemanCDA",
+                        gender: .male,
+                        skinColor: .pale,
+                        face: 20001,
+                        hair: 30023,
+                        value0: 0,
+                        value1: 0,
+                        value2: 0,
+                        level: 1,
+                        job: .beginner,
+                        str: 12,
+                        dex: 5,
+                        int: 4,
+                        luk: 4,
+                        hp: 50,
+                        maxHp: 50,
+                        mp: 5,
+                        maxMp: 5,
+                        ap: 0,
+                        sp: 0,
+                        exp: 0,
+                        fame: 0,
+                        isMarried: 0,
+                        currentMap: 10000,
+                        spawnPoint: 0,
+                        value3: 0
+                    ),
+                    appearance: MapleStory83.AllCharactersResponse.CharacterAppeareance(
+                        gender: .male,
+                        skinColor: .pale,
+                        face: 20001,
+                        mega: true,
+                        hair: 30023,
+                        equipment: [5: 2195590912, 6: 2720796672, 7: 2237337600, 11: 67441664],
+                        maskedEquipment: [:],
+                        cashWeapon: 0,
+                        value0: 0,
+                        value1: 0
+                    ),
+                    rank: .enabled(
+                        worldRank: 1,
+                        rankMove: 0,
+                        jobRank: 1,
+                        jobRankMove: 0
+                    )
+                ),
+                MapleStory83.AllCharactersResponse.Character(
+                    stats: MapleStory83.AllCharactersResponse.CharacterStats(
+                        id: 2,
+                        name: "coleman2",
+                        gender: .male,
+                        skinColor: .normal,
+                        face: 20000,
+                        hair: 30020,
+                        value0: 0,
+                        value1: 0,
+                        value2: 0,
+                        level: 1,
+                        job: .beginner,
+                        str: 12,
+                        dex: 5,
+                        int: 4,
+                        luk: 4,
+                        hp: 50,
+                        maxHp: 50,
+                        mp: 5,
+                        maxMp: 5,
+                        ap: 0,
+                        sp: 0,
+                        exp: 0,
+                        fame: 0,
+                        isMarried: 0,
+                        currentMap: .mushroomTown,
+                        spawnPoint: 0,
+                        value3: 0
+                    ),
+                    appearance: MapleStory83.AllCharactersResponse.CharacterAppeareance(
+                        gender: MapleStory.Gender.male,
+                        skinColor: MapleStory.SkinColor.normal,
+                        face: 20000,
+                        mega: true,
+                        hair: 30020,
+                        equipment: [5: 2262699776, 6: 2720796672, 7: 2237337600, 11: 4041020160],
+                        maskedEquipment: [:],
+                        cashWeapon: 0,
+                        value0: 0,
+                        value1: 0)
+                    ,
+                    rank: .enabled(
+                        worldRank: 1,
+                        rankMove: 0,
+                        jobRank: 1,
+                        jobRankMove: 0
+                    )
+                ),
+                MapleStory83.AllCharactersResponse.Character(
+                    stats: MapleStory83.AllCharactersResponse.CharacterStats(
+                        id: 3,
+                        name: "colemannight",
+                        gender: MapleStory.Gender.male,
+                        skinColor: MapleStory.SkinColor.normal,
+                        face: 20000,
+                        hair: 30023,
+                        value0: 0,
+                        value1: 0,
+                        value2: 0,
+                        level: 1,
+                        job: .noblesse,
+                        str: 12,
+                        dex: 5,
+                        int: 4,
+                        luk: 4,
+                        hp: 50,
+                        maxHp: 50,
+                        mp: 5,
+                        maxMp: 5,
+                        ap: 0,
+                        sp: 0,
+                        exp: 0,
+                        fame: 0,
+                        isMarried: 0,
+                        currentMap: 130030000,
+                        spawnPoint: 0,
+                        value3: 0
+                    ),
+                    appearance: MapleStory83.AllCharactersResponse.CharacterAppeareance(
+                        gender: .male,
+                        skinColor: .normal,
+                        face: 20000,
+                        mega: true,
+                        hair: 30023,
+                        equipment:  [5: 2195590912, 6: 2720796672, 7: 2237337600, 11: 4041020160],
+                        maskedEquipment: [:],
+                        cashWeapon: 0,
+                        value0: 0,
+                        value1: 0
+                    ),
+                    rank: .enabled(
+                        worldRank: 1,
+                        rankMove: 0,
+                        jobRank: 1,
+                        jobRankMove: 0
+                    )
+                )
+            ],
+            picMode: .disabled
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+        
     }
 }
