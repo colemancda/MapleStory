@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct PongPacket: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct PongPacket: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
     public static var opcode: Opcode { .init(client: .pong) }
     
