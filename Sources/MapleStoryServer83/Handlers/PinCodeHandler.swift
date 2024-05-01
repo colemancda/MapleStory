@@ -31,7 +31,7 @@ internal extension PinCodeHandler {
         _ request: MapleStory83.PinOperationRequest,
         connection: MapleStoryServer<Socket, Database>.Connection
     ) async throws -> MapleStory83.PinOperationResponse {
-        //log("Check Pin - \(username)")
-        return .init(status: .success)
+        let status = try await connection.pinCodeStatus(request.pinCode)
+        return .init(status: status)
     }
 }

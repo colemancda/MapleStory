@@ -35,7 +35,7 @@ internal extension SetGenderHandler {
             request.gender,
             didConfirm: request.confirmed
         )
-        let database = await connection.server.database
+        let database = await connection.database
         let configuration = try await database.fetch(Configuration.self)
         return .success(.init(user: user, configuration: configuration))
     }

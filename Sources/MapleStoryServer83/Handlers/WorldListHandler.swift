@@ -23,12 +23,12 @@ public struct WorldListHandler: PacketHandler {
     ) async throws {
         do {
             // update IP address
-            guard var user = try await connection.authenticatedUser() else {
+            guard var user = try await connection.user else {
                 throw MapleStoryError.notAuthenticated
             }
             user.ipAddress = connection.address.address
-            try await connection.server.database.insert(user)
-            // return responses
+            try await connection.database.insert(user)
+            // return world list responses
             let responses = try await worldList(packet, connection: connection)
             for response in responses {
                 try await connection.respond(response)

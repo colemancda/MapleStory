@@ -37,8 +37,7 @@ internal extension LoginHandler {
                 username: request.username,
                 password: request.password
             )
-            let database = await connection.server.database
-            let configuration = try await database.fetch(Configuration.self)
+            let configuration = try await connection.database.fetch(Configuration.self)
             return .success(.init(user: user, configuration: configuration))
         }
         catch let loginError as LoginError {

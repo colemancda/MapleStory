@@ -146,14 +146,6 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
 
 internal extension MapleStoryServer {
     
-    actor Server {
-        
-        
-    }
-}
-
-internal extension MapleStoryServer {
-    
     actor InternalStorage {
         
         var connections = [MapleStoryAddress: Connection](minimumCapacity: 10_000)
@@ -190,9 +182,11 @@ internal extension MapleStoryServer.Connection {
     
     struct ClientState: Equatable, Hashable {
         
-        var channel: UInt8 = 0x00
+        var channel: Channel.ID?
         
-        var world: UInt8 = 0x00
+        var world: Channel.ID?
+        
+        var user: User.ID?
     }
 }
 
@@ -230,9 +224,11 @@ public extension MapleStoryServer {
         
         internal let connection: MapleStory.Connection<Socket>
         
-        public unowned var server: MapleStoryServer
+        internal unowned var server: MapleStoryServer
         
         internal let log: (String) -> ()
+        
+        public let database: Database
         
         internal var state = ClientState()
         
@@ -247,6 +243,7 @@ public extension MapleStoryServer {
             let log: (String) -> () = { serverLog?("[\(address.address)] \($0)") }
             self.log = log
             self.server = server
+            self.database = server.database
             self.connection = await MapleStory.Connection(
                 socket: socket,
                 log: log,
@@ -262,6 +259,38 @@ public extension MapleStoryServer {
         }
         
         // MARK: - Methods
+        
+        public func authenticate(user: User) async {
+            await connection.authenticate(username: user.username)
+            self.state.user = user.id
+        }
+        
+        public var user: User? {
+            get async throws {
+                guard let id = self.state.user else {
+                    return nil
+                }
+                return try await database.fetch(User.self, for: id)
+            }
+        }
+        
+        public var world: World? {
+            get async throws {
+                guard let id = self.state.world else {
+                    return nil
+                }
+                return try await database.fetch(World.self, for: id)
+            }
+        }
+        
+        public var channel: Channel? {
+            get async throws {
+                guard let id = self.state.channel else {
+                    return nil
+                }
+                return try await database.fetch(Channel.self, for: id)
+            }
+        }
         
         /// Registers a callback for an opcode and returns the ID associated with that callback.
         @discardableResult

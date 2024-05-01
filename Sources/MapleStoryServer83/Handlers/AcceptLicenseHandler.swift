@@ -32,6 +32,7 @@ internal extension AcceptLicenseHandler {
         connection: MapleStoryServer<Socket, Database>.Connection
     ) async throws -> MapleStory83.LoginResponse {
         let user = try await connection.acceptLicense()
-        return .success(.init(user: user))
+        let configuration = try await connection.database.fetch(Configuration.self)
+        return .success(.init(user: user, configuration: configuration))
     }
 }
