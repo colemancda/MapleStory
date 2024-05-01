@@ -1,6 +1,6 @@
 //
-//  File.swift
-//  
+//  LoginTests.swift
+//
 //
 //  Created by Alsey Coleman Miller on 4/29/24.
 //
@@ -14,12 +14,7 @@ final class LoginTests: XCTestCase {
     
     func testHello() throws {
         
-        let data = Data([0x0E, 0x00, 0x53, 0x00, 0x01, 0x00, 0x31, 0x68, 0x91, 0x09, 0x81, 0x42, 0x0F, 0x90, 0x9B, 0x08])
-        
-        guard let packet = Packet(data: data) else {
-            XCTFail()
-            return
-        }
+        let packet: Packet = [0x0E, 0x00, 0x53, 0x00, 0x01, 0x00, 0x31, 0x68, 0x91, 0x09, 0x81, 0x42, 0x0F, 0x90, 0x9B, 0x08]
         
         let value = HelloPacket(
             recieveNonce: 0x68910981,
@@ -64,9 +59,7 @@ final class LoginTests: XCTestCase {
     func testLoginFailure() throws {
         
         let encryptedData = Data([0xF7, 0x78, 0xFF, 0x78, 0x1E, 0x8F, 0xDA, 0x80, 0x10, 0x78, 0xAE, 0xFA])
-        
         let packetData = Data([0x00, 0x00, 0x17, 0x00, 0x00, 0x00, 0x00, 0x00])
-        
         let nonce: Nonce = 0x8C7E5B87
         
         guard let packet = Packet(data: packetData) else {
@@ -91,12 +84,7 @@ final class LoginTests: XCTestCase {
 
     func testSuccessLoginResponse() throws {
         
-        let packetData = Data([0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02])
-        
-        guard let packet = Packet(data: packetData) else {
-            XCTFail()
-            return
-        }
+        let packet: Packet = [0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x00, 0x00, 0x00, 0x0A, 0x00, 0x00, 0x00, 0x05, 0x00, 0x61, 0x64, 0x6D, 0x69, 0x6E, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01, 0x02]
         
         let value = MapleStory83.LoginResponse.success(
             MapleStory83.LoginResponse.Success(
@@ -122,15 +110,8 @@ final class LoginTests: XCTestCase {
     
     func testSetGender() throws {
         
-        let packetData = Data([0x08, 0x00, 0x01, 0x00])
-        
-        guard let packet = Packet(data: packetData) else {
-            XCTFail()
-            return
-        }
-        
+        let packet: Packet = [0x08, 0x00, 0x01, 0x00]
         let value = SetGenderRequest(gender: .male)
-        XCTAssertEqual(packet, Packet(packetData))
         XCTAssertEqual(packet.opcode, type(of: value).opcode)
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
@@ -139,9 +120,7 @@ final class LoginTests: XCTestCase {
     func testPong() throws {
         
         let encryptedData = Data([0x46, 0xD3])
-        
         let packetData = Data([0x18, 0x00])
-        
         let nonce: Nonce = 0x0A627F70
         
         let packet = try Packet.decrypt(
@@ -337,7 +316,7 @@ final class LoginTests: XCTestCase {
                     exp: 0,
                     fame: 0,
                     isMarried: 0,
-                    currentMap: 130030000,
+                    currentMap: .startingMapNoblesse,
                     spawnPoint: 0,
                     value3: 0
                 ),
