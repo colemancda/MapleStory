@@ -37,11 +37,11 @@ public struct MapleStoryAddress: Equatable, Hashable, Codable, Sendable {
 public extension MapleStoryAddress {
     
     static var loginServerDefault: MapleStoryAddress {
-        MapleStoryAddress(ipAddress: .any, port: 8484)
+        MapleStoryAddress(ipAddress: .loopback, port: 8484)
     }
     
     static var channelServerDefault: MapleStoryAddress {
-        MapleStoryAddress(ipAddress: .any, port: 7575)
+        MapleStoryAddress(ipAddress: .loopback, port: 7575)
     }
 }
 
