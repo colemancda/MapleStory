@@ -16,7 +16,7 @@ public extension User {
     enum Predicate {
         
         case index(User.Index)
-        case username(String)
+        case username(Username)
         case email(Email)
         case ipAddress(String)
         case isGuest(Bool)
@@ -30,9 +30,9 @@ public extension FetchRequest.Predicate {
         case .index(let index):
             self = User.CodingKeys.index.stringValue.compare(.equalTo, .attribute(.int64(numericCast(index))))
         case .username(let username):
-            self = User.CodingKeys.username.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(username)))
+            self = User.CodingKeys.username.stringValue.compare(.equalTo, .attribute(.string(username.sanitized().rawValue)))
         case .email(let email):
-            self = User.CodingKeys.email.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(email.rawValue)))
+            self = User.CodingKeys.email.stringValue.compare(.equalTo, .attribute(.string(email.rawValue.lowercased())))
         case .ipAddress(let ipAddress):
             self = User.CodingKeys.ipAddress.stringValue.compare(.equalTo, .attribute(.string(ipAddress)))
         case .isGuest(let isGuest):
@@ -46,7 +46,7 @@ public extension FetchRequest.Predicate {
 public extension User {
     
     static func exists<Storage: ModelStorage>(
-        username: String,
+        username: Username,
         in context: Storage
     ) async throws -> Bool {
         let fetchRequest = FetchRequest(
@@ -58,7 +58,7 @@ public extension User {
     }
     
     static func fetch<Storage: ModelStorage>(
-        username: String,
+        username: Username,
         in context: Storage
     ) async throws -> User? {
         try await context.fetch(User.self, predicate: .init(predicate: .username(username)), fetchLimit: 1).first
@@ -113,13 +113,13 @@ public extension User {
     
     /// Validate the provided password for the specified user.
     static func validate<Storage: ModelStorage>(
-        password: String,
-        for username: String,
+        password: Password,
+        for username: Username,
         in context: Storage
     ) async throws -> Bool {
         guard let user = try await fetch(username: username, in: context) else {
             return false
         }
-        return try user.validate(password: password)
+        return try user.validate(password: password.rawValue)
     }
 }
