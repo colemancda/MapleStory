@@ -108,7 +108,7 @@ public extension LoginResponse {
         
         public let skipPin: Bool
         
-        public let picMode: PicMode
+        public let picMode: PicCodeStatus
         
         public init(
             account: User.Index,
@@ -122,7 +122,7 @@ public extension LoginResponse {
             creationTimeStamp: UInt64 = 0,
             worldSelection: WorldSelectionMode = .skipPrompt,
             skipPin: Bool = true,
-            picMode: PicMode = .disabled
+            picMode: PicCodeStatus = .disabled
         ) {
             self.value0 = 0x00
             self.value1 = 0x00
@@ -178,21 +178,6 @@ public extension LoginResponse.Success {
             skipPin: (configuration.isPinEnabled ?? false) == false,
             skipPic: (configuration.isPicEnabled ?? false) == false
         )
-    }
-}
-
-public extension LoginResponse.Success {
-    
-    enum PicMode: UInt8, Codable, CaseIterable, Sendable {
-        
-        /// Register PIC
-        case register
-        
-        /// Ask for PIC
-        case enabled
-        
-        /// Disabled
-        case disabled
     }
 }
 
