@@ -381,7 +381,7 @@ final class LoginTests: XCTestCase {
                         gender: .male,
                         skinColor: .pale,
                         face: 20001,
-                        hair: 30023,
+                        hair: .rebel(.blonde),
                         value0: 0,
                         value1: 0,
                         value2: 0,
@@ -400,7 +400,7 @@ final class LoginTests: XCTestCase {
                         exp: 0,
                         fame: 0,
                         isMarried: 0,
-                        currentMap: 10000,
+                        currentMap: .mushroomTown,
                         spawnPoint: 0,
                         value3: 0
                     ),
@@ -409,7 +409,7 @@ final class LoginTests: XCTestCase {
                         skinColor: .pale,
                         face: 20001,
                         mega: true,
-                        hair: 30023,
+                        hair: .rebel(.blonde),
                         equipment: [5: 2195590912, 6: 2720796672, 7: 2237337600, 11: 67441664],
                         maskedEquipment: [:],
                         cashWeapon: 0,
@@ -430,7 +430,7 @@ final class LoginTests: XCTestCase {
                         gender: .male,
                         skinColor: .normal,
                         face: 20000,
-                        hair: 30020,
+                        hair: .rebel(.black),
                         value0: 0,
                         value1: 0,
                         value2: 0,
@@ -458,7 +458,7 @@ final class LoginTests: XCTestCase {
                         skinColor: MapleStory.SkinColor.normal,
                         face: 20000,
                         mega: true,
-                        hair: 30020,
+                        hair: .rebel(.black),
                         equipment: [5: 2262699776, 6: 2720796672, 7: 2237337600, 11: 4041020160],
                         maskedEquipment: [:],
                         cashWeapon: 0,
@@ -479,7 +479,7 @@ final class LoginTests: XCTestCase {
                         gender: MapleStory.Gender.male,
                         skinColor: MapleStory.SkinColor.normal,
                         face: 20000,
-                        hair: 30023,
+                        hair: .rebel(.blonde),
                         value0: 0,
                         value1: 0,
                         value2: 0,
@@ -498,7 +498,7 @@ final class LoginTests: XCTestCase {
                         exp: 0,
                         fame: 0,
                         isMarried: 0,
-                        currentMap: 130030000,
+                        currentMap: .startingMapNoblesse,
                         spawnPoint: 0,
                         value3: 0
                     ),
@@ -507,7 +507,7 @@ final class LoginTests: XCTestCase {
                         skinColor: .normal,
                         face: 20000,
                         mega: true,
-                        hair: 30023,
+                        hair: .rebel(.blonde),
                         equipment:  [5: 2195590912, 6: 2720796672, 7: 2237337600, 11: 4041020160],
                         maskedEquipment: [:],
                         cashWeapon: 0,
@@ -527,6 +527,5 @@ final class LoginTests: XCTestCase {
         
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
-        
     }
 }
