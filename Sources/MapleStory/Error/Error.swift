@@ -19,6 +19,10 @@ public enum MapleStoryError: Error {
     case notAuthenticated
     
     case unknownUser(String)
+    
+    case invalidWorld(Int)
+    
+    case invalidChannel(Int)
         
     case invalidRequest
     
