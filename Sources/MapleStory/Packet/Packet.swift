@@ -84,6 +84,15 @@ extension Packet: CustomStringConvertible, CustomDebugStringConvertible {
     }
 }
 
+// MARK: - ExpressibleByArrayLiteral
+
+extension Packet: ExpressibleByArrayLiteral {
+    
+    public init(arrayLiteral elements: UInt8...) {
+        self.init(Data(elements))
+    }
+}
+
 // MARK: - Supporting Types
 
 /// MapleStory Packet Parameters protocol
