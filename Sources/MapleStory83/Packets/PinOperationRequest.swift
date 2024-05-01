@@ -13,5 +13,16 @@ public struct PinOperationRequest: MapleStoryPacket, Decodable, Equatable, Hasha
     
     public let value0: UInt8
     
-    public let value1: UInt8
+    public let value1: UInt8?
+    
+    public let pinCode: String?
+}
+
+extension PinOperationRequest: MapleStoryDecodable {
+    
+    public init(from container: MapleStoryDecodingContainer) throws {
+        value0 = try container.decode(UInt8.self, forKey: CodingKeys.value0)
+        value1 = (container.remainingBytes > 0) ? try container.decode(UInt8.self, forKey: CodingKeys.value1) : nil
+        pinCode = (container.remainingBytes > 0) ? try container.decode(String.self, forKey: CodingKeys.pinCode) : nil
+    }
 }
