@@ -145,3 +145,10 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable {
     /// Channel room opcode.
     case channelRoom = 0xDC
 }
+
+public extension MapleStory.Opcode {
+    
+    init(server opcode: ServerOpcode) {
+        self.init(rawValue: opcode.rawValue)
+    }
+}

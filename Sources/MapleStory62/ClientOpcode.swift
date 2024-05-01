@@ -8,7 +8,7 @@
 import Foundation
 
 /// Enum representing packet headers for network communication.
-public enum ClientOpcode: UInt16, Codable, CaseIterable {
+public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     
     /// Login password packet header.
     case loginRequest = 0x01

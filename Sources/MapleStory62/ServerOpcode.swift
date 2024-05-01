@@ -8,7 +8,7 @@
 import Foundation
 
 /// Enum representing packet headers for network communication.
-public enum ServerOpcode: UInt16, Codable, CaseIterable {
+public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     
     /// PING packet header.
     ///
