@@ -19,6 +19,7 @@ public extension Character {
         case index(Character.Index)
         case channel(Channel.ID)
         case user(User.ID)
+        case world(World.ID)
     }
 }
 
@@ -27,13 +28,15 @@ public extension FetchRequest.Predicate {
     init(predicate: Character.Predicate) {
         switch predicate {
         case .name(let name):
-            self = Character.CodingKeys.name.stringValue.compare(.equalTo, [.caseInsensitive], .attribute(.string(name.rawValue)))
+            self = Character.CodingKeys.name.stringValue.compare(.equalTo, .attribute(.string(name.rawValue.lowercased())))
         case .index(let index):
             self = Character.CodingKeys.index.stringValue.compare(.equalTo, .attribute(.int64(numericCast(index))))
         case .channel(let channel):
             self = Character.CodingKeys.channel.stringValue.compare(.equalTo, .relationship(.toOne(.init(channel))))
         case .user(let user):
             self = Character.CodingKeys.user.stringValue.compare(.equalTo, .relationship(.toOne(.init(user))))
+        case .world(let world):
+            self = Character.CodingKeys.world.stringValue.compare(.equalTo, .relationship(.toOne(.init(world))))
         }
     }
 }
@@ -45,8 +48,11 @@ public extension Character {
         world: World.ID,
         in database: Storage
     ) async throws -> Bool {
-        // TODO: Filter by world
-        let predicate = FetchRequest.Predicate(predicate: Character.Predicate.name(name))
+        let predicates = [
+            FetchRequest.Predicate.init(predicate: Character.Predicate.name(name)),
+            FetchRequest.Predicate.init(predicate: Character.Predicate.world(world))
+        ]
+        let predicate = FetchRequest.Predicate.compound(.and(predicates))
         let count = try await database.count(Character.self, predicate: predicate, fetchLimit: 1)
         return count > 0
     }
@@ -62,16 +68,21 @@ public extension Character {
         ]
         if let world {
             predicates.append(
-                .init(predicate: .world(world))
+                .init(predicate: Character.Predicate.world(world))
             )
         }
         if let channel {
             predicates.append(
-                .init(predicate: .channel(channel))
+                .init(predicate: Character.Predicate.channel(channel))
             )
         }
         let predicate = FetchRequest.Predicate.compound(.and(predicates))
         return try await database.fetch(
-            Character.self, sortDescriptors: [.init(property: .init(Character.CodingKeys.index), ascending: true)], predicate: predicate)
+            Character.self, 
+            sortDescriptors: [
+                .init(property: .init(Character.CodingKeys.index), ascending: true)
+            ],
+            predicate: predicate
+        )
     }
 }
