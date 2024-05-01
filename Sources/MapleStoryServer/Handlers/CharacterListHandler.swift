@@ -36,7 +36,6 @@ public extension MapleStoryServer.Connection {
         let characters = try await Character.fetch(
             user: user,
             world: world.id,
-            channel: channel.id,
             in: database
         )
         // update client state
