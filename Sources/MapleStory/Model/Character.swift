@@ -91,7 +91,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         id: UUID,
         index: Index,
         user: User.ID,
-        world: User.ID,
+        world: World.ID,
         channel: Channel.ID? = nil,
         created: Date = Date(),
         name: CharacterName,
@@ -350,6 +350,7 @@ public extension Character {
         index: Character.Index,
         user: User.ID,
         world: World.ID,
+        channel: Channel.ID? = nil,
         id: UUID = UUID(),
         created: Date = Date()
     ) {
@@ -369,6 +370,7 @@ public extension Character {
             index: index,
             user: user,
             world: world,
+            channel: channel,
             created: created,
             name: value.name,
             gender: value.gender,
