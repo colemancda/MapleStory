@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum ServerMessageType: UInt8, Codable, CaseIterable {
+public enum ServerMessageType: UInt8, Codable, CaseIterable, Sendable {
     
     case notice             = 0
     case popup              = 1
