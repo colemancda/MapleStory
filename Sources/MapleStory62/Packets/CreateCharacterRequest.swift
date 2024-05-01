@@ -40,38 +40,3 @@ public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hash
     
     public let luk: UInt8
 }
-
-public extension Character {
-    
-    init?(
-        id: UUID = UUID(),
-        index: Character.Index,
-        user: User.ID,
-        channel: Channel.ID,
-        created: Date = Date(),
-        request: CreateCharacterRequest
-    ) {
-        guard let name = CharacterName(rawValue: request.name),
-              request.skinColor <= UInt8.max,
-              let skinColor = SkinColor(rawValue: UInt8(request.skinColor)) else {
-            return nil
-        }
-        self.init(
-            id: id,
-            index: index,
-            user: user,
-            channel: channel,
-            created: created,
-            name: name,
-            gender: request.gender,
-            skinColor: skinColor,
-            face: request.face,
-            hair: request.hair,
-            hairColor: request.hairColor,
-            str: numericCast(request.str),
-            dex: numericCast(request.dex),
-            int: numericCast(request.int),
-            luk: numericCast(request.luk)
-        )
-    }
-}

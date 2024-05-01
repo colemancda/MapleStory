@@ -83,7 +83,7 @@ public extension CharacterListResponse {
         
         public let isMarried: UInt32
         
-        public let currentMap: UInt32
+        public let currentMap: Map.ID
         
         public let spawnPoint: UInt8
         
@@ -244,7 +244,7 @@ public extension CharacterListResponse.Character {
             value0: 0,
             value1: 0,
             value2: 0,
-            level: character.level,
+            level: numericCast(character.level),
             job: character.job,
             str: character.str,
             dex: character.dex,
