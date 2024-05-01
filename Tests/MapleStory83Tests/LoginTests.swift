@@ -156,4 +156,83 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet.opcode, type(of: value).opcode)
         XCTAssertDecode(value, packet)
     }
+    
+    func testCharacterListResquest() {
+        
+        let packetData = Data([0x05, 0x00, 0x02, 0x00, 0x00, 0x0A, 0xD3, 0x37, 0x03])
+        
+        let packet = Packet(packetData)
+        
+        var value = CharacterListRequest(world: 0, channel: 0)
+        value.value0 = 0x02
+        
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testCharacterListResponse() {
+        
+        let packetData = Data([0x0B, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x43, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x43, 0x44, 0x41, 0x00, 0x00, 0x00, 0x00, 0x03, 0x21, 0x4E, 0x00, 0x00, 0x47, 0x75, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x0C, 0x00, 0x05, 0x00, 0x04, 0x00, 0x04, 0x00, 0x32, 0x00, 0x32, 0x00, 0x05, 0x00, 0x05, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10, 0x27, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x21, 0x4E, 0x00, 0x00, 0x01, 0x47, 0x75, 0x00, 0x00, 0x05, 0x82, 0xDE, 0x0F, 0x00, 0x06, 0xA2, 0x2C, 0x10, 0x00, 0x07, 0x85, 0x5B, 0x10, 0x00, 0x0B, 0x04, 0x05, 0x14, 0x00, 0xFF, 0xFF, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x03, 0x00, 0x00, 0x00])
+        
+        let packet = Packet(packetData)
+        
+        let value = CharacterListResponse(
+            characters: [
+                MapleStory83.CharacterListResponse.Character(
+                    stats: MapleStory83.CharacterListResponse.CharacterStats(
+                        id: 1,
+                        name: "ColemanCDA",
+                        gender: .male,
+                        skinColor: .pale,
+                        face: 20001,
+                        hair: 30023,
+                        value0: 0,
+                        value1: 0,
+                        value2: 0,
+                        level: 1,
+                        job: .beginner,
+                        str: 12,
+                        dex: 5,
+                        int: 4,
+                        luk: 4,
+                        hp: 50,
+                        maxHp: 50,
+                        mp: 5,
+                        maxMp: 5,
+                        ap: 0,
+                        sp: 0,
+                        exp: 0,
+                        fame: 0,
+                        isMarried: 0,
+                        currentMap: .mushroomTown,
+                        spawnPoint: 0, 
+                        value3: 0
+                    ),
+                    appearance: MapleStory83.CharacterListResponse.CharacterAppeareance(
+                        gender: .male,
+                        skinColor: .pale,
+                        face: 20001,
+                        mega: true,
+                        hair: 30023,
+                        equipment: [5: 2195590912, 6: 2720796672, 7: 2237337600, 11: 67441664],
+                        maskedEquipment: [:],
+                        cashWeapon: 0,
+                        value0: 0,
+                        value1: 0
+                    ), 
+                    value0: 0x00,
+                    rank: .enabled(
+                        worldRank: 1,
+                        rankMove: 0,
+                        jobRank: 1,
+                        jobRankMove: 0
+                    )
+                )
+            ],
+            picStatus: .disabled,
+            maxCharacters: 3
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
 }

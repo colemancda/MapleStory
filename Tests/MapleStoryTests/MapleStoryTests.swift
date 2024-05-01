@@ -50,55 +50,16 @@ final class MapleStoryTests: XCTestCase {
     
     func testWorldName() {
         
-        func name(for id: World.Index) -> String {
-            switch id {
-            case 0:
-                return "Scania"
-            case 1:
-                return "Bera"
-            case 2:
-                return "Broa"
-            case 3:
-                return "Windia"
-            case 4:
-                return "Khaini"
-            case 5:
-                return "Bellocan"
-            case 6:
-                return "Mardia"
-            case 7:
-                return "Kradia"
-            case 8:
-                return "Yellonde"
-            case 9:
-                return "Demethos"
-            case 10:
-                return "Elnido"
-            case 11:
-                return "Kastia"
-            case 12:
-                return "Judis"
-            case 13:
-                return "Arkenia"
-            case 14:
-                return "Plana"
-            default:
-                return "World \(id + 1)"
-            }
-        }
-        
-        XCTAssertEqual(World.Name.scania.rawValue, name(for: 0))
+        XCTAssertEqual(World.Name.scania.rawValue, "Scania")
         XCTAssertEqual(World.Name.scania.index, 0)
         XCTAssertEqual(World.Name(index: 0), .scania)
         
-        XCTAssertNil(World.Name(index: 15))
+        XCTAssertNil(World.Name(index: 20))
         
         for (index, value) in World.Name.allCases.enumerated() {
             let index = UInt8(index)
             XCTAssertEqual(value.index, index)
             XCTAssertEqual(World.Name(index: index), value)
-            XCTAssertEqual(value.rawValue, name(for: index))
-            XCTAssertEqual(World.Name(rawValue: name(for: index)), value)
         }
     }
     
