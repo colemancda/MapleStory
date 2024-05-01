@@ -34,7 +34,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var hairColor: UInt32
     
-    public var level: UInt8
+    public var level: UInt16
     
     public var job: Job
     
@@ -64,7 +64,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var isMarried: Bool
     
-    public var currentMap: UInt32
+    public var currentMap: Map.ID
     
     public var spawnPoint: UInt8
     
@@ -98,12 +98,12 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         face: UInt32,
         hair: UInt32,
         hairColor: UInt32,
-        level: UInt8 = 0,
+        level: UInt16 = 1,
         job: Job = .beginner,
-        str: UInt16 = 1,
-        dex: UInt16 = 1,
-        int: UInt16 = 1,
-        luk: UInt16 = 1,
+        str: UInt16 = 4,
+        dex: UInt16 = 4,
+        int: UInt16 = 4,
+        luk: UInt16 = 4,
         hp: UInt16 = 50,
         maxHp: UInt16 = 50,
         mp: UInt16 = 5,
@@ -113,8 +113,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         exp: Experience = 0,
         fame: UInt16 = 0,
         isMarried: Bool = false,
-        currentMap: UInt32 = 40000,
-        spawnPoint: UInt8 = 2,
+        currentMap: Map.ID = .mushroomTown, // Mushroom Town
+        spawnPoint: UInt8 = 1,
         isMega: Bool = true,
         cashWeapon: UInt32 = 0,
         equipment: Character.Equipment = [:],
@@ -219,7 +219,7 @@ extension Character: Entity {
             .face: .int64,
             .hair: .int64,
             .hairColor: .int64,
-            .level: .int16,
+            .level: .int32,
             .job: .int32,
             .str: .int32,
             .dex: .int32,
@@ -265,5 +265,121 @@ extension Character: Entity {
                 inverseRelationship: .characters
             )
         ]
+    }
+}
+
+// MARK: - Supporting Types
+
+public extension Character {
+    
+    struct CreationValues: Equatable, Hashable, Sendable {
+        
+        public let name: CharacterName
+        
+        public let face: UInt32
+        
+        public let hair: UInt32
+        
+        public let hairColor: UInt32
+        
+        public let skinColor: SkinColor
+        
+        public let top: UInt32
+        
+        public let bottom: UInt32
+        
+        public let shoes: UInt32
+        
+        public let weapon: UInt32
+        
+        public let gender: Gender
+        
+        public let str: UInt16
+        
+        public let dex: UInt16
+        
+        public let int: UInt16
+        
+        public let luk: UInt16
+        
+        public let job: Job
+        
+        public init(
+            name: CharacterName,
+            face: UInt32,
+            hair: UInt32,
+            hairColor: UInt32,
+            skinColor: SkinColor = .pale,
+            top: UInt32,
+            bottom: UInt32,
+            shoes: UInt32,
+            weapon: UInt32,
+            gender: Gender = .male,
+            str: UInt16 = 4,
+            dex: UInt16 = 4,
+            int: UInt16 = 4,
+            luk: UInt16 = 4,
+            job: Job = .beginner
+        ) {
+            self.name = name
+            self.face = face
+            self.hair = hair
+            self.hairColor = hairColor
+            self.skinColor = skinColor
+            self.top = top
+            self.bottom = bottom
+            self.shoes = shoes
+            self.weapon = weapon
+            self.gender = gender
+            self.str = str
+            self.dex = dex
+            self.int = int
+            self.luk = luk
+            self.job = job
+        }
+    }
+}
+
+public extension Character {
+    
+    init(
+        create value: CreationValues,
+        index: Character.Index,
+        user: User.ID,
+        channel: Channel.ID,
+        id: UUID = UUID(),
+        created: Date = Date()
+    ) {
+        let currentMap: Map.ID
+        switch value.job {
+        case .beginner:
+            currentMap = .mushroomTown
+        case .legend:
+            currentMap = .aranTutorialStart
+        case .noblesse:
+            currentMap = .startingMapNoblesse
+        default:
+            currentMap = .mushroomTown
+        }
+        self.init(
+            id: id,
+            index: index,
+            user: user,
+            channel: channel,
+            created: created,
+            name: value.name,
+            gender: value.gender,
+            skinColor: value.skinColor,
+            face: value.face,
+            hair: value.hair,
+            hairColor: value.hairColor,
+            job: value.job,
+            str: value.str,
+            dex: value.dex,
+            int: value.int,
+            luk: value.luk,
+            currentMap: currentMap,
+            spawnPoint: 1
+        )
     }
 }
