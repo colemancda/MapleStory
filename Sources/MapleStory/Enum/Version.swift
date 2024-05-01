@@ -54,6 +54,9 @@ extension Version: Comparable {
 
 public extension Version {
     
+    /// MapleStory v14
+    static var v14: Version { 14 } // Windia world added
+    
     /// MapleStory v28
     static var v28: Version { 28 } // Pianus boss added
     
@@ -67,16 +70,19 @@ public extension Version {
     static var v55: Version { 55 } // Dragon Mount added
     
     /// MapleStory v62
-    static var v62: Version { 62 } // Pirate Class added
+    static var v62: Version { 62 } // Demethos world and Pirate Class added
     
     /// MapleStory v73
     static var v73: Version { 73 } // Cygnus Knights added
     
     /// MapleStory v80
-    static var v80: Version { 80 } // Aran class added
+    static var v80: Version { 80 } // Galicia World and Aran class added
     
     /// MapleStory v83
     static var v83: Version { 83 } // Neo City added
+    
+    /// MapleStory v84
+    static var v84: Version { 84 } // Evan Class added (officially)
     
     /// MapleStory v93
     static var v93: Version { 93 } // Big Bang
