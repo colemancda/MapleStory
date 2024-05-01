@@ -34,7 +34,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var picCode: String?
     
-    public var birthday: Date?
+    public var birthday: Date
     
     public var email: String?
     
@@ -58,7 +58,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         ipAddress: String? = nil,
         pinCode: String? = nil,
         picCode: String? = nil,
-        birthday: Date? = nil,
+        birthday: Date = .mapleGlobalRelease,
         email: String? = nil,
         termsAccepted: Bool = false,
         isAdmin: Bool = false,
