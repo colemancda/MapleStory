@@ -5,9 +5,7 @@
 //  Created by Alsey Coleman Miller on 4/29/24.
 //
 
-import Foundation
-
-/// Pin Code Status
+/// PIN Code Status
 public enum PinCodeStatus: UInt8, Codable, CaseIterable, Sendable {
     
     /// PIN was accepted.
