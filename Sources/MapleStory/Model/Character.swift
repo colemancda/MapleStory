@@ -8,6 +8,7 @@
 import Foundation
 import CoreModel
 
+/// MapleStory Character
 public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public typealias Index = UInt32
@@ -18,7 +19,9 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public let user: User.ID
     
-    public let channel: Channel.ID
+    public let world: World.ID
+    
+    public let channel: Channel.ID?
         
     public var name: CharacterName
     
@@ -90,7 +93,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         id: UUID,
         index: Index,
         user: User.ID,
-        channel: Channel.ID,
+        world: User.ID,
+        channel: Channel.ID? = nil,
         created: Date = Date(),
         name: CharacterName,
         gender: Gender = .male,
@@ -128,6 +132,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.id = id
         self.index = index
         self.user = user
+        self.world = world
         self.channel = channel
         self.created = created
         self.name = name
@@ -168,6 +173,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case id
         case index
         case user
+        case world
         case channel
         case created
         case name
@@ -254,6 +260,13 @@ extension Character: Entity {
                 id: .user,
                 entity: Character.self,
                 destination: User.self,
+                type: .toOne,
+                inverseRelationship: .characters
+            ),
+            .world: Relationship(
+                id: .world,
+                entity: Character.self,
+                destination: World.self,
                 type: .toOne,
                 inverseRelationship: .characters
             ),
@@ -346,7 +359,7 @@ public extension Character {
         create value: CreationValues,
         index: Character.Index,
         user: User.ID,
-        channel: Channel.ID,
+        world: World.ID,
         id: UUID = UUID(),
         created: Date = Date()
     ) {
@@ -365,7 +378,7 @@ public extension Character {
             id: id,
             index: index,
             user: user,
-            channel: channel,
+            world: world,
             created: created,
             name: value.name,
             gender: value.gender,

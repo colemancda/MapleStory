@@ -24,6 +24,8 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
     
     public var address: MapleStoryAddress
     
+    public var isEnabled: Bool
+    
     public var flags: UInt8
     
     public var eventMessage: String
@@ -36,9 +38,9 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
             
     public var channels: [Channel.ID]
     
-    public var lastCharacter: Character.Index?
+    public var characters: [Character.ID]
     
-    public var lastGuest: UInt32?
+    public var lastCharacter: Character.Index?
     
     public init(
         id: UUID = UUID(),
@@ -47,18 +49,21 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         region: Region = .global,
         version: Version,
         address: MapleStoryAddress = .channelServerDefault,
+        isEnabled: Bool = true,
         flags: UInt8 = 0x02,
         eventMessage: String = "",
         rateModifier: UInt8 = 0x64,
         eventXP: UInt8 = 0,
         dropRate: UInt8 = 0,
         channels: [Channel.ID] = [],
+        characters: [Character.ID] = [],
         lastCharacter: Character.Index? = nil
     ) {
         self.id = id
         self.index = index
         self.name = name
         self.address = address
+        self.isEnabled = isEnabled
         self.region = region
         self.version = version
         self.flags = flags
@@ -67,6 +72,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         self.eventXP = eventXP
         self.dropRate = dropRate
         self.channels = channels
+        self.characters = characters
         self.lastCharacter = lastCharacter
     }
     
@@ -78,12 +84,14 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         case version
         case name
         case address
+        case isEnabled = "enabled"
         case flags
         case eventMessage
         case rateModifier
         case eventXP
         case dropRate
         case channels
+        case characters
         case lastCharacter
     }
 }
@@ -111,6 +119,7 @@ extension World: Entity {
             .region: .int16,
             .version: .int32,
             .address: .string,
+            .isEnabled: .bool,
             .flags: .int16,
             .eventMessage: .string,
             .rateModifier: .int16,
@@ -126,6 +135,13 @@ extension World: Entity {
                 id: .channels,
                 entity: World.self,
                 destination: Channel.self,
+                type: .toMany,
+                inverseRelationship: .world
+            ),
+            .characters: Relationship(
+                id: .characters,
+                entity: World.self,
+                destination: Character.self,
                 type: .toMany,
                 inverseRelationship: .world
             )
