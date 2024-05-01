@@ -10,13 +10,19 @@ import MapleStory
 
 public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x0B }
+    public static var opcode: Opcode { .init(server: .characterList) }
     
     internal let value0: UInt8 // 0x00
     
     public let characters: [Character]
     
     public let maxCharacters: UInt32
+    
+    public init(characters: [Character], maxCharacters: UInt32) {
+        self.value0 = 0x00
+        self.characters = characters
+        self.maxCharacters = maxCharacters
+    }
 }
 
 public extension CharacterListResponse {

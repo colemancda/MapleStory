@@ -9,7 +9,7 @@ import Foundation
 
 public struct CreateCharacterResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x0E }
+    public static var opcode: Opcode { .init(server: .createCharacterResponse) }
     
     public typealias Character = CharacterListResponse.Character
     

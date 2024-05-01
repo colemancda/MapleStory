@@ -37,19 +37,19 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable {
     case allCharlist = 0x08
     
     /// Server list packet header.
-    case serverlist = 0x0A
+    case serverList = 0x0A
     
     /// Character list packet header.
-    case charlist = 0x0B
+    case characterList = 0x0B
     
     /// Server IP packet header.
     case serverIP = 0x0C
     
     /// Character name response packet header.
-    case charNameResponse = 0x0D
+    case characterNameResponse = 0x0D
     
     /// Add new character entry packet header.
-    case addNewCharEntry = 0x0E
+    case createCharacterResponse = 0x0E
     
     /// Delete character response packet header.
     case deleteCharResponse = 0x0F
