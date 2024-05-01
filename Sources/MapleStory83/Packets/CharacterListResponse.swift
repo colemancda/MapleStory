@@ -10,13 +10,30 @@ import MapleStory
 
 public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x0B }
+    public static var opcode: Opcode { .init(server: .charNameResponse) }
     
-    internal let value0: UInt8 // 0x00
+    public let status: UInt8 // 0x00
+    
+    public let characterCount: UInt8
     
     public let characters: [Character]
     
+    public let picStatus: PicCodeStatus
+    
     public let maxCharacters: UInt32
+    
+    public init(
+        reason: LoginError? = nil,
+        characters: [Character],
+        picStatus: PicCodeStatus = .disabled,
+        maxCharacters: UInt32 = 3
+    ) {
+        self.status = reason?.rawValue ?? 0x00
+        self.characters = characters
+        self.characterCount = numericCast(characters.count)
+        self.picStatus = picStatus
+        self.maxCharacters = maxCharacters
+    }
 }
 
 public extension CharacterListResponse {
@@ -83,7 +100,7 @@ public extension CharacterListResponse {
         
         public let isMarried: UInt32
         
-        public let currentMap: UInt32
+        public let currentMap: Map.ID
         
         public let spawnPoint: UInt8
         
@@ -244,7 +261,7 @@ public extension CharacterListResponse.Character {
             value0: 0,
             value1: 0,
             value2: 0,
-            level: character.level,
+            level: numericCast(character.level),
             job: character.job,
             str: character.str,
             dex: character.dex,
