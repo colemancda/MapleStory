@@ -86,7 +86,10 @@ public extension World {
         version: Version,
         in context: Storage
     ) async throws -> [World] {
-        let worlds = names.enumerated().map { (index, name) in
+        let worlds = names
+            .filter { $0.isCompatible(for: version) }
+            .enumerated()
+            .map { (index, name) in
             var address = MapleStoryAddress.channelServerDefault
             address.port += UInt16(index)
             return World(
@@ -103,11 +106,11 @@ public extension World {
             // create world
             try await context.insert(world)
             // insert channels
-            for channelIndex in 0 ..< 20 {
+            for channelIndex in 0 ..< 19 {
                 let channel = Channel(
                     index: numericCast(channelIndex),
                     world: world.id,
-                    name: world.name + " - Channel \(channelIndex)"
+                    name: world.name + " - Channel \(channelIndex + 1)"
                 )
                 world.channels.append(channel.id)
                 // save world and channel
