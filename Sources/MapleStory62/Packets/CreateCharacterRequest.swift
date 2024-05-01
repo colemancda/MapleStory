@@ -10,7 +10,7 @@ import MapleStory
 
 public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x16 }
+    public static var opcode: Opcode { .init(client: .createCharacter) }
     
     public let name: String
     

@@ -9,5 +9,5 @@ import Foundation
 
 public struct AllCharactersRequest: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x0D }
+    public static var opcode: Opcode { .init(client: .viewAllCharacters) }
 }

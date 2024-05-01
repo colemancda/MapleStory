@@ -35,7 +35,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case updatePincode = 0x07
     
     /// View all characters opcode. (0x08)
-    case viewAllChar = 0x08
+    case viewAllCharacters = 0x08
     
     /// Select character by VAC opcode. (0x09)
     case selectCharacterByVac = 0x09
