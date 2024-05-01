@@ -381,7 +381,7 @@ public extension Character {
             int: value.int,
             luk: value.luk,
             currentMap: currentMap,
-            spawnPoint: 1
+            spawnPoint: 0
         )
     }
 }
