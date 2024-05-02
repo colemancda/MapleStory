@@ -98,6 +98,14 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encryptedData, encryptedPacket.data)
     }
     
+    func testAcceptLicense() {
+        
+        let packet: Packet<ClientOpcode> = [0x06, 0x01]
+        let value = AcceptLicenseRequest()
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
     func testCheckLogin() {
         
         let packet: Packet<ClientOpcode> = [0x08, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
@@ -109,6 +117,22 @@ final class LoginTests: XCTestCase {
             pinCode: nil
         )
         
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testSetGender() {
+        
+        let packet: Packet<ClientOpcode> = [0x07, 0x01, 0x00]
+        let value = SetGenderRequest(gender: .male)
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testEndWorldList() {
+        
+        let packet: Packet<ServerOpcode> = [0x09, 0xFF]
+        let value = ServerListResponse.end
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
     }
