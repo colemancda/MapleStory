@@ -205,4 +205,82 @@ final class LoginTests: XCTestCase {
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
     }
+    
+    func testLoginWorldSelectionRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x05, 0x00, 0x00]
+        let value = WorldSelectionRequest(world: 0)
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testLoginWorldSelectionResponse() {
+        
+        let packet: Packet<ServerOpcode> = [0x03, 0x00, 0x00]
+        let value = WorldMetadataResponse(
+            warning: .normal,
+            population: .normal
+        )
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testCharacterListRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x04, 0x00, 0x00]
+        let value = CharacterListRequest(
+            world: 0,
+            channel: 0
+        )
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testEmptyCharacterListResponse() {
+        
+        let packet: Packet<ServerOpcode> = [0x0A, 0x00, 0x00]
+        let value = CharacterListResponse(characters: [])
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testCheckCharacterNameRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x0D, 0x0A, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x63, 0x64, 0x61]
+        let value = CheckCharacterNameRequest(name: "colemancda")
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testCheckCharacterNameResponse() {
+        
+        let packet: Packet<ServerOpcode> = [0x0C, 0x0A, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x63, 0x64, 0x61, 0x00]
+        let value = CheckCharacterNameResponse(name: "colemancda", isUsed: false)
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testCreateCharacterRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x0E, 0x0A, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x63, 0x64, 0x61, 0x20, 0x4E, 0x00, 0x00, 0x44, 0x75, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x82, 0xDE, 0x0F, 0x00, 0xA2, 0x2C, 0x10, 0x00, 0x81, 0x5B, 0x10, 0x00, 0xF0, 0xDD, 0x13, 0x00, 0x06, 0x06, 0x06, 0x07]
+        
+        let value = CreateCharacterRequest(
+            name: "colemancda",
+            face: 20000,
+            hair: 30020,
+            hairColor: 3,
+            skinColor: 0,
+            top: 1040002,
+            bottom: 1060002,
+            shoes: 1072001,
+            weapon: 1302000,
+            str: 6,
+            dex: 6,
+            int: 6,
+            luk: 7
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
 }
