@@ -24,14 +24,14 @@ final class CryptoTests: XCTestCase {
         let iv = Nonce(rawValue: 0x27568982).iv
         let length = 2
         
-        let output = Packet.Encrypted.header(
+        let output = EncryptedPacket.header(
             length: length,
             iv: iv,
             version: .v62
         )
         
         XCTAssertEqual(output, header)
-        XCTAssertEqual(Packet.Encrypted.length(output), length)
+        XCTAssertEqual(EncryptedPacket.length(output), length)
     }
     
     func testMapleEncrypt() {

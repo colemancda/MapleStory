@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct AllCharactersRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct AllCharactersRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .viewAllCharacters) }
+    public static var opcode: ClientOpcode { .viewAllCharacters }
 }

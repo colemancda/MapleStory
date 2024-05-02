@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct AllCharactersSelectRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
+public struct AllCharactersSelectRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0E }
+    public static var opcode: ClientOpcode { .pickAllCharacters }
     
     public let character: Character.Index
     

@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import MapleStory
 
-public enum NPCTalkNotification: MapleStoryPacket, Equatable, Hashable {
+public enum NPCTalkNotification: MapleStoryPacket, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xED }
+    public static var opcode: ServerOpcode { .npcTalk }
     
     case dialog(npc: UInt32, message: String, buttons: NPCTalkDialogButtons)
     

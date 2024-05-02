@@ -9,7 +9,7 @@ import Foundation
 import Socket
 
 /// MapleStory Connection
-public actor Connection <Socket: MapleStorySocket> {
+public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode, WriteOpcode: MapleStoryOpcode> {
     
     public nonisolated var address: MapleStoryAddress {
         socket.address
@@ -26,7 +26,7 @@ public actor Connection <Socket: MapleStorySocket> {
     let timestamp = Date()
     
     let didDisconnect: ((Error?) async -> ())?
-    
+        
     var isConnected = true
     
     public var recieveNonce = Nonce()
@@ -42,9 +42,6 @@ public actor Connection <Socket: MapleStorySocket> {
     nonisolated let decoder = MapleStoryDecoder()
     
     private var shouldEncrypt = false
-        
-    /// IDs for registered callbacks.
-    private var nextRegisterID: UInt = 0
     
     /// IDs for "send" ops.
     private var nextSendOpcodeID: UInt = 0
@@ -53,7 +50,7 @@ public actor Connection <Socket: MapleStorySocket> {
     private var writeQueue = [SendOperation]()
     
     /// List of registered callbacks.
-    private var notifyList = [NotifyType]()
+    private var notifyList = [ReadOpcode: ConnectionNotifyType]()
     
     // MARK: - Initialization
     
@@ -72,6 +69,8 @@ public actor Connection <Socket: MapleStorySocket> {
         self.log = log
         self.didDisconnect = didDisconnect
         run()
+        self.writeQueue.reserveCapacity(10)
+        self.notifyList.reserveCapacity(25)
     }
     
     // MARK: - Methods
@@ -138,14 +137,21 @@ public actor Connection <Socket: MapleStorySocket> {
     internal func read() async throws {
         
         // read unencrypted packet or encrypted header
-        let bytesToRead = shouldEncrypt ? Packet.Encrypted.minSize : Int(UInt16.max)
+        let bytesToRead = shouldEncrypt ? EncryptedPacket.minSize : Int(UInt16.max)
         let recievedData = try await socket.recieve(bytesToRead)
         
-        let packet: Packet
+        let packet: Packet<ReadOpcode>
         if shouldEncrypt {
             // parse encrypted header
-            let encryptedHeader = UInt32(bytes: (recievedData[0], recievedData[1], recievedData[2], recievedData[3]))
-            let length = Packet.Encrypted.length(encryptedHeader)
+            let encryptedHeader = UInt32(
+                bytes: (
+                    recievedData[0],
+                    recievedData[1],
+                    recievedData[2],
+                    recievedData[3]
+                )
+            )
+            let length = EncryptedPacket.length(encryptedHeader)
             #if DEBUG
             log?("Recieved encrypted packet length \(length)")
             #endif
@@ -163,7 +169,7 @@ public actor Connection <Socket: MapleStorySocket> {
             recieveNonce.shuffle()
         } else {
             // parse unencrypted packet
-            guard let unencryptedPacket = Packet(data: recievedData) else {
+            guard let unencryptedPacket = Packet<ReadOpcode>(data: recievedData) else {
                 throw MapleStoryError.invalidData(recievedData)
             }
             packet = unencryptedPacket
@@ -186,16 +192,13 @@ public actor Connection <Socket: MapleStorySocket> {
         guard let sendOperation = pickNextSendOpcode()
             else { return false }
         
-        // encode packet
-        let packet = try encoder.encodePacket(sendOperation.packet)
-        
         #if DEBUG
-        log?("Packet: \(packet.data.hexString)")
+        log?("Packet: \(sendOperation.packet.data.hexString)")
         #endif
         
         // encrypt packet parameters
         let data: Data
-        if shouldEncrypt {
+        if shouldEncrypt, case let .packet(packet) = sendOperation.packet {
             data = try packet.encrypt(
                 key: key,
                 nonce: sendNonce,
@@ -207,13 +210,18 @@ public actor Connection <Socket: MapleStorySocket> {
             #endif
             sendNonce.shuffle()
         } else {
-            data = packet.data
+            data = sendOperation.packet.data
         }
         
         // write data to socket
         try await socket.send(data)
         
-        log?("Sent packet \(packet.opcode)")
+        switch sendOperation.packet {
+        case .bytes(let data):
+            log?("Sent \(data.count) bytes")
+        case .packet(let packet):
+            log?("Sent \(packet.opcode) (\(packet.data.count) bytes)")
+        }
         sendOperation.didWrite?.resume()
         sendOperation.didWrite = nil
         
@@ -225,6 +233,9 @@ public actor Connection <Socket: MapleStorySocket> {
         Task(priority: .high) { [weak self] in
             guard let self = self, await self.isConnected else { return }
             do { try await self.write() }
+            catch Errno.socketShutdown {
+                return
+            }
             catch {
                 log?("Unable to write. \(error)")
                 await self.socket.close()
@@ -233,38 +244,26 @@ public actor Connection <Socket: MapleStorySocket> {
     }
     
     /// Registers a callback for an opcode and returns the ID associated with that callback.
-    @discardableResult
-    public func register <T> (_ callback: @escaping (T) async -> ()) -> UInt where T: MapleStoryPacket, T: Decodable {
-        
-        let id = nextRegisterID
-        
-        // create notification
-        let notify = Notify(id: id, notify: callback)
-        
-        // increment ID
-        nextRegisterID += 1
-        
-        // add to queue
-        notifyList.append(notify)
-        
-        return id
+    public func register <T> (
+        _ callback: @escaping (T) async -> ()
+    ) where T: MapleStoryPacket, T: Decodable, T.Opcode == ReadOpcode {
+        let notify = Notify(
+            opcode: T.opcode,
+            notify: callback
+        )
+        notifyList[T.opcode] = notify
     }
     
     /// Unregisters the callback associated with the specified identifier.
     ///
     /// - Returns: Whether the callback was unregistered.
-    @discardableResult
-    public func unregister(_ id: UInt) -> Bool {
-        
-        guard let index = notifyList.firstIndex(where: { $0.id == id })
-            else { return false }
-        notifyList.remove(at: index)
-        return true
+    public func unregister(_ opcode: ReadOpcode) {
+        notifyList.removeValue(forKey: opcode)
     }
     
     /// Registers all callbacks.
     public func unregisterAll() {
-        notifyList.removeAll()
+        notifyList.removeAll(keepingCapacity: true)
     }
     
     /// Adds a packet to the queue to send.
@@ -273,19 +272,38 @@ public actor Connection <Socket: MapleStorySocket> {
     @discardableResult
     public func queue <T> (
         _ packet: T,
-        didWrite: CheckedContinuation<Void, Error>? = nil,
-        response: (callback: CheckedContinuation<MapleStoryPacket, Error>, MapleStoryPacket.Type)? = nil
-    ) -> UInt? where T: MapleStoryPacket, T: Encodable {
+        didWrite: CheckedContinuation<Void, Error>? = nil
+    ) throws -> UInt where T: MapleStoryPacket, T: Encodable, T.Opcode == WriteOpcode {
+        let encodedPacket = try encoder.encodePacket(packet)
+        return try queue(.packet(encodedPacket), didWrite: didWrite)
+    }
+    
+    /// Adds a packet to the queue to send.
+    ///
+    /// - Returns: Identifier of queued send operation or `nil` if the packet cannot be sent.
+    public func queue(
+        _ packet: Data,
+        didWrite: CheckedContinuation<Void, Error>? = nil
+    ) throws -> UInt {
+        return try queue(.bytes(packet), didWrite: didWrite)
+    }
+    
+    /// Adds a packet to the queue to send.
+    ///
+    /// - Returns: Identifier of queued send operation or `nil` if the packet cannot be sent.
+    private func queue(
+        _ packet: SendOperation.PacketData,
+        didWrite: CheckedContinuation<Void, Error>? = nil
+    ) throws -> UInt {
         
         // increment ID
         let id = nextSendOpcodeID
         nextSendOpcodeID += 1
-        
+                
         let sendOpcode = SendOperation(
             id: id,
             packet: packet,
-            didWrite: didWrite,
-            response: response
+            didWrite: didWrite
         )
         
         // Add the op to the correct queue based on its type
@@ -296,94 +314,116 @@ public actor Connection <Socket: MapleStorySocket> {
     }
     
     private func pickNextSendOpcode() -> SendOperation? {
-        
-        // See if any operations are already in the write queue
-        if let sendOpcode = writeQueue.popFirst() {
-            return sendOpcode
-        }
-        
-        return nil
+        writeQueue.popFirst()
     }
     
-    private func handle(notify packet: Packet) async throws {
+    private func handle(notify packet: Packet<ReadOpcode>) async throws {
         
-        var foundPDU: MapleStoryPacket?
+        let opcode = packet.opcode
+        guard let notify = notifyList[opcode] else {
+            #if DEBUG
+            log?("Recieved unhandled packet \(opcode)")
+            #endif
+            return
+        }
         
-        let oldList = notifyList
-        for notify in oldList {
-            
-            // try next opcode
-            guard type(of: notify).packetType.opcode == packet.opcode else {
-                continue
-            }
-            
-            // attempt to deserialize
-            guard let PDU = foundPDU ?? (try? type(of: notify).packetType.init(packet: packet, decoder: decoder))
-                else { throw MapleStoryError.invalidData(packet.data) }
-            
-            foundPDU = PDU
-            
-            await notify.callback(PDU)
-            
-            // callback could remove all entries from notify list, if so, exit the loop
-            if self.notifyList.isEmpty { break }
+        let value: Decodable
+        do {
+            value = try decoder.decodeGeneric(type(of: notify).packetType, from: packet)
+        }
+        catch {
+            #if DEBUG
+            log?("Unable to decode \(opcode). \(error)")
+            #endif
+            throw MapleStoryError.invalidData(packet.data)
+        }
+        
+        // execute callback
+        await notify.callback(value)
+    }
+}
+
+internal extension Connection {
+    
+    final class SendOperation {
+        
+        /// The operation identifier.
+        let id: UInt
+        
+        /// The packet to send.
+        let packet: PacketData
+        
+        fileprivate(set) var didWrite: CheckedContinuation<Void, Error>?
+        
+        deinit {
+            didWrite?.resume(throwing: CancellationError())
+        }
+        
+        fileprivate init(
+            id: UInt,
+            packet: PacketData,
+            didWrite: CheckedContinuation<Void, Error>?
+        ) {
+            self.id = id
+            self.packet = packet
+            self.didWrite = didWrite
         }
     }
 }
 
-internal final class SendOperation {
+internal extension Connection.SendOperation {
     
-    /// The operation identifier.
-    let id: UInt
-    
-    /// The packet to send.
-    let packet: any (MapleStoryPacket & Encodable)
-    
-    fileprivate(set) var didWrite: CheckedContinuation<Void, Error>?
-    
-    /// The response callback.
-    fileprivate(set) var response: (callback: CheckedContinuation<MapleStoryPacket, Error>, responseType: MapleStoryPacket.Type)?
-    
-    deinit {
-        didWrite?.resume(throwing: CancellationError())
-        response?.callback.resume(throwing: CancellationError())
-    }
-    
-    fileprivate init(
-        id: UInt,
-        packet: any (MapleStoryPacket & Encodable),
-        didWrite: CheckedContinuation<Void, Error>?,
-        response: (callback: CheckedContinuation<MapleStoryPacket, Error>, responseType: MapleStoryPacket.Type)?
-    ) {
-        self.id = id
-        self.packet = packet
-        self.response = response
-        self.didWrite = didWrite
+    enum PacketData {
+        case bytes(Foundation.Data)
+        case packet(MapleStory.Packet<WriteOpcode>)
     }
 }
 
-internal protocol NotifyType {
+internal extension Connection.SendOperation.PacketData {
     
-    static var packetType: (MapleStoryPacket & Decodable).Type { get }
+    var data: Data {
+        switch self {
+        case let .bytes(data):
+            return data
+        case let .packet(packet):
+            return packet.data
+        }
+    }
+}
+
+internal extension Connection {
+    
+    struct Notify<T>: ConnectionNotifyType, Identifiable where T: MapleStoryPacket, T: Decodable, T.Opcode == ReadOpcode {
+                                
+        let opcode: ReadOpcode
+        
+        let notify: (T) async -> ()
+        
+        static var packetType: Decodable.Type { T.self }
+        
+        var id: UInt {
+            .init(opcode.rawValue)
+        }
+        
+        var callback: (Decodable) async -> () {
+            { await self.notify($0 as! T) }
+        }
+        
+        init(
+            opcode: ReadOpcode,
+            notify: @escaping (T) async -> ()
+        ) {
+            self.opcode = opcode
+            self.notify = notify
+        }
+    }
+}
+
+internal protocol ConnectionNotifyType {
+    
+    static var packetType: Decodable.Type { get }
     
     var id: UInt { get }
     
-    var callback: (MapleStoryPacket) async -> () { get }
-}
-
-internal struct Notify<Packet>: NotifyType where Packet: MapleStoryPacket, Packet: Decodable {
-    
-    static var packetType: (MapleStoryPacket & Decodable).Type { return Packet.self }
-    
-    let id: UInt
-    
-    let notify: (Packet) async -> ()
-    
-    var callback: (MapleStoryPacket) async -> () { return { await self.notify($0 as! Packet) } }
-    
-    init(id: UInt, notify: @escaping (Packet) async -> ()) {
-        
-        self.id = id
-        self.notify = notify
-    }
+    var callback: (any Decodable) async -> () { get }
 }

@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct HealOverTimeRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct HealOverTimeRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x51 }
+    public static var opcode: ClientOpcode { .healOverTime }
     
     internal let value0: UInt8
     

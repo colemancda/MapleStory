@@ -18,10 +18,10 @@ public struct GuestLoginHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await guestLogin(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
@@ -29,7 +29,7 @@ internal extension GuestLoginHandler {
     
     func guestLogin<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory83.GuestLoginRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory83.LoginResponse {
         let user = try await connection.guestLogin()
         let database = await connection.database

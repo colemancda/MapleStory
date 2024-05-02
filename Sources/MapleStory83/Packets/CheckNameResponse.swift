@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct CheckNameResponse: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct CheckCharacterNameResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0D }
+    public static var opcode: ServerOpcode { .checkCharacterNameResponse }
     
     public let name: String
     

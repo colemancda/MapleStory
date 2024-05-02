@@ -7,7 +7,7 @@
 
 import Foundation
 
-public enum Movement: Codable, Equatable, Hashable {
+public enum Movement: Codable, Equatable, Hashable, Sendable {
     
     case absolute(Absolute)
     case relative(Relative)
@@ -67,7 +67,7 @@ extension Movement: MapleStoryCodable {
 
 public extension Movement {
     
-    struct Absolute: Codable, Equatable, Hashable {
+    struct Absolute: Codable, Equatable, Hashable, Sendable {
         
         public let command: UInt8
         
@@ -86,7 +86,7 @@ public extension Movement {
         public var duration: UInt16
     }
     
-    struct Relative: Codable, Equatable, Hashable {
+    struct Relative: Codable, Equatable, Hashable, Sendable {
         
         public let command: UInt8
         
@@ -99,7 +99,7 @@ public extension Movement {
         public var duration: UInt16
     }
     
-    struct Teleport: Codable, Equatable, Hashable {
+    struct Teleport: Codable, Equatable, Hashable, Sendable {
         
         public let command: UInt8
         
@@ -114,14 +114,14 @@ public extension Movement {
         public var newState: UInt8
     }
     
-    struct ChangeEquipment: Codable, Equatable, Hashable {
+    struct ChangeEquipment: Codable, Equatable, Hashable, Sendable {
         
         public let command: UInt8
         
         public var wui: UInt8
     }
     
-    struct Chair: Codable, Equatable, Hashable {
+    struct Chair: Codable, Equatable, Hashable, Sendable {
         
         public let command: UInt8
         
@@ -136,7 +136,7 @@ public extension Movement {
         public var duration: UInt16
     }
     
-    struct JumpDown: Codable, Equatable, Hashable {
+    struct JumpDown: Codable, Equatable, Hashable, Sendable {
         
         public let command: UInt8
         

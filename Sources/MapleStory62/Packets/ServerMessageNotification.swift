@@ -9,7 +9,7 @@ import Foundation
 
 public enum ServerMessageNotification: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x41 }
+    public static var opcode: ServerOpcode { .serverMessage }
     
     case notice(message: String)
     case popup(message: String)

@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct PlayerUpdateRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct PlayerUpdateRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xC0 }
+    public static var opcode: ClientOpcode { .playerDC }
     
     public init() { }
 }

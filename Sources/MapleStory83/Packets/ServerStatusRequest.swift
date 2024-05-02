@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct ServerStatusRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
+public struct ServerStatusRequest: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x06 }
+    public static var opcode: ClientOpcode { .serverStatusRequest }
     
     public let world: UInt8
     

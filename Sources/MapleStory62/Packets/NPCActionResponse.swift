@@ -7,9 +7,9 @@
 
 import Foundation
 
-public enum NPCActionResponse: MapleStoryPacket, Encodable, Equatable, Hashable {
+public enum NPCActionResponse: MapleStoryPacket, Encodable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xC5 }
+    public static var opcode: ServerOpcode { .npcAction }
     
     /// Talk
     case talk(UInt32, UInt16)

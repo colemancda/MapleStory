@@ -9,7 +9,7 @@ import Foundation
 import MapleStory83
 import MapleStoryServer
 import CoreModel
-
+/*
 public struct HandshakeHandler: ServerHandler {
     
     public func didConnect<Socket, Storage>(
@@ -40,3 +40,4 @@ internal extension HandshakeHandler {
         await connection.encrypt()
     }
 }
+*/

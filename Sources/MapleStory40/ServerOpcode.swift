@@ -6,7 +6,7 @@
 //
 
 /// Operation codes for server-client communication.
-public enum ServerOpcode: UInt16, Codable, CaseIterable {
+public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
     /// Indicates the result of a password check.
     case checkPasswordResult = 0x01

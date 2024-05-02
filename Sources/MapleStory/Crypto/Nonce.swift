@@ -8,7 +8,7 @@
 @_implementationOnly import CMapleStory
 
 /// MapleStory Cryptographic Nonce
-public struct Nonce: RawRepresentable, Equatable, Hashable, Codable {
+public struct Nonce: RawRepresentable, Equatable, Hashable, Codable, Sendable {
     
     public var rawValue: UInt32
     

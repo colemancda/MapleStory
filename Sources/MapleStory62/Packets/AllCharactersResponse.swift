@@ -7,9 +7,9 @@
 
 import Foundation
 
-public enum AllCharactersResponse: MapleStoryPacket, Equatable, Hashable {
+public enum AllCharactersResponse: MapleStoryPacket, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x08 }
+    public static var opcode: ServerOpcode { .allCharacters }
     
     public typealias Character = CharacterListResponse.Character
     

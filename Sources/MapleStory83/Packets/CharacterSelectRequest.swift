@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import MapleStory
 
-public struct CharacterSelectRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
+public struct CharacterSelectRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x13 }
+    public static var opcode: ClientOpcode { .characterSelectRequest }
     
     public let character: Character.Index
     

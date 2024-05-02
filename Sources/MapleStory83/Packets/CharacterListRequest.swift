@@ -9,7 +9,7 @@ import Foundation
 
 public struct CharacterListRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .characterListRequest) }
+    public static var opcode: ClientOpcode { .characterListRequest }
     
     internal let value0: UInt8
     

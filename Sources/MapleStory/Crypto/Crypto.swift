@@ -11,28 +11,30 @@ import CryptoSwift
 
 // MARK: - Packet
 
-public extension Packet {
+public struct EncryptedPacket: Equatable, Hashable {
     
-    struct Encrypted: Equatable, Hashable {
-        
-        public internal(set) var data: Data
-        
-        internal init(_ data: Data) {
-            self.data = data
-            assert(data.count >= Self.minSize)
+    public internal(set) var data: Data
+    
+    internal init(_ data: Data) {
+        self.data = data
+        assert(data.count >= Self.minSize)
+    }
+    
+    public init?(data: Data) {
+        // validate size
+        guard data.count >= Self.minSize else {
+            return nil
         }
-        
-        public init?(data: Data) {
-            // validate size
-            guard data.count >= Self.minSize else {
-                return nil
-            }
-            self.data = data
-        }
+        self.data = data
     }
 }
 
-public extension Packet.Encrypted {
+public extension Packet {
+    
+    typealias Encrypted = EncryptedPacket
+}
+
+public extension EncryptedPacket {
     
     static var minSize: Int { 4 }
     
@@ -64,7 +66,7 @@ public extension Packet {
         key: Key? = .default,
         nonce: Nonce = Nonce(),
         version: Version
-    ) throws -> Packet.Encrypted {
+    ) throws -> EncryptedPacket {
         let iv = nonce.iv
         let length = self.data.count
         var encrypted = self.data
@@ -76,12 +78,12 @@ public extension Packet {
                 iv: iv
             )
         }
-        let header = Packet.Encrypted.header(
+        let header = EncryptedPacket.header(
             length: length,
             iv: iv,
             version: version
         )
-        return Packet.Encrypted(
+        return EncryptedPacket(
             header: header,
             encrypted: encrypted
         )
@@ -113,14 +115,14 @@ public extension Packet {
     }
 }
 
-public extension Packet.Encrypted {
+public extension EncryptedPacket {
     
     /// Decrypt
-    func decrypt(
+    func decrypt<Opcode: MapleStoryOpcode>(
         key: Key? = .default,
         nonce: Nonce,
         version: Version
-    ) throws -> Packet {
+    ) throws -> Packet<Opcode> {
         return try Packet.decrypt(
             self.parameters,
             key: key,
@@ -130,7 +132,7 @@ public extension Packet.Encrypted {
     }
 }
 
-internal extension Packet.Encrypted {
+internal extension EncryptedPacket {
     
     static func header(
         length: Int,

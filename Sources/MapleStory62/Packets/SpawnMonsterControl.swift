@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct SpawnMonsterControl: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct SpawnMonsterControl: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xB1 }
+    public static var opcode: ServerOpcode { .spawnMonsterControl }
     
     
 }

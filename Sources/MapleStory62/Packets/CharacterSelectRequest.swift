@@ -9,7 +9,7 @@ import Foundation
 
 public struct CharacterSelectRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x13 }
+    public static var opcode: ClientOpcode { .characterSelect }
     
     public let character: Character.Index
     

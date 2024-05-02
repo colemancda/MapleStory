@@ -18,10 +18,10 @@ public struct LoginHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await login(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
@@ -29,7 +29,7 @@ internal extension LoginHandler {
     
     func login<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory62.LoginRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory62.LoginResponse {
         do {
             let user = try await connection.login(

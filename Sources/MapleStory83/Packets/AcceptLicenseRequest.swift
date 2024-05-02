@@ -10,7 +10,7 @@ import MapleStory
 
 public struct AcceptLicenseRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .acceptLicense) }
+    public static var opcode: ClientOpcode { (.acceptLicense) }
     
     internal let value0: UInt8
 }

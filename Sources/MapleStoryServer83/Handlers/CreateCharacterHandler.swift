@@ -18,10 +18,10 @@ public struct CreateCharacterHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await createCharacter(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
@@ -29,7 +29,7 @@ internal extension CreateCharacterHandler {
     
     func createCharacter<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory83.CreateCharacterRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory83.CreateCharacterResponse {
         guard let name = CharacterName(rawValue: request.name),
             let skinColor = SkinColor(rawValue: numericCast(request.skinColor)) else {

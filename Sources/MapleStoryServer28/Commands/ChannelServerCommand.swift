@@ -8,10 +8,11 @@
 import Foundation
 import ArgumentParser
 import NIO
-import MapleStoryServer
 import Socket
 import CoreModel
 import MongoDBModel
+import MapleStory28
+import MapleStoryServer
 
 struct ChannelServerCommand: AsyncParsableCommand {
     
@@ -104,7 +105,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
             model: .mapleStory
         )
         
-        let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage>(
+        let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage, ClientOpcode, ServerOpcode>(
             configuration: configuration,
             database: store,
             socket: MapleStorySocketIPv4TCP.self
@@ -135,7 +136,7 @@ public extension MapleStoryServer {
     func registerChannelServer(
         world: World.ID
     ) async {
-        await register(HandshakeHandler())
+        //await register(HandshakeHandler())
         //await register(PingHandler())
         
     }

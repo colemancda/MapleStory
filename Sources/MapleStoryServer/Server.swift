@@ -4,7 +4,9 @@ import CoreModel
 @_exported import MapleStory
 
 /// MapleStory Classic Server
-public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.ModelStorage> {
+public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.ModelStorage, ClientOpcode: MapleStoryOpcode, ServerOpcode: MapleStoryOpcode> {
+    
+    public typealias Handler = ServerHandler<Socket, Database, ClientOpcode, ServerOpcode>
     
     // MARK: - Properties
     
@@ -92,7 +94,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
     public func send<T>(
         _ packet: T,
         to address: MapleStoryAddress
-    ) async throws where T: MapleStoryPacket, T: Encodable {
+    ) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
         guard let connection = await self.storage.connections[address] else {
             throw MapleStoryError.disconnected(address)
         }
@@ -102,7 +104,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
     /// Registers a callback for an opcode and returns the ID associated with that callback.
     internal func register <Packet> (
         _ callback: @escaping (Packet, Connection) async -> ()
-    ) async where Packet: MapleStoryPacket, Packet: Decodable {
+    ) async where Packet: MapleStoryPacket, Packet: Decodable, Packet.Opcode == ClientOpcode {
         let registerBlock: (Connection) async -> () = { connection in
             await connection.register { [unowned connection] (packet: Packet) in
                 await callback(packet, connection)
@@ -112,7 +114,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
         return await storage.register(handler: registerBlock)
     }
     
-    public func register<T: PacketHandler>(_ handler: T) async {
+    public func register<T>(_ handler: T) async where T: PacketHandler, T.Packet.Opcode == ClientOpcode, T.ServerOpcode == ServerOpcode {
         await register { (packet, connection) in
             do {
                 try await handler.handle(packet: packet, connection: connection)
@@ -123,21 +125,21 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
         }
     }
     
-    public func register(_ handler: ServerHandler) async {
+    public func registerServerHandler(_ handler: Handler) async {
         await storage.register(handler: handler)
     }
     
     internal func didConnect(connection: Connection) async {
         let handlers = await self.storage.serverHandlers
         for handler in handlers {
-            handler.didConnect(connection: connection)
+            handler.didConnect(connection)
         }
     }
     
     internal func didDisconnect(address: MapleStoryAddress) async {
         let handlers = await self.storage.serverHandlers
         for handler in handlers {
-            handler.didDisconnect(address: address)
+            handler.didDisconnect(address)
         }
     }
 }
@@ -147,10 +149,10 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
 internal extension MapleStoryServer {
     
     actor InternalStorage {
-        
+                
         var connections = [MapleStoryAddress: Connection](minimumCapacity: 10_000)
         
-        var serverHandlers = [ServerHandler]()
+        var serverHandlers = [Handler]()
         
         var packetHandlers = [(Connection) async -> ()]()
         
@@ -172,7 +174,7 @@ internal extension MapleStoryServer {
             packetHandlers.append(handler)
         }
         
-        func register(handler: ServerHandler) {
+        func register(handler: Handler) {
             serverHandlers.append(handler)
         }
     }
@@ -210,19 +212,19 @@ public extension MapleStoryServer {
             connection.version
         }
         
-        public nonisolated var recieveNonce: MapleStory.Nonce {
+        public var recieveNonce: MapleStory.Nonce {
             get async {
                 await connection.recieveNonce
             }
         }
         
-        public nonisolated var sendNonce: MapleStory.Nonce {
+        public var sendNonce: MapleStory.Nonce {
             get async {
                 await connection.sendNonce
             }
         }
         
-        internal let connection: MapleStory.Connection<Socket>
+        internal let connection: MapleStory.Connection<Socket, ClientOpcode, ServerOpcode>
         
         internal unowned var server: MapleStoryServer
         
@@ -262,78 +264,39 @@ public extension MapleStoryServer {
         
         // MARK: - Methods
         
-        public func authenticate(user: User) async {
-            await connection.authenticate(username: user.username)
-            self.state.user = user.id
-        }
-        
-        public var user: User? {
-            get async throws {
-                guard let id = self.state.user else {
-                    return nil
-                }
-                return try await database.fetch(User.self, for: id)
-            }
-        }
-        
-        public var world: World? {
-            get async throws {
-                guard let id = self.state.world else {
-                    return nil
-                }
-                return try await database.fetch(World.self, for: id)
-            }
-        }
-        
-        public var channel: Channel? {
-            get async throws {
-                guard let id = self.state.channel else {
-                    return nil
-                }
-                return try await database.fetch(Channel.self, for: id)
-            }
-        }
-        
         /// Registers a callback for an opcode and returns the ID associated with that callback.
-        @discardableResult
-        internal func register <T> (_ callback: @escaping (T) async -> ()) async -> UInt where T: MapleStoryPacket, T: Decodable {
+        internal func register <T> (
+            _ callback: @escaping (T) async -> ()
+        ) async where T: MapleStoryPacket, T: Decodable, T.Opcode == ClientOpcode {
             await connection.register(callback)
         }
         
         /// Respond to a client-initiated PDU message.
-        public func send <Request, Response> (
-            _ request: Request,
-            response: Response.Type
-        ) async throws -> Response where Request: MapleStoryPacket, Request: Encodable, Response: MapleStoryPacket, Response: Decodable {
-            log("Request: \(request)")
-            let responsePacket = try await withCheckedThrowingContinuation { continuation in
+        public func send <T> (_ response: T) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
+            log("Send: \(response)")
+            return try await withCheckedThrowingContinuation { continuation in
                 Task {
-                    guard let _ = await self.connection.queue(request, didWrite: nil, response: (continuation, response)) else {
-                        fatalError("Could not add PDU to queue: \(request)")
+                    do {
+                        _ = try await self.connection.queue(response, didWrite: continuation)
+                    }
+                    catch {
+                        assertionFailure("Could not add PDU to queue: \(response). \(error)")
                     }
                 }
             }
-            return responsePacket as! Response
         }
         
         /// Respond to a client-initiated PDU message.
-        public func respond <T> (_ response: T) async throws where T: MapleStoryPacket, T: Encodable {
-            log("Response: \(response)")
+        public func send(_ data: Data) async throws {
+            log("Send: \(data.hexString)")
             return try await withCheckedThrowingContinuation { continuation in
                 Task {
-                    guard let _ = await self.connection.queue(response, didWrite: continuation)
-                        else { fatalError("Could not add PDU to queue: \(response)") }
-                }
-            }
-        }
-        
-        /// Send a server-initiated PDU message.
-        public func send <T> (_ notification: T) async throws where T: MapleStoryPacket, T: Encodable  {
-            log("Notification: \(notification)")
-            return try await withCheckedThrowingContinuation { continuation in
-                Task {
-                    guard let _ = await self.connection.queue(notification, didWrite: continuation)
-                        else { fatalError("Could not add PDU to queue: \(notification)") }
+                    do {
+                        _ = try await self.connection.queue(data, didWrite: continuation)
+                    }
+                    catch {
+                        assertionFailure("Could not add PDU to queue: \(data). \(error)")
+                    }
                 }
             }
         }
@@ -354,6 +317,41 @@ public extension MapleStoryServer {
             for handler in handlers {
                 await handler(self) // register handler
             }
+        }
+    }
+}
+
+public extension MapleStoryServer.Connection {
+    
+    func authenticate(user: User) async {
+        await connection.authenticate(username: user.username)
+        self.state.user = user.id
+    }
+    
+    var user: User? {
+        get async throws {
+            guard let id = self.state.user else {
+                return nil
+            }
+            return try await database.fetch(User.self, for: id)
+        }
+    }
+    
+    var world: World? {
+        get async throws {
+            guard let id = self.state.world else {
+                return nil
+            }
+            return try await database.fetch(World.self, for: id)
+        }
+    }
+    
+    var channel: Channel? {
+        get async throws {
+            guard let id = self.state.channel else {
+                return nil
+            }
+            return try await database.fetch(Channel.self, for: id)
         }
     }
 }

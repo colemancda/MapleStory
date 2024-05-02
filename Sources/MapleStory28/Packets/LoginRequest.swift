@@ -11,7 +11,7 @@ import MapleStory
 /// Login request
 public struct LoginRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .loginRequest) }
+    public static var opcode: ClientOpcode { .loginRequest }
     
     public var username: String
     

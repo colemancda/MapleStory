@@ -18,10 +18,10 @@ public struct ServerStatusHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet request: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await serverStatus(request, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
@@ -29,12 +29,12 @@ internal extension ServerStatusHandler {
     
     func serverStatus<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory83.ServerStatusRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory83.ServerStatusResponse {
         let status = try await connection.serverStatus(
             world: request.world,
             channel: request.channel
         )
-        return .init(status)
+        return .init(status: status)
     }
 }

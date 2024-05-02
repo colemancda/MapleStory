@@ -5,34 +5,43 @@
 //  Created by Alsey Coleman Miller on 12/4/22.
 //
 
+import Foundation
+
 /// MapleStory Opcode
-public struct Opcode: RawRepresentable, Equatable, Hashable, Codable {
+public protocol MapleStoryOpcode: RawRepresentable, Equatable, Hashable, Codable, Sendable where RawValue: BinaryInteger {
     
-    public let rawValue: UInt16
+    init?(rawValue: RawValue)
     
-    public init(rawValue: UInt16) {
-        self.rawValue = rawValue
+    init?(data: Data)
+    
+    var data: Data { get }
+}
+
+extension MapleStoryOpcode where RawValue == UInt8 {
+    
+    public init?(data: Data) {
+        guard data.count >= 1 else {
+            return nil
+        }
+        self.init(rawValue: data[0])
+    }
+    
+    public var data: Data {
+        Data([rawValue])
     }
 }
 
-// MARK: - ExpressibleByIntegerLiteral
-
-extension Opcode: ExpressibleByIntegerLiteral {
+extension MapleStoryOpcode where RawValue == UInt16 {
     
-    public init(integerLiteral value: UInt16) {
-        self.init(rawValue: value)
-    }
-}
-
-// MARK: - CustomStringConvertible
-
-extension Opcode: CustomStringConvertible, CustomDebugStringConvertible {
-    
-    public var description: String {
-        "0x" + rawValue.toHexadecimal()
+    public init?(data: Data) {
+        guard data.count >= 2 else {
+            return nil
+        }
+        self.init(rawValue: UInt16(littleEndian: UInt16(bytes: (data[0], data[1]))))
     }
     
-    public var debugDescription: String {
-        description
+    public var data: Data {
+        let bytes = self.rawValue.littleEndian.bytes
+        return Data([bytes.0, bytes.1])
     }
 }

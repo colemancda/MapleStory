@@ -8,7 +8,7 @@
 import Foundation
 
 /// MapleStory Generic Packet
-public struct Packet: Equatable, Hashable {
+public struct Packet<Opcode: MapleStoryOpcode>: Equatable, Hashable, Sendable {
     
     public internal(set) var data: Data
     
@@ -23,35 +23,43 @@ public struct Packet: Equatable, Hashable {
             return nil
         }
         self.data = data
+        // validate opcode
+        guard readOpcode() != nil else {
+            return nil
+        }
     }
     
     public init(opcode: Opcode, parameters: Data = Data()) {
         let length = Packet.minSize + parameters.count
-        var data = Data(count: Packet.minSize)
+        var data = opcode.data
         data.reserveCapacity(length)
         data += parameters
-        assert(data.count == length)
         self.init(data)
-        // set header bytes
-        self.opcode = opcode
-        assert(self.opcode == opcode)
+        // assertions
+        assert(data.count == length)
+        assert(readOpcode() == opcode)
     }
 }
 
 public extension Packet {
     
-    static var minSize: Int { 2 }
+    static var minSize: Int { MemoryLayout<Opcode.RawValue>.size }
+}
+
+internal extension Packet {
+    
+    func readOpcode() -> Opcode? {
+        Opcode(data: data.prefix(MemoryLayout<Opcode.RawValue>.size))
+    }
 }
 
 public extension Packet {
     
     var opcode: Opcode {
-        get { Opcode(rawValue: UInt16(littleEndian: UInt16(bytes: (data[0], data[1])))) }
-        set {
-            let bytes = newValue.rawValue.littleEndian.bytes
-            data[0] = bytes.0
-            data[1] = bytes.1
+        guard let opcode = readOpcode() else {
+            fatalError("Invalid opcode bytes")
         }
+        return opcode
     }
     
     /// Packet parameters
@@ -98,20 +106,25 @@ extension Packet: ExpressibleByArrayLiteral {
 /// MapleStory Packet Parameters protocol
 public protocol MapleStoryPacket {
     
-    /// MapleStory command type
+    associatedtype Opcode: MapleStoryOpcode
+    
+    /// MapleStory packet opcode.
     static var opcode: Opcode { get }
 }
 
 internal extension Packet {
     
-    init<T>(_ packet: T, encoder: MapleStoryEncoder = MapleStoryEncoder()) throws where T: MapleStoryPacket, T: Encodable {
+    init<T>(
+        _ packet: T,
+        encoder: MapleStoryEncoder = MapleStoryEncoder()
+    ) throws where T: MapleStoryPacket, T: Encodable, T.Opcode == Opcode {
         self = try encoder.encodePacket(packet)
     }
 }
 
 internal extension MapleStoryPacket where Self: Decodable {
     
-    init(packet: Packet, decoder: MapleStoryDecoder = MapleStoryDecoder()) throws {
+    init(packet: Packet<Opcode>, decoder: MapleStoryDecoder = MapleStoryDecoder()) throws {
         self = try decoder.decode(Self.self, from: packet)
     }
 }

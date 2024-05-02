@@ -10,9 +10,9 @@ import Foundation
 /// MapleStory v62 Hello packet
 ///
 /// This is the first packet sent by the server when a client connects.
-public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x000D }
+    public static var opcode: ServerOpcode { .CheckCharacterNameResponse }
     
     public let version: Version
     

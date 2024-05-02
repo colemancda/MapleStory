@@ -14,7 +14,7 @@ final class LoginTests: XCTestCase {
     
     func testHello() throws {
         
-        let packet: Packet = [0x0D, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x90, 0xE0, 0xCE, 0x6E, 0x5C, 0x2C, 0x1D, 0x1F, 0x08]
+        let data = Data([0x0D, 0x00, 0x1C, 0x00, 0x00, 0x00, 0x90, 0xE0, 0xCE, 0x6E, 0x5C, 0x2C, 0x1D, 0x1F, 0x08])
         
         let value = HelloPacket(
             recieveNonce: 0x90E0CE6E,
@@ -23,13 +23,13 @@ final class LoginTests: XCTestCase {
         )
         
         XCTAssertEqual(value.version, .v28)
-        XCTAssertEncode(value, packet)
-        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, data)
+        XCTAssertDecode(value, data)
     }
     
     func testLoginRequest() throws {
         
-        let packet: Packet = [
+        let packet: Packet<ClientOpcode> = [
             0x01,
             0x0A, 0x00,
             0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x63, 0x64, 0x61,
@@ -58,12 +58,17 @@ final class LoginTests: XCTestCase {
         
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
-        //XCTAssertEqual(packet.data.count, 43)
+        XCTAssertEqual(packet.data.count, 45)
     }
     
     func testLoginFailure() throws {
         
-        let packet: Packet = [1, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        let packet: Packet<ServerOpcode> = [1, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+        
+        let value = LoginResponse.failure(.alreadyLoggedIn)
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
         
         let encryptedData = Data([77, 65, 82, 65, 118, 195, 228, 214, 201, 110, 170, 145, 151, 208, 130, 25, 199, 219, 141, 197, 211, 204, 12, 13, 38, 157, 30, 174, 217, 211, 173, 174, 247, 121, 120])
         
@@ -74,10 +79,5 @@ final class LoginTests: XCTestCase {
         )
         
         XCTAssertEqual(encryptedData, encryptedPacket.data)
-        
-        let value = LoginResponse.failure(.alreadyLoggedIn)
-        
-        XCTAssertDecode(value, packet)
-        XCTAssertEncode(value, packet)
     }
 }

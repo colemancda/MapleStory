@@ -18,11 +18,11 @@ public struct AllCharactersListHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let responses = try await characterList(packet, connection: connection)
         for response in responses {
-            try await connection.respond(response)
+            try await connection.send(response)
         }
     }
 }
@@ -31,7 +31,7 @@ internal extension AllCharactersListHandler {
     
     func characterList<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> [MapleStory62.AllCharactersResponse] {
         let limit = 60
         let charactersByWorld = try await connection.characterList()

@@ -11,33 +11,35 @@ import MapleStoryServer
 import CoreModel
 
 public struct LoginHandler: PacketHandler {
-    
-    public typealias Packet = MapleStory28.LoginRequest
-        
+            
     public init() { }
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
-        packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        packet: MapleStory28.LoginRequest,
+        connection: MapleStoryServer<Socket, Database, MapleStory28.ClientOpcode, MapleStory28.ServerOpcode>.Connection
     ) async throws {
-        let response = try await login(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.login(packet)
     }
 }
 
-internal extension LoginHandler {
+extension MapleStoryServer.Connection where ClientOpcode == MapleStory28.ClientOpcode, ServerOpcode == MapleStory28.ServerOpcode {
     
-    func login<Socket: MapleStorySocket, Database: ModelStorage>(
-        _ request: MapleStory28.LoginRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+    func login(
+        _ packet: MapleStory28.LoginRequest
+    ) async throws {
+        let response = try await loginResponse(packet)
+        try await send(response)
+    }
+    
+    func loginResponse(
+        _ request: MapleStory28.LoginRequest
     ) async throws -> MapleStory28.LoginResponse {
         do {
             // update database
-            let user = try await connection.login(
+            let user = try await self.login(
                 username: request.username,
                 password: request.password
             )
-            let configuration = try await connection.database.fetch(Configuration.self)
             return .success(.init(user: user))
         }
         catch let loginError as LoginError {
@@ -45,4 +47,3 @@ internal extension LoginHandler {
         }
     }
 }
-

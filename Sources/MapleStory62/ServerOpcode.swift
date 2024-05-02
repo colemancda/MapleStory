@@ -8,7 +8,7 @@
 import Foundation
 
 /// Enum representing packet headers for network communication.
-public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
+public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
     /// PING packet header.
     ///
@@ -22,7 +22,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case sendLink = 0x01
     
     /// Server status packet header.
-    case serverstatus = 0x03
+    case serverStatus = 0x03
     
     /// Gender done packet header.
     case genderDone = 0x04
@@ -34,7 +34,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case pinAssigned = 0x07
     
     /// All character list packet header.
-    case allCharlist = 0x08
+    case allCharacters = 0x08
     
     /// Server list packet header.
     case serverList = 0x0A
@@ -46,7 +46,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case serverIP = 0x0C
     
     /// Character name response packet header.
-    case characterNameResponse = 0x0D
+    case CheckCharacterNameResponse = 0x0D
     
     /// Add new character entry packet header.
     case createCharacterResponse = 0x0E
@@ -118,10 +118,10 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case spawnPortal = 0x40
     
     /// Server message packet header.
-    case servermessage = 0x41
+    case serverMessage = 0x41
     
     /// Player NPC packet header.
-    case playerNpc = 0x4E
+    case playerNPC = 0x4E
     
     /// Avatar mega packet header.
     case avatarMega = 0x54
@@ -400,7 +400,7 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case csOperation = 0x100
     
     /// Keymap packet header.
-    case keymap = 0x107
+    case keyMap = 0x107
     
     /// TV SMEGA packet header.
     case tvSmega = 0x10D
@@ -440,11 +440,4 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     
     /// Teleport rock locations packet header.
     case trockLocations = 0x27
-}
-
-public extension MapleStory.Opcode {
-    
-    init(server opcode: ServerOpcode) {
-        self.init(rawValue: opcode.rawValue)
-    }
 }

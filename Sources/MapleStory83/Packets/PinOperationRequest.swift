@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct PinOperationRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
+public struct PinOperationRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .afterLogin) } //0x09
+    public static var opcode: ClientOpcode { .afterLogin }
     
     public let value0: UInt8
     

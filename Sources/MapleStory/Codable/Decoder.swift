@@ -26,13 +26,13 @@ public struct MapleStoryDecoder {
     
     public func decodePacket<T>(_ type: T.Type, from data: Data) throws -> T where T: Decodable, T: MapleStoryPacket {
         
-        guard let packet = Packet(data: data) else {
+        guard let packet = Packet<T.Opcode>.init(data: data) else {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Could not decode packet"))
         }
         return try decode(type, from: packet)
     }
     
-    public func decode<T>(_ type: T.Type, from packet: Packet) throws -> T where T: Decodable, T: MapleStoryPacket {
+    public func decode<T>(_ type: T.Type, from packet: Packet<T.Opcode>) throws -> T where T: Decodable, T: MapleStoryPacket {
         
         let opcode = T.opcode
         guard packet.opcode == opcode else {
@@ -46,7 +46,7 @@ public struct MapleStoryDecoder {
             log: log,
             data: packet.data
         )
-        decoder.offset = 2
+        decoder.offset = Packet<T.Opcode>.minSize
         
         if let decodableType = type as? MapleStoryDecodable.Type {
             let container = MapleStoryDecodingContainer(referencing: decoder)
@@ -71,6 +71,25 @@ public struct MapleStoryDecoder {
             return try decodableType.init(from: container) as! T
         } else {
             return try T.init(from: decoder)
+        }
+    }
+    
+    internal func decodeGeneric<Opcode: MapleStoryOpcode>(_ type: Decodable.Type, from packet: Packet<Opcode>) throws -> Decodable {
+        
+        log?("Will decode \(type) packet")
+        
+        let decoder = Decoder(
+            userInfo: userInfo,
+            log: log,
+            data: packet.data
+        )
+        decoder.offset = Packet<Opcode>.minSize
+        
+        if let decodableType = type as? MapleStoryDecodable.Type {
+            let container = MapleStoryDecodingContainer(referencing: decoder)
+            return try decodableType.init(from: container)
+        } else {
+            return try type.init(from: decoder)
         }
     }
 }

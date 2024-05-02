@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import MapleStory
 
-public struct SpawnNPCRequestControllerNotification: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct SpawnNPCRequestControllerNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xC4 }
+    public static var opcode: ServerOpcode { .spawnNPCRequestController }
     
     internal let value0: UInt8
     

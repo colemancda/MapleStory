@@ -8,7 +8,7 @@
 import Foundation
 
 /// Opcode represents different types of messages or commands in a network protocol.
-public enum ServerOpcode: UInt16, Codable, CaseIterable {
+public enum ServerOpcode: UInt8, CaseIterable, MapleStoryOpcode, Sendable {
     
     /// Login response opcode.
     case loginResponse = 0x01
@@ -144,11 +144,4 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable {
     case channelNpcStorage = 0xCD
     /// Channel room opcode.
     case channelRoom = 0xDC
-}
-
-public extension MapleStory.Opcode {
-    
-    init(server opcode: ServerOpcode) {
-        self.init(rawValue: opcode.rawValue)
-    }
 }

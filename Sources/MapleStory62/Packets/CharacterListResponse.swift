@@ -8,9 +8,9 @@
 import Foundation
 import MapleStory
 
-public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(server: .characterList) }
+    public static var opcode: ServerOpcode { .characterList }
     
     internal let value0: UInt8 // 0x00
     
@@ -27,7 +27,7 @@ public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hasha
 
 public extension CharacterListResponse {
     
-    struct Character: Codable, Equatable, Hashable {
+    struct Character: Codable, Equatable, Hashable, Sendable {
         
         public let stats: CharacterStats
         
@@ -39,7 +39,7 @@ public extension CharacterListResponse {
 
 public extension CharacterListResponse {
     
-    struct CharacterStats: Codable, Equatable, Hashable {
+    struct CharacterStats: Codable, Equatable, Hashable, Sendable {
         
         public let id: UInt32
         
@@ -99,7 +99,7 @@ public extension CharacterListResponse {
 
 public extension CharacterListResponse {
     
-    struct CharacterAppeareance: Codable, Equatable, Hashable {
+    struct CharacterAppeareance: Codable, Equatable, Hashable, Sendable {
         
         public let gender: Gender
         
@@ -125,7 +125,7 @@ public extension CharacterListResponse {
 
 public extension CharacterListResponse {
     
-    enum Rank: Equatable, Hashable {
+    enum Rank: Equatable, Hashable, Sendable {
         
         case disabled
         case enabled(worldRank: UInt32, rankMove: UInt32, jobRank: UInt32, jobRankMove: UInt32)
@@ -178,7 +178,7 @@ extension CharacterListResponse.Rank: Codable {
 
 public extension CharacterListResponse {
     
-    struct Equipment: Equatable, Hashable {
+    struct Equipment: Equatable, Hashable, Sendable {
         
         var value: MapleStory.Character.Equipment
         

@@ -9,6 +9,7 @@ import Foundation
 
 public extension Channel {
     
+    /// Channel Status
     enum Status: UInt8, Codable, CaseIterable, Sendable {
         
         /// Normal

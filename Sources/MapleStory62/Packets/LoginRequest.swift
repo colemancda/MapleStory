@@ -10,7 +10,7 @@ import Foundation
 /// Login request
 public struct LoginRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .loginRequest) }// 0x01
+    public static var opcode: ClientOpcode { .loginRequest }
     
     public var username: String
     

@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct ServerIPResponse: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct ServerIPResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0C }
+    public static var opcode: ServerOpcode { .serverIP }
     
     public let value0: UInt16 // 0x0000
     

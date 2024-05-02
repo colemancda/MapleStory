@@ -18,10 +18,10 @@ public struct DeleteCharacterHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await deleteCharacter(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
@@ -29,7 +29,7 @@ internal extension DeleteCharacterHandler {
     
     func deleteCharacter<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory62.DeleteCharacterRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory62.DeleteCharacterResponse {
         try await connection.deleteCharacter(request.character)
         return .init(character: request.character, state: 0x00)

@@ -11,7 +11,7 @@ import MapleStory
 /// Login Response
 public enum LoginResponse: MapleStoryPacket, Equatable, Codable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(server: .loginStatus) }
+    public static var opcode: ServerOpcode { (.loginStatus) }
     
     /// Successful authentication and PIN Request packet.
     case success(Success)

@@ -26,7 +26,7 @@ public struct MapleStoryEncoder {
     
     public func encodePacket<T>(
         _ value: T
-    ) throws -> Packet where T: Encodable, T: MapleStoryPacket {
+    ) throws -> Packet<T.Opcode> where T: Encodable, T: MapleStoryPacket {
         let opcode = T.opcode
         log?("Will encode \(T.self) packet")
         // initialize encoder
@@ -116,11 +116,11 @@ internal extension MapleStoryEncoder {
         }
     }
     
-    final class PacketEncoder: MapleStoryEncoder.Encoder {
+    final class PacketEncoder <Opcode: MapleStoryOpcode> : MapleStoryEncoder.Encoder {
         
         // MARK: - Properties
         
-        fileprivate(set) var packet: Packet {
+        fileprivate(set) var packet: Packet<Opcode> {
             get { Packet(data) }
             set { data = newValue.data }
         }

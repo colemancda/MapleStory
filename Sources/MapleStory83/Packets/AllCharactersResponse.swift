@@ -10,7 +10,7 @@ import MapleStory
 
 public enum AllCharactersResponse: MapleStoryPacket, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(server: .viewAllCharacters) }
+    public static var opcode: ServerOpcode { (.viewAllCharacters) }
         
     /// Count of all characters in world
     case count(

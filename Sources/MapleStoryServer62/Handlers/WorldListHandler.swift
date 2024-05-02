@@ -19,7 +19,7 @@ public struct WorldListHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         do {
             // update IP address
@@ -31,7 +31,7 @@ public struct WorldListHandler: PacketHandler {
             // world list
             let responses = try await worldList(packet, connection: connection)
             for response in responses {
-                try await connection.respond(response)
+                try await connection.send(response)
             }
         }
         catch {
@@ -44,7 +44,7 @@ internal extension WorldListHandler {
     
     func worldList<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory62.ServerListRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> [MapleStory62.ServerListResponse] {
         try await connection.listWorlds()
             .map { .world(.init(world: $0.world, channels: $0.channels)) } + [.end]

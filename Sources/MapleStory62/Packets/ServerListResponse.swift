@@ -6,13 +6,14 @@
 //
 
 import Foundation
+import MapleStory
 
 /// Server List Response
 ///
 /// A packet detailing a server and its channels.
-public enum ServerListResponse: MapleStoryPacket, Equatable, Hashable {
+public enum ServerListResponse: MapleStoryPacket, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0A }
+    public static var opcode: ServerOpcode { .serverList }
     
     case world(World)
     case end
@@ -34,7 +35,7 @@ extension ServerListResponse: Encodable {
 
 public extension ServerListResponse {
     
-    struct World: Encodable, Equatable, Hashable, Identifiable {
+    struct World: Encodable, Equatable, Hashable, Identifiable, Sendable {
         
         public let id: UInt8
         
@@ -89,7 +90,7 @@ public extension ServerListResponse {
 public extension ServerListResponse {
     
     /// Channel
-    struct Channel: Encodable, Equatable, Hashable {
+    struct Channel: Encodable, Equatable, Hashable, Sendable {
         
         public let name: String
         
@@ -103,7 +104,7 @@ public extension ServerListResponse {
 
 internal extension ServerListResponse {
     
-    struct EndList: Encodable, Equatable, Hashable {
+    struct EndList: Encodable, Equatable, Hashable, Sendable {
         
         let id: UInt8
         

@@ -5,10 +5,12 @@
 //  Created by Alsey Coleman Miller on 12/22/22.
 //
 
+import MapleStory
+
 /// Player Login
-public struct PlayerLoginRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct PlayerLoginRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x14 }
+    public static var opcode: ClientOpcode { .playerLoginRequest }
     
     public let character: Character.Index
     

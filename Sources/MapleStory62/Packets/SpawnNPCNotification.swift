@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import MapleStory
 
-public struct SpawnNPCNotification: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct SpawnNPCNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xC2 }
+    public static var opcode: ServerOpcode { .spawnNPC }
     
     public let objectId: UInt32
     

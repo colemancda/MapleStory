@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct MovePlayerRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct MovePlayerRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x26 }
+    public static var opcode: ClientOpcode { .movePlayer }
     
     internal let value0: UInt8
     

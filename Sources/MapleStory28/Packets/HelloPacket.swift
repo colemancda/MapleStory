@@ -8,9 +8,9 @@
 /// MapleStory v28 Hello packet
 ///
 /// This is the first packet sent by the server when a client connects.
-public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct HelloPacket: Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x000D }
+    public let opcode: UInt16
     
     public let version: Version
     
@@ -27,6 +27,7 @@ public struct HelloPacket: MapleStoryPacket, Codable, Equatable, Hashable {
         sendNonce: Nonce,
         region: Region = .global
     ) {
+        self.opcode = 0x0D
         self.version = .v28
         self.recieveNonce = recieveNonce
         self.sendNonce = sendNonce

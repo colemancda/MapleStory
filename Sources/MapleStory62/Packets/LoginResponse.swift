@@ -8,9 +8,9 @@
 import Foundation
 
 /// Login Response
-public enum LoginResponse: MapleStoryPacket, Equatable, Hashable, Encodable {
+public enum LoginResponse: MapleStoryPacket, Equatable, Hashable, Encodable, Sendable {
     
-    public static var opcode: Opcode { 0x00 }
+    public static var opcode: ServerOpcode { .loginStatus }
     
     /// Successful authentication and PIN Request packet.
     case success(username: String)

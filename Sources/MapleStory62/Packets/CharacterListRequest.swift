@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct CharacterListRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
+public struct CharacterListRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .characterListRequest) }
+    public static var opcode: ClientOpcode { .characterListRequest }
     
     public let world: UInt8
     

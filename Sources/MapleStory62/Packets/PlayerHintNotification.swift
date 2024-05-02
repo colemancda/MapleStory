@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct PlayerHintNotification: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct PlayerHintNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0xA9 }
+    public static var opcode: ServerOpcode { .playerHint }
     
     public var hint: String
     

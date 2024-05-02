@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct PingPacket: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct PingPacket: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0011 }
+    public static var opcode: ServerOpcode { .ping }
     
     public init() { }
 }

@@ -18,10 +18,10 @@ public struct AcceptLicenseHandler: PacketHandler {
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await acceptLicense(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
@@ -29,7 +29,7 @@ internal extension AcceptLicenseHandler {
     
     func acceptLicense<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory83.AcceptLicenseRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory83.LoginResponse {
         let user = try await connection.acceptLicense()
         let configuration = try await connection.database.fetch(Configuration.self)

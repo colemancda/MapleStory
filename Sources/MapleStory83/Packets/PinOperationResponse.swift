@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import MapleStory
 
 public struct PinOperationResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { .init(server: .checkPincode) }
+    public static var opcode: ServerOpcode { .checkPincode }
     
     public let status: PinCodeStatus
     

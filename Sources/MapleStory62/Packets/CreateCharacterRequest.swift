@@ -8,9 +8,9 @@
 import Foundation
 import MapleStory
 
-public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct CreateCharacterRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable  {
     
-    public static var opcode: Opcode { .init(client: .createCharacter) }
+    public static var opcode: ClientOpcode { .createCharacter }
     
     public let name: String
     

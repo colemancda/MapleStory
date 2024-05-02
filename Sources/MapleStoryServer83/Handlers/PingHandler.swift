@@ -9,7 +9,7 @@ import Foundation
 import MapleStory83
 import MapleStoryServer
 import CoreModel
-
+/*
 public struct PingHandler: ServerHandler {
     
     public init() { }
@@ -26,3 +26,4 @@ public struct PingHandler: ServerHandler {
         }
     }
 }
+*/

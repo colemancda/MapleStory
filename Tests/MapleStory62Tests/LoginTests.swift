@@ -14,7 +14,7 @@ final class LoginTests: XCTestCase {
     
     func testHello() throws {
         
-        let packet: Packet = [0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08]
+        let packet: Packet<ServerOpcode> = [0x0D, 0x00, 0x3E, 0x00, 0x00, 0x00, 0x46, 0x72, 0x7A, 0x18, 0x52, 0x30, 0x78, 0x14, 0x08]
         
         let value = HelloPacket(
             recieveNonce: 0x46727A18,
@@ -34,7 +34,7 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x11, 0x00])
         let nonce: Nonce = 0x27568982
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -56,7 +56,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x487D4A7D))
         XCTAssertEqual(encrypted.data, encryptedData)
         
-        let decrypted = try encrypted.decrypt(
+        let decrypted: Packet<ServerOpcode> = try encrypted.decrypt(
             key: .default,
             nonce: nonce,
             version: .v62
@@ -71,7 +71,7 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x18, 0x00])
         let nonce: Nonce = 0x56CFECDD
                 
-        let packet = try Packet.decrypt(
+        let packet = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -91,7 +91,7 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x02, 0x00, 0x00, 0x00])
         let nonce: Nonce = 0x46727AE0
         
-        let packet = try Packet.decrypt(
+        let packet = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -113,7 +113,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x46727AB3
         
-        let packet = try Packet.decrypt(
+        let packet = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -149,7 +149,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x523078D8
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -178,7 +178,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x53964806
         
-        let packet = try Packet.decrypt(
+        let packet = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -199,7 +199,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x8AC3F1E9
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -229,7 +229,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x4001D634
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -280,7 +280,7 @@ final class LoginTests: XCTestCase {
         let encryptedData = Data([0xCE, 0x3C, 0xCD, 0x3C, 0x0D, 0x00, 0x6A])
         let nonce: Nonce = 0x9C290FC3
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -308,7 +308,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x0C5EA1A6
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -390,7 +390,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x79B9EBB8
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -467,7 +467,7 @@ final class LoginTests: XCTestCase {
         let encryptedData = Data([0x05, 0xF2, 0x0E, 0xF2, 0xE2, 0x29, 0x45, 0x34, 0xB6, 0x76, 0xC7, 0xD2, 0x18, 0xE4, 0xCF])
         let nonce: Nonce = 0x9786C40D
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -505,12 +505,12 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x1A, 0x00, 0x01, 0x7D, 0x5B, 0xD5, 0xEE, 0x00, 0x00, 0x00, 0x00])
         let nonce: Nonce = 0x25C12163
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ClientOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let decrypted = try Packet.decrypt(
+        let decrypted = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -519,7 +519,7 @@ final class LoginTests: XCTestCase {
         
         //XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
-        XCTAssertEqual(packet.opcode, 0x001A)
+        XCTAssertEqual(packet.opcode, .clientError)
     }
     
     func testAllCharactersSelectRequest() throws {
@@ -528,12 +528,12 @@ final class LoginTests: XCTestCase {
         let encryptedData = Data([0xE9, 0x46, 0xD1, 0xA0, 0x6F, 0xE7, 0xE5, 0x54, 0xAF, 0x6C, 0x9C, 0x45, 0x55, 0x8B, 0xDB, 0x3F, 0x7B, 0xCD, 0x1D, 0xEB, 0x4C, 0xB1, 0xB4, 0x82, 0x19, 0xE4, 0x1A, 0x36, 0x8F, 0x08, 0xE6, 0x24, 0x9F, 0xCF, 0x34, 0xFC, 0xF6, 0x1B, 0xB6, 0x43, 0xA8, 0x0A, 0x6F, 0x27, 0x4C, 0x77, 0x9E, 0x5E, 0x82, 0x42, 0x40, 0x8F])
         let nonce: Nonce = 0x2EB61FE4
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ClientOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let decrypted = try Packet.decrypt(
+        let decrypted = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -564,7 +564,7 @@ final class LoginTests: XCTestCase {
             value2: 0
         )
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -589,12 +589,12 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x13, 0x00, 0x01, 0x00, 0x00, 0x00, 0x11, 0x00, 0x30, 0x30, 0x2D, 0x31, 0x43, 0x2D, 0x34, 0x32, 0x2D, 0x34, 0x38, 0x2D, 0x30, 0x37, 0x2D, 0x32, 0x39, 0x15, 0x00, 0x42, 0x43, 0x39, 0x41, 0x37, 0x38, 0x35, 0x36, 0x33, 0x34, 0x31, 0x32, 0x5F, 0x44, 0x42, 0x39, 0x37, 0x43, 0x35, 0x42, 0x45])
         let nonce: Nonce = 0xD1D3B2FA
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ClientOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let decrypted = try Packet.decrypt(
+        let decrypted = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -608,7 +608,7 @@ final class LoginTests: XCTestCase {
         
         XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
-        XCTAssertEqual(packet.opcode, 0x13)
+        XCTAssertEqual(packet.opcode, .characterSelect)
     }
     
     func testCheckNameRequest() throws {
@@ -617,24 +617,24 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x15, 0x00, 0x04, 0x00, 0x63, 0x64, 0x61, 0x31])
         let nonce: Nonce = 0xA7599238
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ClientOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let decrypted = try Packet.decrypt(
+        let decrypted = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
             version: .v62
         )
         
-        let value = CheckNameRequest(name: "cda1")
+        let value = CheckCharacterNameRequest(name: "cda1")
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
-        XCTAssertEqual(packet.opcode, 0x0015)
+        XCTAssertEqual(packet.opcode, .checkCharacterName)
     }
     
     func testCheckNameResponse() throws {
@@ -643,12 +643,12 @@ final class LoginTests: XCTestCase {
         let encryptedData = Data([0x27, 0x79, 0x2E, 0x79, 0xE4, 0xF8, 0xC7, 0xC2, 0x9C, 0x9B, 0xA7, 0xFE, 0xDF])
         let nonce: Nonce = 0x2122E686
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let value = CheckNameResponse(name: "cda1", isUsed: false)
+        let value = CheckCharacterNameResponse(name: "cda1", isUsed: false)
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
@@ -672,12 +672,12 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0x0B96E186
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ClientOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let decrypted = try Packet.decrypt(
+        let decrypted = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -704,7 +704,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
-        XCTAssertEqual(packet.opcode, 0x16)
+        XCTAssertEqual(packet.opcode.rawValue, 0x16)
     }
     
     func testCreateCharacterResponse() throws {
@@ -715,7 +715,7 @@ final class LoginTests: XCTestCase {
         
         let nonce: Nonce = 0xCFA908B2
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -775,7 +775,7 @@ final class LoginTests: XCTestCase {
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
-        XCTAssertEqual(packet.opcode, 0x0E)
+        XCTAssertEqual(packet.opcode.rawValue, 0x0E)
         
         let encrypted = try packet.encrypt(
             key: .default,
@@ -793,12 +793,12 @@ final class LoginTests: XCTestCase {
         let packetData = Data([0x17, 0x00, 0xAC, 0xBD, 0x9A, 0x00, 0x10, 0x00, 0x00, 0x00])
         let nonce: Nonce = 0xB43E8634
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ClientOpcode>(data: packetData) else {
             XCTFail()
             return
         }
         
-        let decrypted = try Packet.decrypt(
+        let decrypted = try Packet<ClientOpcode>.decrypt(
             encryptedData,
             key: .default,
             nonce: nonce,
@@ -813,7 +813,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
         XCTAssertEqual(decrypted, packet)
-        XCTAssertEqual(packet.opcode, 0x0017)
+        XCTAssertEqual(packet.opcode.rawValue, 0x0017)
     }
     
     func testDeleteCharacterResponse() throws {
@@ -822,7 +822,7 @@ final class LoginTests: XCTestCase {
         let encryptedData = Data([0x50, 0x90, 0x57, 0x90, 0x0B, 0x83, 0xF6, 0x3A, 0x41, 0x9A, 0xF7])
         let nonce: Nonce = 0x6709916F
         
-        guard let packet = Packet(data: packetData) else {
+        guard let packet = Packet<ServerOpcode>(data: packetData) else {
             XCTFail()
             return
         }
@@ -834,7 +834,7 @@ final class LoginTests: XCTestCase {
         
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
-        XCTAssertEqual(packet.opcode, 0x0F)
+        XCTAssertEqual(packet.opcode.rawValue, 0x0F)
         
         let encrypted = try packet.encrypt(
             key: .default,

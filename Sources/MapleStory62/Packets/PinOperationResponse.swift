@@ -7,9 +7,9 @@
 
 import Foundation
 
-public enum PinOperationResponse: UInt8, MapleStoryPacket, Codable, Equatable, Hashable {
+public enum PinOperationResponse: UInt8, MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0006 }
+    public static var opcode: ServerOpcode { .pinOperation }
     
     /// PIN was accepted.
     case success            = 0

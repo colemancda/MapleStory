@@ -7,9 +7,9 @@
 
 import Foundation
 
-public enum BuddyListNotification: MapleStoryPacket, Encodable, Equatable, Hashable {
+public enum BuddyListNotification: MapleStoryPacket, Encodable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x3C }
+    public static var opcode: ServerOpcode { .buddylist }
     
     case update([Buddy])
 }
@@ -32,7 +32,7 @@ extension BuddyListNotification: MapleStoryEncodable {
 
 public extension BuddyListNotification {
     
-    struct Buddy: Codable, Equatable, Hashable, Identifiable {
+    struct Buddy: Codable, Equatable, Hashable, Identifiable, Sendable {
         
         public let id: UInt32
         

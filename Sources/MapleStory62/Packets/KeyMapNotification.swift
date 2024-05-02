@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct KeyMapNotification: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct KeyMapNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x107 }
+    public static var opcode: ServerOpcode { .keyMap }
     
     public var keyMap: [UInt8: KeyBinding]
 }

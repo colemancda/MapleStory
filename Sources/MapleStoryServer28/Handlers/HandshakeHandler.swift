@@ -10,10 +10,10 @@ import MapleStory28
 import MapleStoryServer
 import CoreModel
 
-public struct HandshakeHandler: ServerHandler {
-    
-    public func didConnect<Socket, Storage>(
-        connection: MapleStoryServer<Socket, Storage>.Connection
+public struct HandshakeHandler {
+        
+    public static func didConnect<Socket, Storage>(
+        connection: MapleStoryServer<Socket, Storage, ClientOpcode, ServerOpcode>.Connection
     ) where Socket : MapleStorySocket, Storage : ModelStorage {
         Task {
             do {
@@ -28,15 +28,17 @@ public struct HandshakeHandler: ServerHandler {
 
 internal extension HandshakeHandler {
     
-    func sendHandshake<Socket: MapleStorySocket, Storage: ModelStorage>(
-        connection: MapleStoryServer<Socket, Storage>.Connection
+    static func sendHandshake<Socket: MapleStorySocket, Storage: ModelStorage>(
+        connection: MapleStoryServer<Socket, Storage, ClientOpcode, ServerOpcode>.Connection
     )  async throws {
+        let encoder = MapleStoryEncoder()
         let packet = await MapleStory28.HelloPacket(
             recieveNonce: connection.recieveNonce,
             sendNonce: connection.sendNonce,
             region: connection.region
         )
-        try await connection.send(packet)
+        let data = try encoder.encode(packet)
+        try await connection.send(data)
         await connection.encrypt()
     }
 }

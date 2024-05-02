@@ -9,7 +9,7 @@ import Foundation
 
 public enum BBSOperationRequest: MapleStoryPacket, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x86 }
+    public static var opcode: ClientOpcode { .bbsOperation }
     
     case new(notice: Bool, title: String, body: String, icon: UInt32)
     case edit(id: UInt32, notice: Bool, title: String, body: String, icon: UInt32)

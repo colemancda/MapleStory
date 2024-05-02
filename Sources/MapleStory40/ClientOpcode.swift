@@ -6,7 +6,7 @@
 //
 
 /// Operation codes for client-server communication.
-public enum ClientOpcode: UInt16, Codable, CaseIterable {
+public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
     /// Initiates the login process.
     case login = 0x01

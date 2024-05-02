@@ -9,7 +9,7 @@ import Foundation
 
 public struct DeleteCharacterResponse: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { .init(server: .deleteCharacter) }
+    public static var opcode: ServerOpcode { .deleteCharacter }
     
     public let character: Character.Index
     

@@ -9,7 +9,7 @@ import Foundation
 
 public struct GeneralChatRequest: MapleStoryPacket, Codable, Equatable, Hashable {
     
-    public static var opcode: Opcode { 0x2E }
+    public static var opcode: ClientOpcode { .generalChat }
     
     public let message: String
     

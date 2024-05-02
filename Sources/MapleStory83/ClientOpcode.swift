@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents MapleStory client packet opcodes.
-public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
+public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
     /// Login password opcode. (0x01)
     case loginRequest = 0x01
@@ -56,10 +56,10 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     case worldTransfer = 0x12
     
     /// Char select opcode. (0x13)
-    case charSelect = 0x13
+    case characterSelectRequest = 0x13
     
     /// Player loggedin opcode. (0x14)
-    case playerLoggedin = 0x14
+    case playerLoginRequest = 0x14
     
     /// Check char name opcode. (0x15)
     case checkCharacterName = 0x15
@@ -214,11 +214,4 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     /// Use cash item opcode. (0x4F)
     case useCashItem = 0x4F
     
-}
-
-public extension MapleStory.Opcode {
-    
-    init(client opcode: ClientOpcode) {
-        self.init(rawValue: opcode.rawValue)
-    }
 }

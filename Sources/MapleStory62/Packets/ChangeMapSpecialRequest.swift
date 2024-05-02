@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct ChangeMapSpecialRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct ChangeMapSpecialRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x5C }
+    public static var opcode: ClientOpcode { .changeMapSpecial }
     
     internal let value0: UInt8
     

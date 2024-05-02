@@ -8,7 +8,7 @@
 import Foundation
 
 /// Enum representing packet headers for network communication.
-public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
+public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
     /// Login password packet header.
     case loginRequest = 0x01
@@ -47,13 +47,13 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     case viewAllCharacters = 0x0D
     
     /// Pick all characters packet header.
-    case pickAllCCharacters = 0x0E
+    case pickAllCharacters = 0x0E
     
     /// Character select packet header.
     case characterSelect = 0x13
     
     /// Player logged in packet header.
-    case playerLoggedin = 0x14
+    case playerLoginRequest = 0x14
     
     /// Check char name opcode. (0x15)
     case checkCharacterName = 0x15
@@ -345,11 +345,4 @@ public enum ClientOpcode: UInt16, Codable, CaseIterable, Sendable {
     
     /// Teleport rock add map packet header.
     case trockAddMap = 0x5E
-}
-
-public extension MapleStory.Opcode {
-    
-    init(client opcode: ClientOpcode) {
-        self.init(rawValue: opcode.rawValue)
-    }
 }

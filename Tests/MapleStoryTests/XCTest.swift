@@ -31,7 +31,7 @@ extension Data {
 
 func XCTAssertEncode<T>(
     _ value: T,
-    _ packet: Packet,
+    _ packet: Packet<T.Opcode>,
     file: StaticString = #file,
     line: UInt = #line
 ) where T: Equatable, T: Encodable, T: MapleStoryPacket {
@@ -51,7 +51,7 @@ func XCTAssertEncode<T>(
 
 func XCTAssertEncrypt<T>(
     _ value: T,
-    _ packet: Packet,
+    _ packet: Packet<T.Opcode>,
     file: StaticString = #file,
     line: UInt = #line
 ) where T: Equatable, T: Encodable, T: MapleStoryPacket {
@@ -72,7 +72,7 @@ func XCTAssertEncrypt<T>(
 
 func XCTAssertDecode<T>(
     _ value: T,
-    _ packet: Packet,
+    _ packet: Packet<T.Opcode>,
     file: StaticString = #file,
     line: UInt = #line
 ) where T: MapleStoryPacket, T: Equatable, T: Decodable {

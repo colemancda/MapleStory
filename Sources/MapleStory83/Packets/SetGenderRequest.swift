@@ -10,7 +10,7 @@ import MapleStory
 
 public struct SetGenderRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(client: .setGender) }
+    public static var opcode: ClientOpcode { .setGender }
     
     public var confirmed: Bool
     

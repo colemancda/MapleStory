@@ -7,9 +7,9 @@
 
 import Foundation
 
-public struct NPCTalkRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct NPCTalkRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x0036 }
+    public static var opcode: ClientOpcode { .npcTalk }
     
     public let objectID: UInt32
     

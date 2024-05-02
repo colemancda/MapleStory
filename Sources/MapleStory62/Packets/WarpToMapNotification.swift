@@ -6,10 +6,11 @@
 //
 
 import Foundation
+import MapleStory
 
-public enum WarpToMapNotification: MapleStoryPacket, Codable, Equatable, Hashable {
+public enum WarpToMapNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x5C }
+    public static var opcode: ServerOpcode { .warpToMap }
     
     case characterInfo(CharacterInfo)
 }
@@ -18,7 +19,7 @@ public extension WarpToMapNotification {
     
     typealias CharacterStats = CharacterListResponse.CharacterStats
     
-    struct CharacterInfo: Codable, Equatable, Hashable {
+    struct CharacterInfo: Codable, Equatable, Hashable, Sendable {
         
         public let channel: UInt32
         
@@ -65,7 +66,7 @@ public extension WarpToMapNotification {
         public let date: Date*/
     }
     
-    struct Item: Codable, Equatable, Hashable {
+    struct Item: Codable, Equatable, Hashable, Sendable {
         
         public let position: UInt8
         
@@ -74,7 +75,7 @@ public extension WarpToMapNotification {
         public let itemID: UInt8
     }
     
-    struct Skill: Codable, Equatable, Hashable, Identifiable {
+    struct Skill: Codable, Equatable, Hashable, Identifiable, Sendable {
         
         public let id: UInt32
         
@@ -83,12 +84,12 @@ public extension WarpToMapNotification {
         public let masterLevel: UInt32?
     }
     
-    struct QuestInfo: Codable, Equatable, Hashable {
+    struct QuestInfo: Codable, Equatable, Hashable, Sendable {
         
         
     }
     
-    struct Ring: Codable, Equatable, Hashable {
+    struct Ring: Codable, Equatable, Hashable, Sendable {
         
     }
 }

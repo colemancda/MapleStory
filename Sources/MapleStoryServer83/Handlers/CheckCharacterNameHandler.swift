@@ -12,25 +12,25 @@ import MapleStoryServer
 
 public struct CheckCharacterNameHandler: PacketHandler {
     
-    public typealias Packet = MapleStory83.CheckNameRequest
+    public typealias Packet = MapleStory83.CheckCharacterNameRequest
         
     public init() { }
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
         packet: Packet,
-        connection: MapleStoryServer<Socket, Database>.Connection
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let response = try await checkCharacterName(packet, connection: connection)
-        try await connection.respond(response)
+        try await connection.send(response)
     }
 }
 
 internal extension CheckCharacterNameHandler {
     
     func checkCharacterName<Socket: MapleStorySocket, Database: ModelStorage>(
-        _ request: MapleStory83.CheckNameRequest,
-        connection: MapleStoryServer<Socket, Database>.Connection
-    ) async throws -> MapleStory83.CheckNameResponse {
+        _ request: MapleStory83.CheckCharacterNameRequest,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws -> MapleStory83.CheckCharacterNameResponse {
         let isAvailable = try await connection.checkCharacterName(request.name)
         return .init(name: request.name, isUsed: !isAvailable)
     }

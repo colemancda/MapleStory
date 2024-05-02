@@ -8,7 +8,7 @@
 import Foundation
 
 /// Represents MapleStory server packet opcodes.
-public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
+public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
     /// Login status opcode. (0x00)
     case loginStatus = 0x00
@@ -50,10 +50,10 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
     case serverIP = 0x0C
     
     /// Character name response opcode. (0x0D)
-    case characterNameResponse = 0x0D
+    case checkCharacterNameResponse = 0x0D
     
     /// Add new character entry opcode. (0x0E)
-    case createCharacterResponse = 0x0E
+    case CreateCharacterResponse = 0x0E
     
     /// Delete character response opcode. (0x0F)
     case deleteCharacterResponse = 0x0F
@@ -90,11 +90,4 @@ public enum ServerOpcode: UInt16, Codable, CaseIterable, Sendable {
         
     /// Vega scroll opcode. (0x166)
     case vegaScroll = 0x166
-}
-
-public extension MapleStory.Opcode {
-    
-    init(server opcode: ServerOpcode) {
-        self.init(rawValue: opcode.rawValue)
-    }
 }

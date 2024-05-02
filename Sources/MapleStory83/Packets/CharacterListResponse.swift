@@ -10,7 +10,7 @@ import MapleStory
 
 public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { .init(server: .characterList) }
+    public static var opcode: ServerOpcode { (.characterList) }
     
     public let status: UInt8 // 0x00
         

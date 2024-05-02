@@ -6,34 +6,18 @@
 //
 
 import Foundation
+import MapleStory
 
 /// Server Status Response
 ///
 /// Packet detailing a server status message.
-public enum ServerStatusResponse: UInt16, MapleStoryPacket, Codable, Equatable, Hashable {
+public struct ServerStatusResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x03 }
+    public static var opcode: ServerOpcode { .serverStatus }
     
-    /// Normal
-    case normal         = 0
+    public let status: Channel.Status
     
-    /// High Usage
-    case highUsage      = 1
-    
-    /// Full
-    case full           = 2
-}
-
-public extension ServerStatusResponse {
-    
-    init(_ status: Channel.Status) {
-        switch status {
-        case .normal:
-            self = .normal
-        case .highUsage:
-            self = .highUsage
-        case .full:
-            self = .full
-        }
+    public init(status: Channel.Status) {
+        self.status = status
     }
 }

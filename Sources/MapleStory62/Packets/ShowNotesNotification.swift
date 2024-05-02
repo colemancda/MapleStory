@@ -8,9 +8,9 @@
 import Foundation
 
 /// Show Notes
-public struct ShowNotesNotification: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct ShowNotesNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
-    public static var opcode: Opcode { 0x26 }
+    public static var opcode: ServerOpcode { .showNotes }
     
     internal let value0: UInt8 // 2
     

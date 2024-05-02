@@ -8,10 +8,11 @@
 import Foundation
 import ArgumentParser
 import NIO
-import MapleStoryServer
 import Socket
 import CoreModel
 import MongoDBModel
+import MapleStory28
+import MapleStoryServer
 
 struct LoginServerCommand: AsyncParsableCommand {
     
@@ -90,7 +91,7 @@ struct LoginServerCommand: AsyncParsableCommand {
             address: ipAddress
         )
         
-        let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage>(
+        let server = try await MapleStoryServer<MapleStorySocketIPv4TCP, MongoModelStorage, ClientOpcode, ServerOpcode>(
             configuration: configuration,
             database: store,
             socket: MapleStorySocketIPv4TCP.self
@@ -105,10 +106,12 @@ struct LoginServerCommand: AsyncParsableCommand {
     }
 }
 
-public extension MapleStoryServer {
+public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcode, ServerOpcode == MapleStory28.ServerOpcode {
     
     func registerLoginServer() async {
-        await register(HandshakeHandler())
+        await registerServerHandler(.init(didConnect: { connection in
+            HandshakeHandler.didConnect(connection: connection)
+        }))
         // await register(PingHandler())
         await register(LoginHandler())
         
