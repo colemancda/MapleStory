@@ -32,6 +32,10 @@ let package = Package(
             targets: ["MapleStory"]
         ),
         .executable(
+            name: "MapleStoryServer28",
+            targets: ["MapleStoryServer28"]
+        ),
+        .executable(
             name: "MapleStoryServer62",
             targets: ["MapleStoryServer62"]
         ),
@@ -128,6 +132,27 @@ let package = Package(
             name: "MapleStory83",
             dependencies: [
                 "MapleStory"
+            ]
+        ),
+        .executableTarget(
+            name: "MapleStoryServer28",
+            dependencies: [
+                "MapleStory28",
+                "MapleStoryServer",
+                .product(
+                    name: "ArgumentParser",
+                    package: "swift-argument-parser"
+                ),
+                .product(
+                    name: "MongoDBModel",
+                    package: "CoreModel-MongoDB"
+                )
+            ],
+            swiftSettings: [
+              // Enable better optimizations when building in Release configuration. Despite the use of
+              // the `.unsafeFlags` construct required by SwiftPM, this flag is recommended for Release
+              // builds. See <https://github.com/swift-server/guides#building-for-production> for details.
+              .unsafeFlags(["-cross-module-optimization"], .when(configuration: .release))
             ]
         ),
         .executableTarget(
