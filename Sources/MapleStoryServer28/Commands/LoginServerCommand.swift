@@ -42,6 +42,9 @@ struct LoginServerCommand: AsyncParsableCommand {
     @Option(help: "Database name.")
     var databaseName: String = "maplestory"
     
+    @Flag(help: "Whether AES encryption is enabled.")
+    var aesEncryption: Bool = false
+    
     func run() async throws {
         
         defer { cleanupMongoSwift() }
@@ -56,7 +59,7 @@ struct LoginServerCommand: AsyncParsableCommand {
             address: address,
             backlog: backlog,
             version: .v28,
-            key: nil
+            key: aesEncryption ? .default : nil
         )
         
         let elg = MultiThreadedEventLoopGroup(numberOfThreads: 2)
@@ -116,17 +119,10 @@ public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcod
         await register(LoginHandler())
         await register(AcceptLicenseHandler())
         await register(SetGenderHandler())
-        
-        /*
         await register(PinCodeHandler())
-        await register(AcceptLicenseHandler())
-        await register(WorldListHandler())
-        await register(ServerStatusHandler())
-        await register(AllCharactersListHandler())
-        await register(CharacterListHandler())
+        //await register(CharacterListHandler())
         await register(CheckCharacterNameHandler())
         await register(CreateCharacterHandler())
         await register(DeleteCharacterHandler())
-         */
     }
 }
