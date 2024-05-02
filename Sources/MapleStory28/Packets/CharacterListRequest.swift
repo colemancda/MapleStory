@@ -1,8 +1,8 @@
 //
 //  CharacterListRequest.swift
-//  
 //
-//  Created by Alsey Coleman Miller on 12/21/22.
+//
+//  Created by Alsey Coleman Miller on 5/2/24.
 //
 
 import Foundation

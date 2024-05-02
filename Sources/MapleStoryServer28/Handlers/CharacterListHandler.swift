@@ -9,7 +9,7 @@ import Foundation
 import CoreModel
 import MapleStory28
 import MapleStoryServer
-/*
+
 public struct CharacterListHandler: PacketHandler {
     
     public typealias Packet = MapleStory28.CharacterListRequest
@@ -40,4 +40,3 @@ internal extension CharacterListHandler {
         )
     }
 }
-*/
