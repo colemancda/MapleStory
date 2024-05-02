@@ -21,19 +21,19 @@ public enum ClientOpcode: UInt8, CaseIterable, MapleStoryOpcode, Sendable {
     /// Login world select opcode.
     case loginWorldSelect = 0x05
     /// Login check login opcode.
-    case loginCheckLogin = 0x08
+    case checkLogin = 0x08
     /// Login register pin opcode.
     case loginRegisterPin = 0x09
     /// Login select character opcode.
-    case loginSelectCharacter = 0x0B
+    case characterSelectRequest = 0x0B
     /// Channel player load opcode.
     case channelPlayerLoad = 0x0C
     /// Login name check opcode.
-    case loginNameCheck = 0x0D
+    case checkCharacterName = 0x0D
     /// Login new character opcode.
-    case loginNewCharacter = 0x0E
+    case createCharacter = 0x0E
     /// Login delete character opcode.
-    case loginDeleteChar = 0x0F
+    case deleteCharacter = 0x0F
     /// Ping opcode.
     case ping = 0x12
     /// Return to login screen opcode.

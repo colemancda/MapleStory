@@ -21,15 +21,15 @@ public enum ServerOpcode: UInt8, CaseIterable, MapleStoryOpcode, Sendable {
     /// Login world list opcode.
     case loginWorldList = 0x09
     /// Login character data opcode.
-    case loginCharacterData = 0x0A
+    case characterList = 0x0A
     /// Login character migrate opcode.
     case loginCharacterMigrate = 0x0B
     /// Login name check result opcode.
-    case loginNameCheckResult = 0x0C
-    /// Login new character good opcode.
-    case loginNewCharacterGood = 0x0D
+    case checkCharacterName = 0x0C
+    /// Login new character
+    case createCharacterResponse = 0x0D
     /// Login delete character opcode.
-    case loginDeleteCharacter = 0x0E
+    case deleteCharacterResponse = 0x0E
     /// Channel change opcode.
     case channelChange = 0x0F
     /// Login restarter opcode.
