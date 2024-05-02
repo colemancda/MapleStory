@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct KoreanDate: MapleStoryDate {
+public struct KoreanDate: MapleStoryDate, Sendable {
     
     public var rawValue: Int64
     
@@ -34,3 +34,19 @@ extension KoreanDate: CustomStringConvertible { }
 
 extension KoreanDate: ExpressibleByIntegerLiteral { }
 
+// MARK: - Constants
+
+public extension KoreanDate {
+    
+    static var `default`: KoreanDate {
+        150842304000000000
+    }
+    
+    static var zero: KoreanDate {
+        94354848000000000
+    }
+    
+    static var permanent: KoreanDate {
+        150841440000000000
+    }
+}
