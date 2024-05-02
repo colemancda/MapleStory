@@ -27,6 +27,11 @@ public struct PinCodeHandler: PacketHandler {
             try await connection.send(response)
             return
         }
+        // update IP address
+        guard var user = try await connection.user else {
+            throw MapleStoryError.notAuthenticated
+        }
+        user.ipAddress = connection.address.address
         // return worlds
         let maxNumberOfWorlds = 14
         let responses: [ServerListResponse] = try await connection

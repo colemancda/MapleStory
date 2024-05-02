@@ -12,5 +12,9 @@ public struct AcceptLicenseRequest: MapleStoryPacket, Codable, Equatable, Hashab
     
     public static var opcode: ClientOpcode { .acceptLicense }
     
-    internal let value0: UInt8
+    public let didAccept: Bool
+    
+    public init(didAccept: Bool = true) {
+        self.didAccept = didAccept
+    }
 }
