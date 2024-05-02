@@ -32,8 +32,8 @@ internal extension HandshakeHandler {
         connection: MapleStoryServer<Socket, Storage>.Connection
     )  async throws {
         let packet = await MapleStory28.HelloPacket(
-            recieveNonce: await connection.recieveNonce,
-            sendNonce: await connection.sendNonce,
+            recieveNonce: connection.recieveNonce,
+            sendNonce: connection.sendNonce,
             region: connection.region
         )
         try await connection.send(packet)

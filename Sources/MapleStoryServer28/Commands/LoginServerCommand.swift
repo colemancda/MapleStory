@@ -109,9 +109,10 @@ public extension MapleStoryServer {
     
     func registerLoginServer() async {
         await register(HandshakeHandler())
-        /*
-        await register(PingHandler())
+        // await register(PingHandler())
         await register(LoginHandler())
+        
+        /*
         await register(GuestLoginHandler())
         await register(PinCodeHandler())
         await register(AcceptLicenseHandler())

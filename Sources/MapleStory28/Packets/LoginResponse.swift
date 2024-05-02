@@ -123,6 +123,18 @@ public extension LoginResponse {
 
 public extension LoginResponse.Success {
     
+    init(user: User) {
+        self.init(
+            account: user.index,
+            gender: .init(user.gender),
+            isAdmin: user.isAdmin,
+            username: user.username.rawValue
+        )
+    }
+}
+
+public extension LoginResponse.Success {
+    
     enum Gender: UInt8, Codable, CaseIterable, Sendable {
         
         case male       = 0
