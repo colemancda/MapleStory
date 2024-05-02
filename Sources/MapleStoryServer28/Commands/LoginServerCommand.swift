@@ -120,9 +120,10 @@ public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcod
         await register(AcceptLicenseHandler())
         await register(SetGenderHandler())
         await register(PinCodeHandler())
-        //await register(CharacterListHandler())
-        await register(CheckCharacterNameHandler())
+        await register(WorldSelectionHandler())
+        await register(CharacterListHandler())
         await register(CreateCharacterHandler())
+        await register(CheckCharacterNameHandler())
         await register(DeleteCharacterHandler())
     }
 }
