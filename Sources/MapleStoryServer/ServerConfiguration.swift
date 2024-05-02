@@ -19,7 +19,7 @@ public struct ServerConfiguration: Equatable, Hashable, Sendable {
     
     public let region: Region
     
-    public let key: Key
+    public let key: Key?
     
     public let world: World.ID?
     
@@ -28,7 +28,7 @@ public struct ServerConfiguration: Equatable, Hashable, Sendable {
         backlog: Int = 1000,
         version: Version,
         region: Region = .global,
-        key: Key = .default,
+        key: Key? = .default,
         world: World.ID? = nil
     ) {
         self.address = address

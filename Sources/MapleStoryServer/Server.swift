@@ -202,21 +202,21 @@ public extension MapleStoryServer {
             connection.address
         }
         
-        public var region: MapleStory.Region {
+        public nonisolated var region: MapleStory.Region {
             connection.region
         }
         
-        public var version: MapleStory.Version {
+        public nonisolated var version: MapleStory.Version {
             connection.version
         }
         
-        public var recieveNonce: MapleStory.Nonce {
+        public nonisolated var recieveNonce: MapleStory.Nonce {
             get async {
                 await connection.recieveNonce
             }
         }
         
-        public var sendNonce: MapleStory.Nonce {
+        public nonisolated var sendNonce: MapleStory.Nonce {
             get async {
                 await connection.sendNonce
             }

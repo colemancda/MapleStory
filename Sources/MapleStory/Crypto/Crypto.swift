@@ -61,7 +61,7 @@ public extension Packet {
     
     /// Encrypt
     func encrypt(
-        key: Key = .default,
+        key: Key? = .default,
         nonce: Nonce = Nonce(),
         version: Version
     ) throws -> Packet.Encrypted {
@@ -69,11 +69,13 @@ public extension Packet {
         let length = self.data.count
         var encrypted = self.data
         Crypto.Maple.encrypt(&encrypted)
-        encrypted = try Crypto.AES.encrypt(
-            encrypted,
-            key: key,
-            iv: iv
-        )
+        if let key {
+            encrypted = try Crypto.AES.encrypt(
+                encrypted,
+                key: key,
+                iv: iv
+            )
+        }
         let header = Packet.Encrypted.header(
             length: length,
             iv: iv,
@@ -88,16 +90,21 @@ public extension Packet {
     /// Decrypt packet from data (without header).
     static func decrypt(
         _ data: Data,
-        key: Key = .default,
+        key: Key? = .default,
         nonce: Nonce,
         version: Version
     ) throws -> Packet {
         let iv = nonce.iv
-        var decrypted = try Crypto.AES.decrypt(
-            data,
-            key: key,
-            iv: iv
-        )
+        var decrypted: Data
+        if let key {
+            decrypted = try Crypto.AES.decrypt(
+                data,
+                key: key,
+                iv: iv
+            )
+        } else {
+            decrypted = data
+        }
         Crypto.Maple.decrypt(&decrypted)
         guard let packet = Packet(data: decrypted) else {
             throw MapleStoryError.invalidData(decrypted)
@@ -110,7 +117,7 @@ public extension Packet.Encrypted {
     
     /// Decrypt
     func decrypt(
-        key: Key = .default,
+        key: Key? = .default,
         nonce: Nonce,
         version: Version
     ) throws -> Packet {
