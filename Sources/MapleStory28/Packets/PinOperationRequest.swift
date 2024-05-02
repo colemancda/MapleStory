@@ -8,7 +8,7 @@
 import Foundation
 import MapleStory
 
-public struct PinOperationRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+public struct PinOperationRequest: MapleStoryPacket, Decodable, Equatable, Hashable, Sendable {
     
     public static var opcode: ClientOpcode { .checkLogin }
     
