@@ -114,6 +114,7 @@ public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcod
         }))
         // await register(PingHandler())
         await register(LoginHandler())
+        await register(AcceptLicenseHandler())
         
         /*
         await register(GuestLoginHandler())

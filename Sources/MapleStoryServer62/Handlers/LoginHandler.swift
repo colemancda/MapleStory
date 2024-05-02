@@ -32,7 +32,7 @@ internal extension LoginHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory62.LoginResponse {
         do {
-            let user = try await connection.login(
+            let _ = try await connection.login(
                 username: request.username,
                 password: request.password
             )

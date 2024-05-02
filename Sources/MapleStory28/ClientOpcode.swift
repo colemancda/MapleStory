@@ -14,6 +14,8 @@ public enum ClientOpcode: UInt8, CaseIterable, MapleStoryOpcode, Sendable {
     case loginRequest = 0x01
     /// Login channel select opcode.
     case loginChannelSelect = 0x04
+    /// Accept Terms of Service opcode. (0x06)
+    case acceptLicense = 0x06
     /// Login world select opcode.
     case loginWorldSelect = 0x05
     /// Login check login opcode.

@@ -19,7 +19,7 @@ public struct ShowNotesNotification: MapleStoryPacket, Codable, Equatable, Hasha
 
 public extension ShowNotesNotification {
     
-    struct Note: Codable, Equatable, Hashable, Identifiable {
+    struct Note: Codable, Equatable, Hashable, Identifiable, Sendable {
         
         public let id: UInt32
         
