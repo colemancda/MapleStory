@@ -9,7 +9,7 @@ import Foundation
 import MapleStory
 
 /// Login request
-public struct LoginRequest: MapleStoryPacket, Codable, Equatable, Hashable {
+public struct LoginRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
     public static var opcode: Opcode { .init(client: .loginRequest) }
     

@@ -8,7 +8,7 @@
 import Foundation
 
 /// Login request
-public struct LoginRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
+public struct LoginRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
     public static var opcode: Opcode { .init(client: .loginRequest) }// 0x01
     
@@ -16,8 +16,21 @@ public struct LoginRequest: MapleStoryPacket, Decodable, Equatable, Hashable {
     
     public var password: String
     
-    public init(username: String, password: String) {
-        self.username = username
-        self.password = password
-    }
+    internal let value0: UInt16
+    
+    internal let value1: UInt32
+    
+    public var hardwareID: UInt32
+    
+    internal let value2: UInt32
+    
+    internal let value3: UInt16
+    
+    internal let value4: UInt32
+    
+    internal let value5: UInt16
+    
+    internal let value6: UInt32
+    
+    internal let value7: UInt8
 }
