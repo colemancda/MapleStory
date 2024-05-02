@@ -122,12 +122,22 @@ final class LoginTests: XCTestCase {
                 
         let value = LoginRequest(
             username: "admin",
-            password: "admin"
+            password: "admin",
+            value0: 0x00,
+            value1: 0x00,
+            hardwareID: 3200620507,
+            value2: 0x00,
+            value3: 50821,
+            value4: 0x00,
+            value5: 0x02,
+            value6: 0x00,
+            value7: 0x00
         )
         
         XCTAssertEqual(packet.opcode, LoginRequest.opcode)
         XCTAssertEqual(packet.data, decryptedData)
         XCTAssertEqual(packet, Packet(decryptedData))
+        XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
     }
     
