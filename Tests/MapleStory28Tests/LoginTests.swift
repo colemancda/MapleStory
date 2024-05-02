@@ -61,6 +61,23 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet.data.count, 45)
     }
     
+    func testLoginSuccess() throws {
+        
+        let packet: Packet<ServerOpcode> = [0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x01, 0x0A, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x63, 0x64, 0x61, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00]
+        
+        let value = LoginResponse.success(
+            MapleStory28.LoginResponse.Success(
+                account: 1,
+                gender: .male,
+                isAdmin: false,
+                username: "colemancda"
+            )
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
     func testLoginFailure() throws {
         
         let packet: Packet<ServerOpcode> = [1, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
@@ -79,5 +96,20 @@ final class LoginTests: XCTestCase {
         )
         
         XCTAssertEqual(encryptedData, encryptedPacket.data)
+    }
+    
+    func testCheckLogin() {
+        
+        let packet: Packet<ClientOpcode> = [0x08, 0x01, 0x01, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00]
+        XCTAssertEqual(packet.opcode, .checkLogin)
+        
+        let value = PinOperationRequest(
+            value0: 0,
+            value1: 0,
+            pinCode: nil
+        )
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
     }
 }
