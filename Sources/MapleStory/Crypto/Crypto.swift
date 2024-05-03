@@ -9,56 +9,6 @@ import Foundation
 @_implementationOnly import CMapleStory
 import CryptoSwift
 
-// MARK: - Packet
-
-public struct EncryptedPacket: Equatable, Hashable {
-    
-    public internal(set) var data: Data
-    
-    internal init(_ data: Data) {
-        self.data = data
-        assert(data.count >= Self.minSize)
-    }
-    
-    public init?(data: Data) {
-        // validate size
-        guard data.count >= Self.minSize else {
-            return nil
-        }
-        self.data = data
-    }
-}
-
-public extension Packet {
-    
-    typealias Encrypted = EncryptedPacket
-}
-
-public extension EncryptedPacket {
-    
-    static var minSize: Int { 4 }
-    
-    var length: Int {
-        Self.length(header)
-    }
-    
-    /// Packet parameters
-    var parameters: Data {
-        withUnsafeParameters { Data($0) }
-    }
-    
-    var parametersSize: Int {
-        data.count - Self.minSize
-    }
-    
-    func withUnsafeParameters<ResultType>(_ body: ((UnsafeRawBufferPointer) throws -> ResultType)) rethrows -> ResultType {
-        return try data.withUnsafeBytes { pointer in
-            let parametersPointer = pointer.count > Self.minSize ? pointer.baseAddress?.advanced(by: Self.minSize) : nil
-            return try body(UnsafeRawBufferPointer(start: parametersPointer, count: parametersSize))
-        }
-    }
-}
-
 public extension Packet {
     
     /// Encrypt
