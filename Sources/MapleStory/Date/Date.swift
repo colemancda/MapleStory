@@ -8,39 +8,16 @@
 import Foundation
 
 /// MapleStory Date
-public protocol MapleStoryDate: RawRepresentable, Hashable, Codable, MapleStoryCodable where Self.RawValue: FixedWidthInteger, Self.RawValue: Codable {
+public protocol MapleStoryDate: RawRepresentable, Hashable, Codable where Self.RawValue: FixedWidthInteger, Self.RawValue: Codable {
     
     var timeIntervalSince1970: Double { get }
     
     init(timeIntervalSince1970: Double)
+}
+
+public protocol MapleStoryExpressibleByIntegerLiteralDate: MapleStoryDate, ExpressibleByIntegerLiteral {
     
     init(rawValue: RawValue)
-}
-
-// MARK: - MapleStoryCodable
-
-extension MapleStoryDate where Self.RawValue == Int64 {
-    
-    public init(from container: MapleStoryDecodingContainer) throws {
-        let rawValue = try container.decode(Int64.self)
-        self.init(rawValue: rawValue)
-    }
-    
-    public func encode(to container: MapleStoryEncodingContainer) throws {
-        try container.encode(rawValue)
-    }
-}
-
-extension MapleStoryDate where Self.RawValue == Int32 {
-    
-    public init(from container: MapleStoryDecodingContainer) throws {
-        let rawValue = try container.decode(Int32.self)
-        self.init(rawValue: rawValue)
-    }
-    
-    public func encode(to container: MapleStoryEncodingContainer) throws {
-        try container.encode(rawValue)
-    }
 }
 
 // MARK: - CustomStringConvertible
@@ -50,11 +27,24 @@ extension MapleStoryDate where Self: CustomStringConvertible {
     public var description: String {
         Date(self).description
     }
+    
+    public func description(with locale: Locale?) -> String {
+        Date(self).description(with: locale)
+    }
+}
+
+// MARK: - CustomDebugStringConvertible
+
+extension MapleStoryDate where Self: CustomDebugStringConvertible {
+    
+    public var debugDescription: String {
+        Date(self).debugDescription
+    }
 }
 
 // MARK: - ExpressibleByIntegerLiteral
 
-extension MapleStoryDate where Self: ExpressibleByIntegerLiteral {
+extension MapleStoryExpressibleByIntegerLiteralDate {
     
     public init(integerLiteral value: RawValue) {
         self.init(rawValue: value)
@@ -87,6 +77,6 @@ public extension Date {
     
     /// The date MapleGlobal released (May 11 2005)
     static var mapleGlobalRelease: Date {
-        Date(timeIntervalSince1970: 1_715_385_600) // 2005-05-11
+        Date(timeIntervalSince1970: 1_115_769_600.0) // 2005-05-11
     }
 }
