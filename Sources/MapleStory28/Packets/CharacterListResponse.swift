@@ -230,16 +230,14 @@ extension CharacterListResponse.Equipment: MapleStoryCodable {
 public extension CharacterListResponse.Character {
     
     init(_ character: Character) {
+        self.id = character.index
         self.stats = .init(
-            id: character.index,
             name: character.name,
             gender: character.gender,
             skinColor: character.skinColor,
             face: character.face, 
             hair: character.hair,
-            value0: 0,
-            value1: 0,
-            value2: 0,
+            petCash: 0x00,
             level: numericCast(character.level),
             job: character.job,
             str: character.str,
@@ -254,10 +252,8 @@ public extension CharacterListResponse.Character {
             sp: character.sp,
             exp: character.exp.rawValue,
             fame: character.fame,
-            isMarried: character.isMarried ? 1 : 0,
             currentMap: character.currentMap,
-            spawnPoint: character.spawnPoint,
-            value3: 0
+            spawnPoint: character.spawnPoint
         )
         self.appearance = .init(
             gender: character.gender,
@@ -267,9 +263,7 @@ public extension CharacterListResponse.Character {
             hair: character.hair,
             equipment: .init(character.equipment),
             maskedEquipment: .init(character.maskedEquipment),
-            cashWeapon: character.cashWeapon,
-            value0: 0,
-            value1: 0
+            cashWeapon: character.cashWeapon
         )
         self.rank = character.isRankEnabled ? .enabled(
             worldRank: character.worldRank,
