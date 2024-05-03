@@ -48,6 +48,9 @@ struct ChannelServerCommand: AsyncParsableCommand {
     @Option(help: "Database name.")
     var databaseName: String = "maplestory"
     
+    @Flag(help: "Whether AES encryption is enabled.")
+    var aesEncryption: Bool = false
+    
     func validate() throws {
         if let address {
             guard let _ = MapleStoryAddress(address: address, port: port) else {
@@ -76,7 +79,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
             address: address,
             backlog: backlog,
             version: .v28,
-            key: nil
+            key: aesEncryption ? .default : nil
         )
         
         let elg = MultiThreadedEventLoopGroup(numberOfThreads: 2)
@@ -131,13 +134,12 @@ struct ChannelServerCommand: AsyncParsableCommand {
     }
 }
 
-public extension MapleStoryServer {
+public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcode, ServerOpcode == MapleStory28.ServerOpcode {
     
     func registerChannelServer(
         world: World.ID
     ) async {
-        //await register(HandshakeHandler())
+        await register(PlayerLoginHandler(world: world))
         //await register(PingHandler())
-        
     }
 }
