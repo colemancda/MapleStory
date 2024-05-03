@@ -12,7 +12,7 @@ public struct PlayerLoginRequest: MapleStoryPacket, Codable, Equatable, Hashable
     
     public let character: Character.Index
     
-    internal let value0: UInt16
+    internal let value0: UInt8
     
     public init(character: Character.Index) {
         self.character = character
