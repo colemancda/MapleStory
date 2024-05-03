@@ -70,10 +70,6 @@ let package = Package(
             from: "1.6.0"
         ),
         .package(
-            url: "https://github.com/ekscrypto/SwiftEmailValidator.git",
-            from: "1.0.4"
-        ),
-        .package(
             url: "https://github.com/tmthecoder/Argon2Swift.git",
             branch: "main"
         )
@@ -85,7 +81,6 @@ let package = Package(
                 "CMapleStory",
                 "CryptoSwift",
                 "Socket",
-                "SwiftEmailValidator",
                 .product(
                     name: "Collections",
                     package: "swift-collections"
