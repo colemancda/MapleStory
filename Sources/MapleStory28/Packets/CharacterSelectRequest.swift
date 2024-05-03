@@ -13,6 +13,4 @@ public struct CharacterSelectRequest: MapleStoryPacket, Codable, Equatable, Hash
     public static var opcode: ClientOpcode { .characterSelectRequest }
     
     public let character: Character.Index
-    
-    public let macAddresses: String
 }
