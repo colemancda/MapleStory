@@ -122,7 +122,7 @@ public extension ServerListResponse.World {
     ) {
         self.id = world.index
         self.name = world.name
-        self.flags = world.flags
+        self.flags = world.ribbon.rawValue
         self.eventMessage = world.eventMessage
         self.rateModifier = world.rateModifier
         self.eventXP = world.eventXP

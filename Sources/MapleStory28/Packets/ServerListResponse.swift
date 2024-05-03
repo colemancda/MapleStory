@@ -121,7 +121,7 @@ public extension ServerListResponse.World {
         channels: [MapleStory.Channel]
     ) {
         self.name = world.name
-        self.flags = world.flags
+        self.flags = world.ribbon.rawValue
         self.eventMessage = world.eventMessage
         self.eventXP = world.eventXP
         self.channels = channels.map { .init($0, world: world.index) }

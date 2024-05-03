@@ -8,6 +8,7 @@
 import Foundation
 import CoreModel
 
+/// MapleStory World data.
 public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
     
     public typealias Index = UInt8
@@ -26,7 +27,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
     
     public var isEnabled: Bool
     
-    public var flags: UInt8
+    public var ribbon: World.Ribbon
     
     public var eventMessage: String
     
@@ -50,7 +51,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         version: Version,
         address: MapleStoryAddress = .channelServerDefault,
         isEnabled: Bool = true,
-        flags: UInt8 = 0x02,
+        ribbon: World.Ribbon = .normal,
         eventMessage: String = "",
         rateModifier: UInt8 = 0x64,
         eventXP: UInt8 = 0,
@@ -66,7 +67,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         self.isEnabled = isEnabled
         self.region = region
         self.version = version
-        self.flags = flags
+        self.ribbon = ribbon
         self.eventMessage = eventMessage
         self.rateModifier = rateModifier
         self.eventXP = eventXP
@@ -85,7 +86,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         case name
         case address
         case isEnabled = "enabled"
-        case flags
+        case ribbon
         case eventMessage
         case rateModifier
         case eventXP
@@ -120,7 +121,7 @@ extension World: Entity {
             .version: .int32,
             .address: .string,
             .isEnabled: .bool,
-            .flags: .int16,
+            .ribbon: .int16,
             .eventMessage: .string,
             .rateModifier: .int16,
             .eventXP: .int16,
