@@ -23,20 +23,39 @@ public extension Character {
     }
 }
 
+public extension Character.Predicate {
+    
+    var key: Character.CodingKeys {
+        switch self {
+        case .name:
+            return .name
+        case .index:
+            return .index
+        case .channel:
+            return .channel
+        case .user:
+            return .user
+        case .world:
+            return .world
+        }
+    }
+}
+
 public extension FetchRequest.Predicate {
     
     init(predicate: Character.Predicate) {
+        let key = predicate.key.stringValue
         switch predicate {
         case .name(let name):
-            self = Character.CodingKeys.name.stringValue.compare(.equalTo, .attribute(.string(name.rawValue.lowercased())))
+            self = key.compare(.equalTo, .attribute(.string(name.rawValue.lowercased())))
         case .index(let index):
-            self = Character.CodingKeys.index.stringValue.compare(.equalTo, .attribute(.int64(numericCast(index))))
+            self = key.compare(.equalTo, .attribute(.int64(numericCast(index))))
         case .channel(let channel):
-            self = Character.CodingKeys.channel.stringValue.compare(.equalTo, .relationship(.toOne(.init(channel))))
+            self = key.compare(.equalTo, .relationship(.toOne(.init(channel))))
         case .user(let user):
-            self = Character.CodingKeys.user.stringValue.compare(.equalTo, .relationship(.toOne(.init(user))))
+            self = key.compare(.equalTo, .relationship(.toOne(.init(user))))
         case .world(let world):
-            self = Character.CodingKeys.world.stringValue.compare(.equalTo, .relationship(.toOne(.init(world))))
+            self = key.compare(.equalTo, .relationship(.toOne(.init(world))))
         }
     }
 }
@@ -48,11 +67,11 @@ public extension Character {
         world: World.ID,
         in database: Storage
     ) async throws -> Bool {
-        let predicates = [
-            FetchRequest.Predicate.init(predicate: Character.Predicate.name(name)),
-            FetchRequest.Predicate.init(predicate: Character.Predicate.world(world))
+        let predicates: [Character.Predicate] = [
+            .name(name),
+            .world(world)
         ]
-        let predicate = FetchRequest.Predicate.compound(.and(predicates))
+        let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
         let count = try await database.count(Character.self, predicate: predicate, fetchLimit: 1)
         return count > 0
     }
@@ -63,20 +82,20 @@ public extension Character {
         channel: Channel.ID? = nil,
         in database: Storage
     ) async throws -> [Character] {
-        var predicates = [
-            FetchRequest.Predicate.init(predicate: Character.Predicate.user(user))
+        var predicates: [Character.Predicate] = [
+            .user(user)
         ]
         if let world {
             predicates.append(
-                .init(predicate: Character.Predicate.world(world))
+                .world(world)
             )
         }
         if let channel {
             predicates.append(
-                .init(predicate: Character.Predicate.channel(channel))
+                .channel(channel)
             )
         }
-        let predicate = FetchRequest.Predicate.compound(.and(predicates))
+        let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
         return try await database.fetch(
             Character.self, 
             sortDescriptors: [
@@ -88,16 +107,18 @@ public extension Character {
     
     static func fetch<Storage: ModelStorage>(
         _ index: Character.Index,
-        user: User.ID,
+        user: User.ID? = nil,
         world: World.ID,
         in database: Storage
     ) async throws -> Character? {
-        let predicates = [
-            FetchRequest.Predicate(predicate: Character.Predicate.index(index)),
-            FetchRequest.Predicate(predicate: Character.Predicate.user(user)),
-            FetchRequest.Predicate(predicate: Character.Predicate.world(world))
+        var predicates: [Character.Predicate] = [
+            .index(index),
+            .world(world)
         ]
-        let predicate = FetchRequest.Predicate.compound(.and(predicates))
+        if let user {
+            predicates.append(.user(user))
+        }
+        let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
         return try await database.fetch(
             Character.self,
             sortDescriptors: [
