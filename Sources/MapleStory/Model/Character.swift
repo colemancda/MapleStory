@@ -13,6 +13,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public typealias Index = UInt32
     
+    // MARK: - Properties
+    
     public let id: UUID
     
     public let index: Index
@@ -21,13 +23,13 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public let world: World.ID
     
-    public let channel: Channel.ID?
-        
-    public var name: CharacterName
+    public var session: Session.ID?
+    
+    public let name: CharacterName
     
     public let created: Date
     
-    public var gender: Gender
+    public let gender: Gender
     
     public var skinColor: SkinColor
     
@@ -87,12 +89,14 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var jobRankMove: UInt32
     
+    // MARK: - Initialization
+    
     public init(
         id: UUID,
         index: Index,
         user: User.ID,
         world: World.ID,
-        channel: Channel.ID? = nil,
+        session: Session.ID? = nil,
         created: Date = Date(),
         name: CharacterName,
         gender: Gender = .male,
@@ -130,7 +134,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.index = index
         self.user = user
         self.world = world
-        self.channel = channel
+        self.session = session
         self.created = created
         self.name = name
         self.gender = gender
@@ -165,12 +169,14 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.jobRankMove = jobRankMove
     }
     
-    public enum CodingKeys: String, CodingKey, CaseIterable {
+    // MARK: - Codable
+    
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
         case id
         case index
         case user
         case world
-        case channel
+        case session
         case created
         case name
         case gender
@@ -264,12 +270,12 @@ extension Character: Entity {
                 type: .toOne,
                 inverseRelationship: .characters
             ),
-            .channel: Relationship(
-                id: .channel,
+            .session: Relationship(
+                id: .session,
                 entity: Character.self,
-                destination: Channel.self,
+                destination: Session.self,
                 type: .toOne,
-                inverseRelationship: .characters
+                inverseRelationship: .character
             )
         ]
     }
@@ -350,7 +356,6 @@ public extension Character {
         index: Character.Index,
         user: User.ID,
         world: World.ID,
-        channel: Channel.ID? = nil,
         id: UUID = UUID(),
         created: Date = Date()
     ) {
@@ -370,7 +375,6 @@ public extension Character {
             index: index,
             user: user,
             world: world,
-            channel: channel,
             created: created,
             name: value.name,
             gender: value.gender,

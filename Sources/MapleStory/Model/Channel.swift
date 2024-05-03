@@ -13,6 +13,8 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public typealias Index = UInt8
     
+    // MARK: - Properties
+    
     public let id: UUID
     
     public let index: Index
@@ -20,21 +22,23 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let world: World.ID
     
     public var name: String
-    
-    public let characters: [Character.ID]
-    
+        
     public var load: UInt32
     
     public var status: Status
+    
+    public var sessions: [Session.ID]
+    
+    // MARK: - Initialization
     
     public init(
         id: UUID = UUID(),
         index: Index,
         world: World.ID,
         name: String,
-        characters: [Character.ID] = [],
         load: UInt32 = 0,
-        status: Channel.Status = .normal
+        status: Channel.Status = .normal,
+        sessions: [Session.ID] = []
     ) {
         self.id = id
         self.index = index
@@ -42,15 +46,17 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.load = load
         self.status = status
         self.world = world
-        self.characters = characters
+        self.sessions = sessions
     }
     
-    public enum CodingKeys: CodingKey {
+    // MARK: - Codable
+    
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
         
         case id
         case index
         case world
-        case characters
+        case sessions
         case name
         case load
         case status
@@ -79,10 +85,10 @@ extension Channel: Entity {
                 type: .toOne,
                 inverseRelationship: .channels
             ),
-            .characters: Relationship(
-                id: .characters,
+            .sessions: Relationship(
+                id: .sessions,
                 entity: Channel.self,
-                destination: Character.self,
+                destination: Session.self,
                 type: .toMany,
                 inverseRelationship: .channel
             )
