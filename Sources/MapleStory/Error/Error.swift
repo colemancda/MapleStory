@@ -20,9 +20,15 @@ public enum MapleStoryError: Error {
     
     case unknownUser(String)
     
+    case sessionExpired
+    
+    case internalServerError
+    
     case invalidWorld
     
     case invalidChannel
+    
+    case invalidCharacter
         
     case invalidRequest
     
