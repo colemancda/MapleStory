@@ -244,6 +244,16 @@ final class LoginTests: XCTestCase {
         XCTAssertEncode(value, packet)
     }
     
+    func testCharacterListResponse() {
+        
+        let packet: Packet<ServerOpcode> = [10, 0, 1, 1, 0, 0, 0, 99, 111, 108, 101, 109, 97, 110, 99, 100, 97, 49, 0, 0, 0, 0, 32, 78, 0, 0, 78, 117, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 7, 0, 4, 0, 6, 0, 8, 0, 100, 0, 100, 0, 50, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 78, 0, 0, 0, 78, 117, 0, 0, 5, 130, 222, 15, 0, 6, 162, 44, 16, 0, 7, 129, 91, 16, 0, 11, 240, 221, 19, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0]
+        
+        let value = CharacterListResponse(characters: [MapleStory28.CharacterListResponse.Character(id: 1, stats: MapleStory28.CharacterListResponse.CharacterStats(name: "colemancda1", gender: MapleStory.Gender.male, skinColor: MapleStory.SkinColor.normal, face: 20000, hair: 30030, petCash: 0, level: 1, job: MapleStory.Job.beginner, str: 7, dex: 4, int: 6, luk: 8, hp: 100, maxHp: 100, mp: 50, maxMp: 50, ap: 0, sp: 0, exp: 0, fame: 0, currentMap: 0, spawnPoint: 0), appearance: MapleStory28.CharacterListResponse.CharacterAppeareance(gender: MapleStory.Gender.male, skinColor: MapleStory.SkinColor.normal, face: 20000, mega: false, hair: 30030, equipment: [5: 2195590912, 6: 2720796672, 7: 2170228736, 11: 4041020160], maskedEquipment: [:], cashWeapon: 0), value0: 0, rank: MapleStory28.CharacterListResponse.Rank.enabled(worldRank: 1, rankMove: 2, jobRank: 3, jobRankMove: 4))])
+        
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
     func testCheckCharacterNameRequest() {
         
         let packet: Packet<ClientOpcode> = [0x0D, 0x0A, 0x00, 0x63, 0x6F, 0x6C, 0x65, 0x6D, 0x61, 0x6E, 0x63, 0x64, 0x61]
@@ -280,6 +290,25 @@ final class LoginTests: XCTestCase {
             luk: 7
         )
         
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testCreateCharacterErrorResponse() {
+        
+        let packet: Packet<ServerOpcode> = [0x0D, 0x01]
+        let value = CreateCharacterResponse.error
+        XCTAssertDecode(value, packet)
+        XCTAssertEncode(value, packet)
+    }
+    
+    func testCreateCharacterResponse() {
+        
+        let packet: Packet<ServerOpcode> = [13, 0, 1, 0, 0, 0, 99, 111, 108, 101, 109, 97, 110, 99, 100, 97, 49, 0, 0, 0, 0, 32, 78, 0, 0, 78, 117, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 7, 0, 4, 0, 6, 0, 8, 0, 100, 0, 100, 0, 50, 0, 50, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 32, 78, 0, 0, 0, 78, 117, 0, 0, 5, 130, 222, 15, 0, 6, 162, 44, 16, 0, 7, 129, 91, 16, 0, 11, 240, 221, 19, 0, 255, 255, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 2, 0, 0, 0, 3, 0, 0, 0, 4, 0, 0, 0]
+        
+        let value = CreateCharacterResponse.character(MapleStory28.CharacterListResponse.Character(id: 1, stats: MapleStory28.CharacterListResponse.CharacterStats(name: "colemancda1", gender: MapleStory.Gender.male, skinColor: MapleStory.SkinColor.normal, face: 20000, hair: 30030, petCash: 0, level: 1, job: MapleStory.Job.beginner, str: 7, dex: 4, int: 6, luk: 8, hp: 100, maxHp: 100, mp: 50, maxMp: 50, ap: 0, sp: 0, exp: 0, fame: 0, currentMap: 0, spawnPoint: 0), appearance: MapleStory28.CharacterListResponse.CharacterAppeareance(gender: MapleStory.Gender.male, skinColor: MapleStory.SkinColor.normal, face: 20000, mega: false, hair: 30030, equipment: [5: 2195590912, 6: 2720796672, 7: 2170228736, 11: 4041020160], maskedEquipment: [:], cashWeapon: 0), value0: 0, rank: MapleStory28.CharacterListResponse.Rank.enabled(worldRank: 1, rankMove: 2, jobRank: 3, jobRankMove: 4)))
+        
+        XCTAssertEqual(packet.opcode, .createCharacterResponse)
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
     }
