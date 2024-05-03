@@ -29,7 +29,7 @@ final class LoginTests: XCTestCase {
     
     func testReturnToLoginScreenRequest() throws {
         
-        let packet: Packet<ClientOpcode> = [0x14]
+        let packet: Packet<ClientOpcode> = [20]
         let value = ReturnToLoginScreenRequest()
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
@@ -38,7 +38,7 @@ final class LoginTests: XCTestCase {
     
     func testReturnToLoginScreenResponse() throws {
         
-        let packet: Packet<ServerOpcode> = [0x15]
+        let packet: Packet<ServerOpcode> = [21, 1]
         let value = ReturnToLoginScreenResponse()
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)

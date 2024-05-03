@@ -12,5 +12,9 @@ public struct ReturnToLoginScreenResponse: MapleStoryPacket, Equatable, Hashable
     
     public static var opcode: ServerOpcode { .loginRestarter }
     
-    public init() { }
+    internal let value0: UInt8
+    
+    public init() {
+        self.value0 = 0x01
+    }
 }
