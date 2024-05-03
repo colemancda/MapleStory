@@ -8,7 +8,7 @@
 import Foundation
 
 /// Date type for temporary ban date.
-public struct TemporaryBanDate: MapleStoryDate, Sendable {
+public struct TemporaryBanDate: MapleStoryExpressibleByIntegerLiteralDate, Sendable {
     
     public var rawValue: Int64
     

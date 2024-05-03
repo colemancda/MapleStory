@@ -7,7 +7,7 @@
 
 import Foundation
 
-public struct KoreanDate: MapleStoryDate, Sendable {
+public struct KoreanDate: MapleStoryExpressibleByIntegerLiteralDate, Sendable {
     
     public var rawValue: Int64
     
