@@ -31,7 +31,15 @@ internal extension DeleteCharacterHandler {
         _ request: MapleStory28.DeleteCharacterRequest,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory28.DeleteCharacterResponse {
-        try await connection.deleteCharacter(request.character) // TODO: validate DOB
-        return .init(character: request.character)
+        do {
+            try await connection.deleteCharacter(request.character)
+            return .init(character: request.character)
+        }
+        catch MapleStoryError.invalidBirthday {
+            return .init(character: request.character, error: .invalidDateOfBirth)
+        }
+        catch {
+            return .init(character: request.character, error: .serverLoadError)
+        }
     }
 }
