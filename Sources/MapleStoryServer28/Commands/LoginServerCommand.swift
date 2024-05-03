@@ -126,5 +126,6 @@ public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcod
         await register(CreateCharacterHandler())
         await register(CheckCharacterNameHandler())
         await register(DeleteCharacterHandler())
+        await register(SelectCharacterHandler())
     }
 }
