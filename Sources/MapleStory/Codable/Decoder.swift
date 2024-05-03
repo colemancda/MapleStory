@@ -245,7 +245,8 @@ private extension MapleStoryDecoder.Decoder {
     func readDate() throws -> Date {
         // FIXME: Korean Date
         let koreanTimeStamp = try readNumeric(Int64.self)
-        return Date(timeIntervalSince1970: .init(koreanTimeStamp))
+        let date = KoreanDate(rawValue: koreanTimeStamp)
+        return .init(date)
     }
     
     func readNullTerminatedString() throws -> String {
