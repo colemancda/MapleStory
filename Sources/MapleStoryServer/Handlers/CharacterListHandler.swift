@@ -25,13 +25,13 @@ public extension MapleStoryServer.Connection {
             region: region,
             in: database
         ) else {
-            throw MapleStoryError.invalidRequest
+            throw MapleStoryError.invalidWorld
         }
         guard world.isEnabled else {
-            throw MapleStoryError.invalidRequest
+            throw MapleStoryError.invalidWorld
         }
         guard let channel = try await Channel.fetch(channelIndex, world: world.id, in: database) else {
-            throw MapleStoryError.invalidRequest
+            throw MapleStoryError.invalidChannel
         }
         let characters = try await Character.fetch(
             user: user,
