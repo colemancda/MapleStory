@@ -8,12 +8,13 @@
 import Foundation
 import MapleStory
 
+/// Character List Response
 public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     
     public static var opcode: ServerOpcode { .characterList }
     
     public let status: UInt8 // 0x00
-        
+    
     public let characters: [CharacterListResponse.Character]
     
     public init(
@@ -26,13 +27,15 @@ public struct CharacterListResponse: MapleStoryPacket, Codable, Equatable, Hasha
 
 public extension CharacterListResponse {
     
-    struct Character: Codable, Equatable, Hashable, Sendable {
+    struct Character: Codable, Equatable, Hashable, Sendable, Identifiable {
+        
+        public let id: UInt32
         
         public let stats: CharacterStats
         
         public let appearance: CharacterAppeareance
         
-        internal let value0: UInt8
+        internal let value0: UInt32 // character selection
         
         public let rank: Rank
     }
@@ -41,9 +44,7 @@ public extension CharacterListResponse {
 public extension CharacterListResponse {
     
     struct CharacterStats: Codable, Equatable, Hashable, Sendable {
-        
-        public let id: UInt32
-        
+                
         public let name: CharacterName
         
         public let gender: Gender
@@ -54,11 +55,7 @@ public extension CharacterListResponse {
         
         public let hair: Hair
         
-        public let value0: UInt64
-        
-        public let value1: UInt64
-        
-        public let value2: UInt64
+        public let petCash: UInt64 // Pet cash ID
         
         public let level: UInt8
         
@@ -87,14 +84,10 @@ public extension CharacterListResponse {
         public let exp: UInt32
         
         public let fame: UInt16
-        
-        public let isMarried: UInt32
-        
+                
         public let currentMap: Map.ID
         
         public let spawnPoint: UInt8
-        
-        internal let value3: UInt32
     }
 }
 
@@ -117,10 +110,6 @@ public extension CharacterListResponse {
         public let maskedEquipment: Equipment
         
         public let cashWeapon: UInt32
-        
-        public let value0: UInt32
-        
-        public let value1: UInt64
     }
 }
 
@@ -246,7 +235,7 @@ public extension CharacterListResponse.Character {
             name: character.name,
             gender: character.gender,
             skinColor: character.skinColor,
-            face: character.face,
+            face: character.face, 
             hair: character.hair,
             value0: 0,
             value1: 0,
