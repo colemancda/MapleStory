@@ -99,7 +99,7 @@ public struct WarpToMapNotification: MapleStoryPacket, Codable, Equatable, Hasha
     
     internal let value14: UInt64
     
-    public let timestamp: UInt64
+    public let timestamp: Date
 }
 
 public extension WarpToMapNotification {

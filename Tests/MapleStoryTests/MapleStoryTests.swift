@@ -113,6 +113,7 @@ final class MapleStoryTests: XCTestCase {
     func testDate() {
         
         XCTAssertEqual(Date.mapleGlobalRelease.description, "2005-05-11 00:00:00 +0000")
+        XCTAssertEqual(Date(timeIntervalSince1970: 1714743075).description, "2024-05-03 13:31:15 +0000")
     }
     
     func testBirthday() {

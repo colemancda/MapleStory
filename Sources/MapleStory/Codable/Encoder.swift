@@ -220,8 +220,8 @@ private extension MapleStoryEncoder.Encoder {
     }
     
     func writeDate(_ value: Date) throws {
-        let koreanDate = KoreanDate(value)
-        write(boxInteger(koreanDate.rawValue))
+        let timestamp = UInt64(value.timeIntervalSince1970)
+        write(boxInteger(timestamp))
     }
 }
 
