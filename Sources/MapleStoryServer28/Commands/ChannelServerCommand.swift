@@ -55,10 +55,10 @@ struct ChannelServerCommand: AsyncParsableCommand {
             }
         }
         guard world > 0 else {
-            throw MapleStoryError.invalidWorld(world)
+            throw MapleStoryError.invalidWorld
         }
         guard channel > 0 else {
-            throw MapleStoryError.invalidChannel(channel)
+            throw MapleStoryError.invalidChannel
         }
     }
     
@@ -117,7 +117,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
             region: configuration.region,
             in: store
         ) else {
-            throw MapleStoryError.invalidWorld(self.world)
+            throw MapleStoryError.invalidWorld
         }
         
         await server.registerChannelServer(
