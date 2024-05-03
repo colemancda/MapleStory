@@ -71,7 +71,10 @@ func XCTAssertEncode<T>(
 
 func XCTAssertEncrypt<T>(
     _ value: T,
-    _ packet: Packet<T.Opcode>,
+    _ encrypted: EncryptedPacket,
+    key: Key? = .default,
+    nonce: Nonce,
+    version: Version,
     file: StaticString = #file,
     line: UInt = #line
 ) where T: Equatable, T: Encodable, T: MapleStoryPacket {
@@ -81,8 +84,8 @@ func XCTAssertEncrypt<T>(
     
     do {
         let encodedPacket = try encoder.encodePacket(value)
-        XCTAssertFalse(encodedPacket.data.isEmpty, file: file, line: line)
-        XCTAssertEqual(encodedPacket.data, packet.data, "\(encodedPacket.data.hexString) is not equal to \(packet.data.hexString)", file: file, line: line)
+        let encryptedPacket = try encodedPacket.encrypt(key: key, nonce: nonce, version: version)
+        XCTAssertEqual(encryptedPacket.data, encrypted.data, "\(encryptedPacket.data.hexString) is not equal to \(encrypted.data.hexString)", file: file, line: line)
     } catch {
         XCTFail(error.localizedDescription, file: file, line: line)
         dump(error)
