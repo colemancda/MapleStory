@@ -27,6 +27,24 @@ final class LoginTests: XCTestCase {
         XCTAssertDecode(value, data)
     }
     
+    func testReturnToLoginScreenRequest() throws {
+        
+        let packet: Packet<ClientOpcode> = [0x14]
+        let value = ReturnToLoginScreenRequest()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .returnToLoginScreen)
+    }
+    
+    func testReturnToLoginScreenResponse() throws {
+        
+        let packet: Packet<ServerOpcode> = [0x15]
+        let value = ReturnToLoginScreenResponse()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .loginRestarter)
+    }
+    
     func testLoginRequest() throws {
         
         let packet: Packet<ClientOpcode> = [
@@ -311,5 +329,35 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet.opcode, .createCharacterResponse)
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
+    }
+    
+    func testDeleteCharacterRequest() throws {
+        
+        let packet: Packet<ClientOpcode> = [15, 133, 153, 44, 1, 1, 0, 0, 0]
+        let value = DeleteCharacterRequest(
+            birthday: 19700101, // 19700101
+            character: 1
+        )
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .deleteCharacter)
+    }
+    
+    func testDeleteCharacterResponse() throws {
+        
+        let packet: Packet<ServerOpcode> = [14,1,0,0,0,0]
+        let value = DeleteCharacterResponse(character: 1)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .deleteCharacterResponse)
+    }
+    
+    func testDeleteCharacterErrorResponse() throws {
+        
+        let packet: Packet<ServerOpcode> = [14,1,0,0,0,18]
+        let value = DeleteCharacterResponse(character: 1, error: .invalidDateOfBirth)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .deleteCharacterResponse)
     }
 }
