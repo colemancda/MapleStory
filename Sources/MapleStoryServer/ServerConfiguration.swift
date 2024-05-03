@@ -21,21 +21,17 @@ public struct ServerConfiguration: Equatable, Hashable, Sendable {
     
     public let key: Key?
     
-    public let world: World.ID?
-    
     public init(
         address: MapleStoryAddress = .loginServerDefault,
         backlog: Int = 1000,
         version: Version,
         region: Region = .global,
-        key: Key? = .default,
-        world: World.ID? = nil
+        key: Key? = .default
     ) {
         self.address = address
         self.backlog = backlog
         self.version = version
         self.region = region
         self.key = key
-        self.world = world
     }
 }

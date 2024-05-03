@@ -87,6 +87,11 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
         self.username = username
     }
     
+    public func setNonce(send sendNonce: Nonce, recieve receiveNonce: Nonce) {
+        self.sendNonce = sendNonce
+        self.recieveNonce = receiveNonce
+    }
+    
     private func run() {
         Task.detached(priority: .high) { [weak self] in
             guard let stream = self?.socket.event else { return }

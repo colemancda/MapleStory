@@ -189,6 +189,10 @@ internal extension MapleStoryServer.Connection {
         var world: Channel.ID?
         
         var user: User.ID?
+        
+        var character: Character.ID?
+        
+        var session: Session.ID?
     }
 }
 
@@ -256,8 +260,6 @@ public extension MapleStoryServer {
                 await server.storage.removeConnection(address)
                 await server.didDisconnect(address: address)
             }
-            // set world
-            self.state.world = server.configuration.world
             // register packet handlers
             await registerPacketHandlers()
         }
@@ -328,6 +330,10 @@ public extension MapleStoryServer.Connection {
         self.state.user = user.id
     }
     
+    func setNonce(send sendNonce: Nonce, recieve receiveNonce: Nonce) async {
+        await connection.setNonce(send: sendNonce, recieve: receiveNonce)
+    }
+    
     var user: User? {
         get async throws {
             guard let id = self.state.user else {
@@ -352,6 +358,24 @@ public extension MapleStoryServer.Connection {
                 return nil
             }
             return try await database.fetch(Channel.self, for: id)
+        }
+    }
+    
+    var character: Character? {
+        get async throws {
+            guard let id = self.state.character else {
+                return nil
+            }
+            return try await database.fetch(Character.self, for: id)
+        }
+    }
+    
+    var session: Session? {
+        get async throws {
+            guard let id = self.state.session else {
+                return nil
+            }
+            return try await database.fetch(Session.self, for: id)
         }
     }
 }
