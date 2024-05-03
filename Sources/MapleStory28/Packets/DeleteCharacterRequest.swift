@@ -12,11 +12,11 @@ public struct DeleteCharacterRequest: MapleStoryPacket, Codable, Equatable, Hash
     
     public static var opcode: ClientOpcode { .deleteCharacter }
     
-    public let birthday: UInt32
+    public let birthday: Birthday
     
     public let character: Character.Index
     
-    public init(birthday: UInt32, character: Character.Index) {
+    public init(birthday: Birthday, character: Character.Index) {
         self.birthday = birthday
         self.character = character
     }
