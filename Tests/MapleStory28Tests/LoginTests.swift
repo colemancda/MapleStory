@@ -331,7 +331,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEncode(value, packet)
     }
     
-    func testDeleteCharacterRequest() throws {
+    func testDeleteCharacterRequest() {
         
         let packet: Packet<ClientOpcode> = [15, 133, 153, 44, 1, 1, 0, 0, 0]
         let value = DeleteCharacterRequest(
@@ -343,7 +343,7 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet.opcode, .deleteCharacter)
     }
     
-    func testDeleteCharacterResponse() throws {
+    func testDeleteCharacterResponse() {
         
         let packet: Packet<ServerOpcode> = [14,1,0,0,0,0]
         let value = DeleteCharacterResponse(character: 1)
@@ -352,12 +352,33 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(packet.opcode, .deleteCharacterResponse)
     }
     
-    func testDeleteCharacterErrorResponse() throws {
+    func testDeleteCharacterErrorResponse() {
         
         let packet: Packet<ServerOpcode> = [14,1,0,0,0,18]
         let value = DeleteCharacterResponse(character: 1, error: .invalidDateOfBirth)
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
         XCTAssertEqual(packet.opcode, .deleteCharacterResponse)
+    }
+    
+    func testCharacterSelectRequest() {
+        
+        let packet: Packet<ClientOpcode> = [11, 1, 0, 0, 0]
+        let value = CharacterSelectRequest(character: 1)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .characterSelectRequest)
+    }
+    
+    func testCharacterSelectResponse() {
+        
+        let packet: Packet<ServerOpcode> = [11, 0, 0, 192, 168, 1, 151, 237, 33, 1, 0, 0, 0, 1, 1, 0, 0, 0]
+        let value = ServerIPResponse(
+            address: MapleStoryAddress(address: "192.168.1.151", port: 8685)!,
+            character: 1
+        )
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+        XCTAssertEqual(packet.opcode, .loginCharacterMigrate)
     }
 }
