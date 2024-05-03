@@ -17,9 +17,9 @@ public extension Character {
         
         case name(CharacterName)
         case index(Character.Index)
-        case channel(Channel.ID)
         case user(User.ID)
         case world(World.ID)
+        case session(Session.ID)
     }
 }
 
@@ -31,8 +31,8 @@ public extension Character.Predicate {
             return .name
         case .index:
             return .index
-        case .channel:
-            return .channel
+        case .session:
+            return .session
         case .user:
             return .user
         case .world:
@@ -50,12 +50,12 @@ public extension FetchRequest.Predicate {
             self = key.compare(.equalTo, .attribute(.string(name.rawValue.lowercased())))
         case .index(let index):
             self = key.compare(.equalTo, .attribute(.int64(numericCast(index))))
-        case .channel(let channel):
-            self = key.compare(.equalTo, .relationship(.toOne(.init(channel))))
         case .user(let user):
             self = key.compare(.equalTo, .relationship(.toOne(.init(user))))
         case .world(let world):
             self = key.compare(.equalTo, .relationship(.toOne(.init(world))))
+        case .session(let session):
+            self = key.compare(.equalTo, .relationship(.toOne(.init(session))))
         }
     }
 }
@@ -79,7 +79,6 @@ public extension Character {
     static func fetch<Storage: ModelStorage>(
         user: User.ID,
         world: World.ID? = nil,
-        channel: Channel.ID? = nil,
         in database: Storage
     ) async throws -> [Character] {
         var predicates: [Character.Predicate] = [
@@ -88,11 +87,6 @@ public extension Character {
         if let world {
             predicates.append(
                 .world(world)
-            )
-        }
-        if let channel {
-            predicates.append(
-                .channel(channel)
             )
         }
         let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
