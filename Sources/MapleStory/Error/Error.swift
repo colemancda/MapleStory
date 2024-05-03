@@ -20,13 +20,19 @@ public enum MapleStoryError: Error {
     
     case unknownUser(String)
     
-    case invalidWorld(Int)
+    case invalidWorld
     
-    case invalidChannel(Int)
+    case invalidChannel
         
     case invalidRequest
     
+    case banned
+    
     case login(LoginError)
+    
+    case invalidBirthday
+    
+    case invalidPinCode
     
     case invalidPicCode
 }
