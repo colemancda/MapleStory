@@ -5,9 +5,6 @@
 //  Created by Alsey Coleman Miller on 4/25/24.
 //
 
-import Foundation
-import SwiftEmailValidator
-
 /// Email
 public struct Email: RawRepresentable, Equatable, Hashable, Codable, Sendable {
     
@@ -23,8 +20,10 @@ public struct Email: RawRepresentable, Equatable, Hashable, Codable, Sendable {
 
 internal extension Email {
     
+    static let regularExpression = try! Regex("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]+")
+    
     static func validate(_ string: String) -> Bool {
-        EmailSyntaxValidator.correctlyFormatted(string, compatibility: .ascii)
+        string.wholeMatch(of: regularExpression) != nil
     }
 }
 
@@ -33,10 +32,10 @@ internal extension Email {
 extension Email: CustomStringConvertible, CustomDebugStringConvertible {
     
     public var description: String {
-        rawValue
+        rawValue.description
     }
     
     public var debugDescription: String {
-        rawValue
+        rawValue.debugDescription
     }
 }
