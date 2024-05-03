@@ -335,7 +335,7 @@ final class LoginTests: XCTestCase {
         
         let packet: Packet<ClientOpcode> = [15, 133, 153, 44, 1, 1, 0, 0, 0]
         let value = DeleteCharacterRequest(
-            birthday: 19700101, // 19700101
+            birthday: .init(timeIntervalSince1970: 0),
             character: 1
         )
         XCTAssertEncode(value, packet)

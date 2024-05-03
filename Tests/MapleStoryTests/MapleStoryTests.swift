@@ -109,4 +109,20 @@ final class MapleStoryTests: XCTestCase {
             XCTAssert(isValid)
         }
     }
+    
+    func testDate() {
+        
+        XCTAssertEqual(Date.mapleGlobalRelease.description, "2005-05-11 00:00:00 +0000")
+    }
+    
+    func testBirthday() {
+        
+        XCTAssertEqual(Birthday.mapleStoryGlobal.timeIntervalSince1970, 1115769600.0)
+        XCTAssertEqual(Birthday.mapleStoryGlobal.rawValue, 20050511)
+        XCTAssertEqual(Birthday.mapleStoryGlobal.description, "2005-05-11 00:00:00 +0000")
+        XCTAssertEqual(Birthday.mapleStoryGlobal, .init(date: .mapleGlobalRelease))
+        XCTAssertEqual(Birthday(date: Date(timeIntervalSince1970: 0)).date, .init(timeIntervalSince1970: 0))
+        XCTAssertEqual(Birthday(timeIntervalSince1970: 0), Birthday(rawValue: 19700101))
+        XCTAssertEqual(Birthday(date: Date(timeIntervalSinceReferenceDate: 0)), Birthday(rawValue: 20010101))
+    }
 }
