@@ -35,6 +35,7 @@ public struct MapleStoryEncoder {
             log: log,
             opcode: opcode
         )
+        encoder.data.reserveCapacity(Packet<T.Opcode>.minSize + MemoryLayout<T>.size(ofValue: value))
         // encode value
         if let _ = value as? MapleStoryEncodable {
             try encoder.writeEncodable(value)
@@ -55,6 +56,7 @@ public struct MapleStoryEncoder {
             log: log,
             data: Data()
         )
+        encoder.data.reserveCapacity(MemoryLayout<T>.size(ofValue: value))
         // encode value
         if let _ = value as? MapleStoryEncodable {
             try encoder.writeEncodable(value)
