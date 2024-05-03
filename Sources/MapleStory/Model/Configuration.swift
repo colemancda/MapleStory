@@ -152,34 +152,6 @@ public extension Dictionary where Key == Configuration.Key, Value == Configurati
     }
 }
 
-public extension Configuration {
-    
-    var website: URL? {
-        self[.website]
-            .flatMap { URL(string: $0.rawValue) }
-    }
-    
-    var lastUserIndex: User.Index? {
-        self[.lastUserIndex]?.intValue
-    }
-    
-    var isPinEnabled: Bool? {
-        self[.pinEnabled]?.boolValue
-    }
-    
-    var isPicEnabled: Bool? {
-        self[.picEnabled]?.boolValue
-    }
-    
-    var isAutoRegisterEnabled: Bool? {
-        self[.autoRegister]?.boolValue
-    }
-    
-    var worldSelection: WorldSelectionMode? {
-        self[.worldSelection]?.intValue.flatMap { .init(rawValue: $0) }
-    }
-}
-
 // MARK: - Supporting Types
 
 internal extension Configuration {
@@ -364,6 +336,50 @@ public extension Configuration.Key {
     static var worldSelection: Configuration.Key {
         "worldSelection"
     }
+    
+    static var restrictSessionIP: Configuration.Key {
+        "restrictSessionIP"
+    }
+    
+    static var loginExpiration: Configuration.Key {
+        "loginExpiration"
+    }
+}
+
+public extension Configuration {
+    
+    var website: URL? {
+        self[.website]
+            .flatMap { URL(string: $0.rawValue) }
+    }
+    
+    var lastUserIndex: User.Index? {
+        self[.lastUserIndex]?.intValue
+    }
+    
+    var isPinEnabled: Bool? {
+        self[.pinEnabled]?.boolValue
+    }
+    
+    var isPicEnabled: Bool? {
+        self[.picEnabled]?.boolValue
+    }
+    
+    var isAutoRegisterEnabled: Bool? {
+        self[.autoRegister]?.boolValue
+    }
+    
+    var worldSelection: WorldSelectionMode? {
+        self[.worldSelection]?.intValue.flatMap { .init(rawValue: $0) }
+    }
+    
+    var restrictSessionIP: Bool? {
+        self[.restrictSessionIP]?.boolValue
+    }
+    
+    var loginExpiration: UInt32? {
+        self[.loginExpiration]?.intValue
+    }
 }
 
 public extension Configuration {
@@ -374,7 +390,9 @@ public extension Configuration {
             .pinEnabled: false,
             .picEnabled: false,
             .autoRegister: true,
-            .worldSelection: .init(integer: WorldSelectionMode.skipPrompt.rawValue)
+            .worldSelection: .init(integer: WorldSelectionMode.skipPrompt.rawValue),
+            .restrictSessionIP: true,
+            .loginExpiration: 30
         ]
     }
 }
