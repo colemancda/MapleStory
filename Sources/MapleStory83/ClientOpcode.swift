@@ -77,7 +77,7 @@ public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     case pong = 0x18
     
     /// Client start error opcode. (0x19)
-    case clientStart = 0x19
+    case clientStartError = 0x19
     
     /// Client error opcode. (0x1A)
     case clientError = 0x1A
