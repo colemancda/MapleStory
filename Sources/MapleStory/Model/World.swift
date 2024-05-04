@@ -22,9 +22,7 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
     public let version: Version
     
     public var name: String
-    
-    public var address: MapleStoryAddress
-    
+        
     public var isEnabled: Bool
     
     public var ribbon: World.Ribbon
@@ -49,7 +47,6 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         name: String = World.Name.scania.rawValue,
         region: Region = .global,
         version: Version,
-        address: MapleStoryAddress = .channelServerDefault,
         isEnabled: Bool = true,
         ribbon: World.Ribbon = .normal,
         eventMessage: String = "",
@@ -63,7 +60,6 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         self.id = id
         self.index = index
         self.name = name
-        self.address = address
         self.isEnabled = isEnabled
         self.region = region
         self.version = version
@@ -84,7 +80,6 @@ public struct World: Equatable, Hashable, Codable, Identifiable, Sendable {
         case region
         case version
         case name
-        case address
         case isEnabled = "enabled"
         case ribbon
         case eventMessage
@@ -119,7 +114,6 @@ extension World: Entity {
             .index: .int16,
             .region: .int16,
             .version: .int32,
-            .address: .string,
             .isEnabled: .bool,
             .ribbon: .int16,
             .eventMessage: .string,

@@ -22,11 +22,13 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
     public let world: World.ID
     
     public var name: String
+    
+    public let address: MapleStoryAddress
         
     public var load: UInt32
     
     public var status: Status
-    
+        
     public var sessions: [Session.ID]
     
     // MARK: - Initialization
@@ -36,6 +38,7 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         index: Index,
         world: World.ID,
         name: String,
+        address: MapleStoryAddress = .channelServerDefault,
         load: UInt32 = 0,
         status: Channel.Status = .normal,
         sessions: [Session.ID] = []
@@ -43,6 +46,7 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.id = id
         self.index = index
         self.name = name
+        self.address = address
         self.load = load
         self.status = status
         self.world = world
@@ -58,6 +62,7 @@ public struct Channel: Codable, Equatable, Hashable, Identifiable, Sendable {
         case world
         case sessions
         case name
+        case address
         case load
         case status
     }
@@ -72,7 +77,8 @@ extension Channel: Entity {
             .name: .string,
             .index: .int16,
             .load: .int64,
-            .status: .int16
+            .status: .int16,
+            .address: .string
         ]
     }
     
