@@ -149,7 +149,7 @@ public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcod
     func registerChannelServer(
         channel: MapleStory.Channel.ID
     ) async {
-        //await register(SessionEncryptionHandler(channel: channel))
+        await register(HandshakeHandler(channel: channel))
         await register(PlayerLoginHandler(channel: channel))
         await register(PingHandler())
     }

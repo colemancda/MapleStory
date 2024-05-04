@@ -24,9 +24,9 @@ public extension MapleStoryServer.Connection {
         
         let configuration = try await database.fetch(Configuration.self)
         
-        // fetch session
-        guard var session = try await self.session else {
-            throw MapleStoryError.invalidRequest
+        // fetch session from IP address
+        guard var session = try await Session.fetch(address: ipAddress, channel: channel, in: database) else {
+            throw MapleStoryError.notAuthenticated
         }
         guard let character = try await database.fetch(Character.self, for: session.character), character.index == characterIndex else {
             throw MapleStoryError.invalidCharacter
