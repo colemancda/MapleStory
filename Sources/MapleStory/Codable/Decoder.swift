@@ -279,7 +279,6 @@ private extension MapleStoryDecoder.Decoder {
             throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: self.codingPath, debugDescription: "Invalid string at offset \(offset)"))
         }
         
-        assert(string.utf8.count == length)
         return string
     }
 }
