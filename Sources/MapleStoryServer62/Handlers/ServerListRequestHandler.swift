@@ -1,5 +1,5 @@
 //
-//  WorldListHandler.swift
+//  ServerListRequest.swift
 //
 //
 //  Created by Alsey Coleman Miller on 4/26/24.
@@ -11,7 +11,7 @@ import MapleStory62
 import MapleStoryServer
 
 /// MapleStory v62 World List Server handler
-public struct WorldListHandler: PacketHandler {
+public struct ServerListRequestHandler: PacketHandler {
     
     public typealias Packet = MapleStory62.ServerListRequest
     
@@ -40,7 +40,7 @@ public struct WorldListHandler: PacketHandler {
     }
 }
 
-internal extension WorldListHandler {
+internal extension ServerListRequestHandler {
     
     func worldList<Socket: MapleStorySocket, Database: ModelStorage>(
         _ request: MapleStory62.ServerListRequest,
