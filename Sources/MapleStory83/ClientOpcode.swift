@@ -46,6 +46,9 @@ public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     /// View all char opcode. (0x0D)
     case viewAllCharacters = 0x0D
     
+    /// Unknown character (0x0F)
+    case unknownCharacter = 0x0F
+    
     /// Pick all char opcode. (0x0E)
     case pickAllCharacters = 0x0E
     
@@ -96,6 +99,8 @@ public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     
     /// View all with PIC opcode. (0x20)
     case viewAllWithPIC = 0x20
+    
+    case unknownClientStart = 0x23
     
     /// Change map opcode. (0x26)
     case changeMap = 0x26
