@@ -22,6 +22,10 @@ public struct GuestLoginHandler: PacketHandler {
     ) async throws {
         let response = try await guestLogin(packet, connection: connection)
         try await connection.send(response)
+        // send other data
+        //try await connection.send(GuestLoginResponse())
+        //try await Task.sleep(for: .seconds(3))
+        //try await connection.send(ServerStatusResponse(.normal))
     }
 }
 
