@@ -17,7 +17,7 @@ public struct PingHandler <Socket: MapleStorySocket, Database: ModelStorage>: Se
     public init() { }
     
     public func didConnect(
-        connection: Connection
+        connection: MapleStoryServer<Socket, Database, MapleStory28.ClientOpcode, MapleStory28.ServerOpcode>.Connection
     ) async {
         let pingInterval = 15
         Task { [weak connection] in
@@ -28,7 +28,10 @@ public struct PingHandler <Socket: MapleStorySocket, Database: ModelStorage>: Se
         }
     }
     
-    public func didDisconnect(address: MapleStoryAddress) async {
+    public func didDisconnect(
+        address: MapleStory.MapleStoryAddress,
+        server: MapleStoryServer<Socket, Database, MapleStory28.ClientOpcode, MapleStory28.ServerOpcode>
+    ) async {
         
     }
 }

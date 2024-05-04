@@ -13,35 +13,28 @@ import CoreModel
 public struct SessionEncryptionHandler <Socket: MapleStorySocket, Database: ModelStorage>: ServerHandler {
     
     public typealias Connection = MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+        
+    public let channel: Channel.ID
     
-    public let world: World.ID
-    
-    public init(world: World.ID) {
-        self.world = world
+    public init(channel: Channel.ID) {
+        self.channel = channel
     }
     
     public func didConnect(
         connection: Connection
-    ) async {
-        // fetch sessions from IP address
-        do {
-            let database = await connection.database
-            let address = connection.address.address
-            guard let world = try await database.fetch(World.self, for: self.world) else {
-                throw MapleStoryError.invalidWorld
-            }
-            // no session from IP address
-            guard let session = try await Session.fetch(address: address, channels: world.channels, in: database) else {
-                throw MapleStoryError.notAuthenticated
-            }
-            // set nonce
-            await connection.setNonce(send: session.sendNonce, recieve: session.recieveNonce)
-        } catch {
-            await connection.close(error)
-        }
+    ) async throws {
+        try await connection.startSession(for: channel)
     }
     
-    public func didDisconnect(address: MapleStoryAddress) async {
-        
+    public func didDisconnect(
+        address: MapleStoryAddress,
+        server: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>
+    ) async throws {
+        let ipAddress = address.address
+        let database = server.database
+        guard let session = try await Session.fetch(address: ipAddress, channel: channel, in: database) else {
+            throw MapleStoryError.notAuthenticated
+        }
+        try await server.close(session: session)
     }
 }

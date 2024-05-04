@@ -22,6 +22,7 @@ public struct SelectCharacterHandler: PacketHandler {
     ) async throws {
         let response = try await selectCharacter(packet, connection: connection)
         try await connection.send(response)
+        await connection.close()
     }
 }
 
@@ -31,7 +32,7 @@ internal extension SelectCharacterHandler {
         _ request: MapleStory28.CharacterSelectRequest,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws -> MapleStory28.ServerIPResponse {
-        let address = try await connection.selectCharacter(request.character)
-        return .init(address: address, character: request.character)
+        let channel = try await connection.selectCharacter(request.character)
+        return .init(address: channel.address, character: request.character)
     }
 }

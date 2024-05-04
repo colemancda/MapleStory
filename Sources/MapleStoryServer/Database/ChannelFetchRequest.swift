@@ -32,7 +32,7 @@ public extension FetchRequest.Predicate {
     }
 }
 
-extension Channel {
+public extension Channel {
     
     static func fetch<Storage: ModelStorage>(
         _ index: Channel.Index,

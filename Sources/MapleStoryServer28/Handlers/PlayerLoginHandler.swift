@@ -12,10 +12,10 @@ import MapleStoryServer
 
 public struct PlayerLoginHandler: PacketHandler {
     
-    public let world: World.ID
+    public let channel: Channel.ID
     
-    public init(world: World.ID) {
-        self.world = world
+    public init(channel: Channel.ID) {
+        self.channel = channel
     }
     
     public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
@@ -24,8 +24,9 @@ public struct PlayerLoginHandler: PacketHandler {
     ) async throws {
         let values = try await connection.playerLogin(
             character: request.character,
-            world: world
+            channel: channel
         )
-        //try await connection.send(response)
+        let warpMapNotification = WarpToMapNotification(channel: values.channel, character: values.character)
+        try await connection.send(warpMapNotification)
     }
 }

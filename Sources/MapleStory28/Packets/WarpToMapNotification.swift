@@ -104,6 +104,48 @@ public struct WarpToMapNotification: MapleStoryPacket, Codable, Equatable, Hasha
 
 public extension WarpToMapNotification {
     
+    init(channel: Channel, character: Character) {
+        self.init(
+            channel: numericCast(channel.index),
+            characterPortalCounter: 0,
+            isConnecting: true,
+            randomBytesA: .random(in: .min ..< .max),
+            randomBytesB: .random(in: .min ..< .max),
+            randomBytesC: .random(in: .min ..< .max),
+            randomBytesD: .random(in: .min ..< .max),
+            value0: 255,
+            value1: 255,
+            character: character.index,
+            stats: .init(character),
+            buddyListSize: 20, 
+            mesos: 0,
+            equipSlotSize: 32,
+            useSlotSize: 32,
+            setupSlotSize: 32,
+            etcSlotSize: 32,
+            cashSlotSize: 32,
+            equip: [ // TODO: Inventory
+                5: MapleStory28.WarpToMapNotification.Inventory.Item(id: 1040002, cashID: nil, expireTime: 0, stats: MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.a(MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.A(upgradeSlots: 7, scrollLevel: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, watk: 0, matk: 0, wdef: 3, mdef: 0, accuracy: 0, avoid: 0, hands: 0, speed: 0, jump: 0, name: "", flag: 0))), 6: MapleStory28.WarpToMapNotification.Inventory.Item(id: 1060002, cashID: nil, expireTime: 0, stats: MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.a(MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.A(upgradeSlots: 7, scrollLevel: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, watk: 0, matk: 0, wdef: 2, mdef: 0, accuracy: 0, avoid: 0, hands: 0, speed: 0, jump: 0, name: "", flag: 0))), 7: MapleStory28.WarpToMapNotification.Inventory.Item(id: 1072001, cashID: nil, expireTime: 0, stats: MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.a(MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.A(upgradeSlots: 5, scrollLevel: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, watk: 0, matk: 0, wdef: 2, mdef: 0, accuracy: 0, avoid: 0, hands: 0, speed: 0, jump: 0, name: "", flag: 0))), 11: MapleStory28.WarpToMapNotification.Inventory.Item(id: 1302000, cashID: nil, expireTime: 0, stats: MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.a(MapleStory28.WarpToMapNotification.Inventory.Item.ItemStats.A(upgradeSlots: 7, scrollLevel: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, watk: 17, matk: 0, wdef: 0, mdef: 17, accuracy: 0, avoid: 0, hands: 0, speed: 0, jump: 0, name: "", flag: 0)))
+            ], 
+            cashEquip: [:],
+            equipInventory: [:],
+            useInventory: [:],
+            setUpInventory: [:],
+            etcInventory: [:],
+            cashInventory: [:],
+            skills: [],
+            skillCooldown: [],
+            questCount: 3,
+            value2: 2029, value3: 0, value4: 2000, value5: 0, value6: 1000, value7: 0, completedQuestCount: 0, value8: 0, value9: 0, value10: 0, value11: 0, value12: 0, value13: 0, value14: 0,
+            timestamp: Date()
+        )
+    }
+}
+
+// MARK: - Supporting Types
+
+public extension WarpToMapNotification {
+    
     struct Skill: Codable, Equatable, Hashable, Sendable, Identifiable {
         
         public let id: UInt32

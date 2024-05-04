@@ -13,7 +13,7 @@ public extension MapleStoryServer.Connection {
     /// Select Character
     func selectCharacter(
         _ characterIndex: Character.Index
-    ) async throws -> MapleStoryAddress {
+    ) async throws -> Channel {
         
         log("Select Character \(characterIndex)")
         
@@ -34,6 +34,10 @@ public extension MapleStoryServer.Connection {
         }
         
         // create session
+        if let previousSession = character.session {
+            channel.sessions.removeAll(where: { $0 == previousSession })
+            try await database.delete(Session.self, for: previousSession)
+        }
         let session = Session(
             channel: channel.id,
             character: character.id,
@@ -45,13 +49,9 @@ public extension MapleStoryServer.Connection {
         try await database.insert(session)
         channel.sessions.append(session.id)
         character.session = session.id
-        if let previousSession = character.session {
-            channel.sessions.removeAll(where: { $0 == previousSession })
-            try await database.delete(Session.self, for: previousSession)
-        }
         try await database.insert(channel)
         try await database.insert(character)
         
-        return world.address
+        return channel
     }
 }

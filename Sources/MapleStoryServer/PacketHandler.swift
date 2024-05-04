@@ -22,9 +22,12 @@ public protocol ServerHandler {
     
     func didConnect(
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
-    ) async
+    ) async throws
     
-    func didDisconnect(address: MapleStoryAddress) async
+    func didDisconnect(
+        address: MapleStoryAddress,
+        server: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>
+    ) async throws
 }
 
 /// MapleStory Server Packet Handler

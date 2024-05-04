@@ -53,58 +53,20 @@ public extension FetchRequest.Predicate {
 public extension Session {
     
     static func fetch<Storage: ModelStorage>(
-        character: Character.ID,
-        channel: Channel.ID? = nil,
-        in database: Storage
-    ) async throws -> Session? {
-        var predicates: [Session.Predicate] = [
-            .character(character),
-        ]
-        if let channel {
-            predicates.append(
-                .channel(channel)
-            )
-        }
-        let predicate: FetchRequest.Predicate
-        if predicates.count > 1 {
-            predicate = .compound(.and(predicates.map { .init(predicate: $0) }))
-        } else {
-            predicate = .init(predicate: predicates[0])
-        }
-        return try await database.fetch(
-            Session.self,
-            sortDescriptors: [
-                .init(property: .init(Session.CodingKeys.requestTime), ascending: true)
-            ],
-            predicate: predicate,
-            fetchLimit: 1
-        ).first
-    }
-    
-    static func fetch<Storage: ModelStorage>(
         address: String,
-        channels: [Channel.ID],
+        channel: Channel.ID,
         in database: Storage
     ) async throws -> Session? {
-        guard channels.isEmpty == false else {
-            return nil
-        }
-        let predicates: [FetchRequest.Predicate] = [
-            // IP address
-            FetchRequest.Predicate(predicate: Session.Predicate.address(address)),
-            // or channel
-            .compound(.or(
-                channels.map {
-                    .init(predicate: .channel($0))
-                }
-            ))
+        let predicates: [Session.Predicate] = [
+            .address(address),
+            .channel(channel)
         ]
         return try await database.fetch(
             Session.self,
             sortDescriptors: [
                 .init(property: .init(Session.CodingKeys.requestTime), ascending: false) // most rescent
             ],
-            predicate: .compound(.and(predicates)),
+            predicate: .compound(.and(predicates.map { .init(predicate: $0) })),
             fetchLimit: 1
         ).first
     }

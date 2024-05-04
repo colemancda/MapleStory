@@ -231,30 +231,7 @@ public extension CharacterListResponse.Character {
     
     init(_ character: Character) {
         self.id = character.index
-        self.stats = .init(
-            name: character.name,
-            gender: character.gender,
-            skinColor: character.skinColor,
-            face: character.face, 
-            hair: character.hair,
-            petCash: 0x00,
-            level: numericCast(character.level),
-            job: character.job,
-            str: character.str,
-            dex: character.dex,
-            int: character.int,
-            luk: character.luk,
-            hp: character.hp,
-            maxHp: character.maxHp,
-            mp: character.mp,
-            maxMp: character.maxMp,
-            ap: character.ap,
-            sp: character.sp,
-            exp: character.exp.rawValue,
-            fame: character.fame,
-            currentMap: character.currentMap,
-            spawnPoint: character.spawnPoint
-        )
+        self.stats = .init(character)
         self.appearance = .init(
             gender: character.gender,
             skinColor: character.skinColor,
@@ -272,5 +249,35 @@ public extension CharacterListResponse.Character {
             jobRankMove: character.jobRankMove
         ) : .disabled
         self.value0 = 0x00
+    }
+}
+
+public extension CharacterListResponse.CharacterStats {
+    
+    init(_ character: Character) {
+        self.init(
+            name: character.name,
+            gender: character.gender,
+            skinColor: character.skinColor,
+            face: character.face,
+            hair: character.hair,
+            petCash: 0x00, // TODO: Pet Cash
+            level: numericCast(character.level),
+            job: character.job,
+            str: character.str,
+            dex: character.dex,
+            int: character.int,
+            luk: character.luk,
+            hp: character.hp,
+            maxHp: character.maxHp,
+            mp: character.mp,
+            maxMp: character.maxMp,
+            ap: character.ap,
+            sp: character.sp,
+            exp: character.exp.rawValue,
+            fame: character.fame,
+            currentMap: character.currentMap,
+            spawnPoint: character.spawnPoint
+        )
     }
 }

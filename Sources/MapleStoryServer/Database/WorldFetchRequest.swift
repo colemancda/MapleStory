@@ -91,29 +91,32 @@ public extension World {
             .filter { $0.isCompatible(for: version) }
             .enumerated()
             .map { (index, name) in
-            let worldAddress = MapleStoryAddress(
-                address: address,
-                port: 7575 + UInt16(index)
-            ) ?? .channelServerDefault
-            return World(
+                World(
                 id: UUID(),
                 index: name.index,
                 name: name.rawValue,
                 region: region,
                 version: version,
-                address: worldAddress
+                isEnabled: index == 0
             )
         }
         // insert new worlds
+        var port: UInt16 = 7575
         for var world in worlds {
             // create world
             try await context.insert(world)
             // insert channels
             for channelIndex in 0 ..< 20 {
+                let channelAddress = MapleStoryAddress(
+                    address: address,
+                    port: port
+                ) ?? .channelServerDefault
+                port += 1
                 let channel = Channel(
                     index: numericCast(channelIndex),
                     world: world.id,
-                    name: world.name + " - Channel \(channelIndex + 1)"
+                    name: world.name + " - Channel \(channelIndex + 1)",
+                    address: channelAddress
                 )
                 world.channels.append(channel.id)
                 // save world and channel

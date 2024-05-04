@@ -14,18 +14,11 @@ public struct HandshakeHandler <Socket: MapleStorySocket, Database: ModelStorage
     
     public func didConnect(
         connection: MapleStoryServer<Socket, Database, MapleStory28.ClientOpcode, MapleStory28.ServerOpcode>.Connection
-    ) async {
-        Task {
-            do {
-                try await self.sendHandshake(connection: connection)
-            }
-            catch {
-                await connection.close(error)
-            }
-        }
+    ) async throws {
+        try await self.sendHandshake(connection: connection)
     }
     
-    public func didDisconnect(address: MapleStoryAddress) async {
+    public func didDisconnect(address: MapleStory.MapleStoryAddress, server: MapleStoryServer<Socket, Database, MapleStory28.ClientOpcode, MapleStory28.ServerOpcode>) async {
         
     }
 }

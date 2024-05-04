@@ -14,7 +14,7 @@ public extension MapleStoryServer.Connection {
     /// Handle a channel login.
     func playerLogin(
         character characterIndex: Character.Index,
-        world: World.ID
+        channel: Channel.ID
     ) async throws -> (user: User, character: Character, channel: Channel, session: Session) {
         
         log("Player Login - Character \(characterIndex)")
@@ -24,18 +24,12 @@ public extension MapleStoryServer.Connection {
         
         let configuration = try await database.fetch(Configuration.self)
         
-        // session must already have world specified
-        self.state.world = world
-        guard let world = try await self.world else {
-            throw MapleStoryError.invalidWorld
-        }
-        
         // fetch session
-        guard let character = try await Character.fetch(characterIndex, world: world.id, in: database) else {
-            throw MapleStoryError.invalidCharacter
-        }
-        guard var session = try await Session.fetch(character: character.id, in: database) else {
+        guard var session = try await self.session else {
             throw MapleStoryError.invalidRequest
+        }
+        guard let character = try await database.fetch(Character.self, for: session.character), character.index == characterIndex else {
+            throw MapleStoryError.invalidCharacter
         }
         guard let channel = try await database.fetch(Channel.self, for: session.channel) else {
             throw MapleStoryError.invalidChannel
@@ -68,7 +62,7 @@ public extension MapleStoryServer.Connection {
         self.state.session = session.id
         self.state.character = session.character
         self.state.channel = session.channel
-        await self.setNonce(send: sendNonce, recieve: recieveNonce)
+        self.state.world = channel.world
         assert(self.state.world == channel.world)
         assert(character.world == channel.world)
         assert(character.index == characterIndex)

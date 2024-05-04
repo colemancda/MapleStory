@@ -10,7 +10,7 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
     
     public let configuration: ServerConfiguration
         
-    public let database: Database
+    public nonisolated let database: Database
     
     internal let log: ((String) -> ())?
     
@@ -64,7 +64,12 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
                         self.log?("[\(newSocket.address.address)] New connection")
                         let connection = await MapleStoryServer.Connection(socket: newSocket, server: self)
                         await self.storage.newConnection(connection)
-                        await self.didConnect(connection: connection)
+                        do {
+                            try await self.didConnect(connection: connection)
+                        }
+                        catch {
+                           await connection.close(error)
+                        }
                     }
                 }
                 catch _ as CancellationError { }
@@ -127,25 +132,29 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
         _ handler: Handler
     ) async where Handler: ServerHandler, Handler.ClientOpcode == ClientOpcode, Handler.ServerOpcode == ServerOpcode, Handler.Socket == Socket, Handler.Database == Database {
         let handler = ServerConnectionHandler { connection in
-            await handler.didConnect(connection: connection)
-        } didDisconnect: { address in
-            await handler.didDisconnect(address: address)
+            try await handler.didConnect(connection: connection)
+        } didDisconnect: { [unowned self] address in
+            try await handler.didDisconnect(address: address, server: self)
         }
-        
         await storage.register(handler: handler)
     }
     
-    internal func didConnect(connection: Connection) async {
+    internal func didConnect(connection: Connection) async throws {
         let handlers = await self.storage.serverHandlers
         for handler in handlers {
-            await handler.didConnect(connection)
+            try await handler.didConnect(connection)
         }
     }
     
     internal func didDisconnect(address: MapleStoryAddress) async {
         let handlers = await self.storage.serverHandlers
         for handler in handlers {
-            await handler.didDisconnect(address)
+            do {
+                try await handler.didDisconnect(address)
+            }
+            catch {
+                log?("\(type(of: handler)) error: \(error)")
+            }
         }
     }
 }
@@ -206,9 +215,9 @@ internal extension MapleStoryServer {
     
     struct ServerConnectionHandler {
         
-        var didConnect: (Connection) async -> ()
+        var didConnect: (Connection) async throws -> ()
         
-        var didDisconnect: (MapleStoryAddress) async -> ()
+        var didDisconnect: (MapleStoryAddress) async throws -> ()
     }
 }
 

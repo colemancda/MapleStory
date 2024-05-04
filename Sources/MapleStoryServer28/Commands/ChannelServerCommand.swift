@@ -113,9 +113,10 @@ struct ChannelServerCommand: AsyncParsableCommand {
             database: store,
             socket: MapleStorySocketIPv4TCP.self
         )
-                
+        
+        let worldIndex = World.Index(self.world - 1)
         guard let world = try await World.fetch(
-            index: World.Index(self.world - 1),
+            index: worldIndex,
             version: configuration.version,
             region: configuration.region,
             in: store
@@ -123,8 +124,17 @@ struct ChannelServerCommand: AsyncParsableCommand {
             throw MapleStoryError.invalidWorld
         }
         
+        let channelIndex = Channel.Index(self.channel - 1)
+        guard let channel = try await MapleStory.Channel.fetch(
+            channelIndex,
+            world: world.id,
+            in: store
+        ) else {
+            throw MapleStoryError.invalidChannel
+        }
+        
         await server.registerChannelServer(
-            world: world.id
+            channel: channel.id
         )
         
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
@@ -137,10 +147,10 @@ struct ChannelServerCommand: AsyncParsableCommand {
 public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcode, ServerOpcode == MapleStory28.ServerOpcode {
     
     func registerChannelServer(
-        world: World.ID
+        channel: MapleStory.Channel.ID
     ) async {
-        await register(SessionEncryptionHandler(world: world))
-        await register(PlayerLoginHandler(world: world))
+        //await register(SessionEncryptionHandler(channel: channel))
+        await register(PlayerLoginHandler(channel: channel))
         await register(PingHandler())
     }
 }
