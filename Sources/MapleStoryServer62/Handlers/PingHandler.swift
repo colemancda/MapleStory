@@ -9,14 +9,14 @@ import Foundation
 import MapleStory62
 import MapleStoryServer
 import CoreModel
-/*
-public struct PingHandler: ServerHandler {
+
+public struct PingHandler<Socket: MapleStorySocket, Database: ModelStorage>: ServerHandler {
     
     public init() { }
     
-    public func didConnect<Socket, Storage>(
-        connection: MapleStoryServer<Socket, Storage>.Connection
-    ) where Socket : MapleStorySocket, Storage : ModelStorage {
+    public func didConnect(
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) {
         let pingInterval = 15
         Task { [weak connection] in
             while let connection {
@@ -25,5 +25,9 @@ public struct PingHandler: ServerHandler {
             }
         }
     }
+    
+    public func didDisconnect(address: MapleStory.MapleStoryAddress, server: MapleStoryServer<Socket, Database, MapleStory62.ClientOpcode, MapleStory62.ServerOpcode>) async throws {
+        
+        
+    }
 }
-*/

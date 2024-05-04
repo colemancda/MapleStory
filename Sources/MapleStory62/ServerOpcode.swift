@@ -46,7 +46,7 @@ public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     case serverIP = 0x0C
     
     /// Character name response packet header.
-    case CheckCharacterNameResponse = 0x0D
+    case checkCharacterNameResponse = 0x0D
     
     /// Add new character entry packet header.
     case createCharacterResponse = 0x0E

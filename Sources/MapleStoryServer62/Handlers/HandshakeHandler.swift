@@ -9,35 +9,43 @@ import Foundation
 import MapleStory62
 import MapleStoryServer
 import CoreModel
-/*
-public struct HandshakeHandler: ServerHandler {
+
+public struct HandshakeHandler <Socket: MapleStorySocket, Database: ModelStorage>: ServerHandler {
     
-    public func didConnect<Socket, Storage>(
-        connection: MapleStoryServer<Socket, Storage>.Connection
-    ) where Socket : MapleStorySocket, Storage : ModelStorage {
-        Task {
-            do {
-                try await sendHandshake(connection: connection)
-            }
-            catch {
-                await connection.close(error)
-            }
+    public let channel: Channel.ID?
+    
+    public init(channel: Channel.ID? = nil) {
+        self.channel = channel
+    }
+    
+    public func didConnect(
+        connection: MapleStoryServer<Socket, Database, MapleStory62.ClientOpcode, MapleStory62.ServerOpcode>.Connection
+    ) async throws {
+        try await self.sendHandshake(connection: connection)
+    }
+    
+    public func didDisconnect(address: MapleStory.MapleStoryAddress, server: MapleStoryServer<Socket, Database, MapleStory62.ClientOpcode, MapleStory62.ServerOpcode>) async throws {
+        // fetch session from IP address
+        let ipAddress = address.address
+        if let channel, let session = try await Session.fetch(address: ipAddress, channel: channel, in: server.database) {
+            try await server.close(session: session)
         }
     }
 }
 
 internal extension HandshakeHandler {
     
-    func sendHandshake<Socket: MapleStorySocket, Storage: ModelStorage>(
-        connection: MapleStoryServer<Socket, Storage>.Connection
+    func sendHandshake(
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     )  async throws {
+        let encoder = MapleStoryEncoder()
         let packet = await MapleStory62.HelloPacket(
-            recieveNonce: await connection.recieveNonce,
-            sendNonce: await connection.sendNonce,
+            recieveNonce: connection.recieveNonce,
+            sendNonce: connection.sendNonce,
             region: connection.region
         )
-        try await connection.send(packet)
+        let data = try encoder.encode(packet)
+        try await connection.send(data)
         await connection.encrypt()
     }
 }
-*/
