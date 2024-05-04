@@ -17,7 +17,7 @@ public enum ServerMessageNotification: MapleStoryPacket, Codable, Equatable, Has
     case superMegaphone(message: String, channel: UInt8, megaEarphone: Bool)
     case topScrolling(message: String)
     case pinkText(message: String)
-    case lightblueText(message: String)
+    case lightBlueText(message: String)
 }
 
 public extension ServerMessageNotification {
@@ -36,8 +36,8 @@ public extension ServerMessageNotification {
             return .topScrolling
         case .pinkText:
             return .pinkText
-        case .lightblueText:
-            return .lightblueText
+        case .lightBlueText:
+            return .lightBlueText
         }
     }
     
@@ -55,7 +55,7 @@ public extension ServerMessageNotification {
             return message
         case .pinkText(let message):
             return message
-        case .lightblueText(let message):
+        case .lightBlueText(let message):
             return message
         }
     }
@@ -96,9 +96,9 @@ extension ServerMessageNotification: MapleStoryCodable {
         case .pinkText:
             let message = try container.decode(String.self, forKey: MapleStoryCodingKeys.message)
             self = .pinkText(message: message)
-        case .lightblueText:
+        case .lightBlueText:
             let message = try container.decode(String.self, forKey: MapleStoryCodingKeys.message)
-            self = .lightblueText(message: message)
+            self = .lightBlueText(message: message)
         }
     }
     
@@ -120,7 +120,7 @@ extension ServerMessageNotification: MapleStoryCodable {
             try container.encode(message, forKey: MapleStoryCodingKeys.message)
         case .pinkText:
             try container.encode(message, forKey: MapleStoryCodingKeys.message)
-        case .lightblueText:
+        case .lightBlueText:
             try container.encode(message, forKey: MapleStoryCodingKeys.message)
         }
     }

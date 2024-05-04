@@ -15,5 +15,5 @@ public enum ServerMessageType: UInt8, Codable, CaseIterable, Sendable {
     case superMegaphone     = 3
     case topScrolling       = 4
     case pinkText           = 5
-    case lightblueText      = 6
+    case lightBlueText      = 6
 }
