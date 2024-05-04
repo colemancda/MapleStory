@@ -10,16 +10,14 @@ import Foundation
 /// Enum representing packet headers for network communication.
 public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Sendable {
     
-    /// PING packet header.
-    ///
-    /// Used for ping-pong communication to check server/client connection.
-    case ping = 0x11
-    
     /// Login status packet header.
     case loginStatus = 0x00
     
-    /// Send link packet header.
-    case sendLink = 0x01
+    /// Guest ID login opcode. (0x01)
+    case guestLogin = 0x01
+    
+    /// Account info opcode. (0x02)
+    case accountInfo = 0x02
     
     /// Server status packet header.
     case serverStatus = 0x03
@@ -62,6 +60,9 @@ public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     
     /// Change channel packet header.
     case changeChannel = 0x10
+    
+    /// Ping opcode. (0x11)
+    case ping = 0x11
     
     /// Modify inventory item packet header.
     case modifyInventoryItem = 0x1A
