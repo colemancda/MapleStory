@@ -36,6 +36,8 @@ public enum MapleStoryError: Error {
     
     case login(LoginError)
     
+    case clientStartup(String)
+    
     case invalidBirthday
     
     case invalidPinCode
