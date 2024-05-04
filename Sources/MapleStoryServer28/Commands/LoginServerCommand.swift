@@ -112,10 +112,8 @@ struct LoginServerCommand: AsyncParsableCommand {
 public extension MapleStoryServer where ClientOpcode == MapleStory28.ClientOpcode, ServerOpcode == MapleStory28.ServerOpcode {
     
     func registerLoginServer() async {
-        await registerServerHandler(.init(didConnect: { connection in
-            HandshakeHandler.didConnect(connection: connection)
-        }))
-        // await register(PingHandler())
+        await register(HandshakeHandler())
+        await register(PingHandler())
         await register(LoginHandler())
         await register(ReturnToLoginScreenHandler())
         await register(AcceptLicenseHandler())
