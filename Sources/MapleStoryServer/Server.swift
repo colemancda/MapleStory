@@ -5,9 +5,7 @@ import CoreModel
 
 /// MapleStory Classic Server
 public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.ModelStorage, ClientOpcode: MapleStoryOpcode, ServerOpcode: MapleStoryOpcode> {
-    
-    public typealias Handler = ServerHandler<Socket, Database, ClientOpcode, ServerOpcode>
-    
+        
     // MARK: - Properties
     
     public let configuration: ServerConfiguration
@@ -125,21 +123,29 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
         }
     }
     
-    public func registerServerHandler(_ handler: Handler) async {
+    public func register<Handler>(
+        _ handler: Handler
+    ) async where Handler: ServerHandler, Handler.ClientOpcode == ClientOpcode, Handler.ServerOpcode == ServerOpcode, Handler.Socket == Socket, Handler.Database == Database {
+        let handler = ServerConnectionHandler { connection in
+            await handler.didConnect(connection: connection)
+        } didDisconnect: { address in
+            await handler.didDisconnect(address: address)
+        }
+        
         await storage.register(handler: handler)
     }
     
     internal func didConnect(connection: Connection) async {
         let handlers = await self.storage.serverHandlers
         for handler in handlers {
-            handler.didConnect(connection)
+            await handler.didConnect(connection)
         }
     }
     
     internal func didDisconnect(address: MapleStoryAddress) async {
         let handlers = await self.storage.serverHandlers
         for handler in handlers {
-            handler.didDisconnect(address)
+            await handler.didDisconnect(address)
         }
     }
 }
@@ -152,7 +158,7 @@ internal extension MapleStoryServer {
                 
         var connections = [MapleStoryAddress: Connection](minimumCapacity: 10_000)
         
-        var serverHandlers = [Handler]()
+        var serverHandlers = [ServerConnectionHandler]()
         
         var packetHandlers = [(Connection) async -> ()]()
         
@@ -174,7 +180,7 @@ internal extension MapleStoryServer {
             packetHandlers.append(handler)
         }
         
-        func register(handler: Handler) {
+        func register(handler: ServerConnectionHandler) {
             serverHandlers.append(handler)
         }
     }
@@ -193,6 +199,16 @@ internal extension MapleStoryServer.Connection {
         var character: Character.ID?
         
         var session: Session.ID?
+    }
+}
+
+internal extension MapleStoryServer {
+    
+    struct ServerConnectionHandler {
+        
+        var didConnect: (Connection) async -> ()
+        
+        var didDisconnect: (MapleStoryAddress) async -> ()
     }
 }
 

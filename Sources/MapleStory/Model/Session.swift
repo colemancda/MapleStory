@@ -69,7 +69,7 @@ public struct Session: Codable, Equatable, Hashable, Identifiable, Sendable {
 // MARK: - Entity
 
 extension Session: Entity {
-    
+        
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .requestTime: .date,

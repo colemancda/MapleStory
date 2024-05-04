@@ -83,35 +83,28 @@ public extension Session {
     
     static func fetch<Storage: ModelStorage>(
         address: String,
-        character: Character.ID? = nil,
-        channel: Channel.ID? = nil,
+        channels: [Channel.ID],
         in database: Storage
     ) async throws -> Session? {
-        var predicates: [Session.Predicate] = [
-            .address(address)
+        guard channels.isEmpty == false else {
+            return nil
+        }
+        let predicates: [FetchRequest.Predicate] = [
+            // IP address
+            FetchRequest.Predicate(predicate: Session.Predicate.address(address)),
+            // or channel
+            .compound(.or(
+                channels.map {
+                    .init(predicate: .channel($0))
+                }
+            ))
         ]
-        if let channel {
-            predicates.append(
-                .channel(channel)
-            )
-        }
-        if let character {
-            predicates.append(
-                .character(character)
-            )
-        }
-        let predicate: FetchRequest.Predicate
-        if predicates.count > 1 {
-            predicate = .compound(.and(predicates.map { .init(predicate: $0) }))
-        } else {
-            predicate = .init(predicate: predicates[0])
-        }
         return try await database.fetch(
             Session.self,
             sortDescriptors: [
-                .init(property: .init(Session.CodingKeys.requestTime), ascending: true)
+                .init(property: .init(Session.CodingKeys.requestTime), ascending: false) // most rescent
             ],
-            predicate: predicate,
+            predicate: .compound(.and(predicates)),
             fetchLimit: 1
         ).first
     }

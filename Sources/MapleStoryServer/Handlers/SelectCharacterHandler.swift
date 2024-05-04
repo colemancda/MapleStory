@@ -20,7 +20,7 @@ public extension MapleStoryServer.Connection {
         let ipAddress = self.address.address
         let requestTime = Date()
         
-        guard let _ = try await self.user else {
+        guard self.state.user != nil else {
             throw MapleStoryError.notAuthenticated
         }
         guard let world = try await self.world else {

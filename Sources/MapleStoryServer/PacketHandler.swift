@@ -10,19 +10,21 @@ import MapleStory
 import CoreModel
 
 /// MapleStory Server Event Handler
-public struct ServerHandler <Socket: MapleStorySocket, Database: CoreModel.ModelStorage, ClientOpcode: MapleStoryOpcode, ServerOpcode: MapleStoryOpcode> {
+public protocol ServerHandler {
     
-    public var didConnect: (MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection) -> ()
+    associatedtype ClientOpcode: MapleStoryOpcode
     
-    public var didDisconnect: (MapleStoryAddress) -> ()
+    associatedtype ServerOpcode: MapleStoryOpcode
     
-    public init(
-        didConnect: @escaping (MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection) -> () = { _ in },
-        didDisconnect: @escaping (MapleStoryAddress) -> () = { _ in }
-    ) {
-        self.didConnect = didConnect
-        self.didDisconnect = didDisconnect
-    }
+    associatedtype Socket: MapleStorySocket
+    
+    associatedtype Database: CoreModel.ModelStorage
+    
+    func didConnect(
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async
+    
+    func didDisconnect(address: MapleStoryAddress) async
 }
 
 /// MapleStory Server Packet Handler
