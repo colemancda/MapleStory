@@ -9,21 +9,22 @@ import Foundation
 import MapleStory83
 import MapleStoryServer
 import CoreModel
-/*
-public struct PingHandler: ServerHandler {
+
+public struct PingHandler: PacketHandler {
+    
+    public typealias Packet = PongPacket
     
     public init() { }
     
-    public func didConnect<Socket, Storage>(
-        connection: MapleStoryServer<Socket, Storage>.Connection
-    ) where Socket : MapleStorySocket, Storage : ModelStorage {
-        let pingInterval = 15
-        Task { [weak connection] in
-            while let connection {
-                try await Task.sleep(for: .seconds(pingInterval), clock: .continuous)
-                try await connection.send(PingPacket())
-            }
+    public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
+        packet: Packet,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        // TODO: Update connection timeout
+        let response = PingPacket()
+        Task {
+            try await Task.sleep(for: .seconds(15))
+            try await connection.send(response)
         }
     }
 }
-*/
