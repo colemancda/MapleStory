@@ -14,7 +14,7 @@ final class LoginTests: XCTestCase {
     
     func testHello() throws {
         
-        let packet: Packet<ServerOpcode> = [0x0E, 0x00, 0x53, 0x00, 0x01, 0x00, 0x31, 0x68, 0x91, 0x09, 0x81, 0x42, 0x0F, 0x90, 0x9B, 0x08]
+        let packet = Data([0x0E, 0x00, 0x53, 0x00, 0x01, 0x00, 0x31, 0x68, 0x91, 0x09, 0x81, 0x42, 0x0F, 0x90, 0x9B, 0x08])
         
         let value = HelloPacket(
             recieveNonce: 0x68910981,
@@ -190,6 +190,22 @@ final class LoginTests: XCTestCase {
         
         XCTAssertDecode(value, packet)
         XCTAssertEncode(value, packet)
+    }
+    
+    func testServerStatusRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x06, 0x00, 0x00, 0x00]
+        let value = ServerStatusRequest(world: 0, channel: 0)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testServerStatusResponse() {
+        
+        let packet: Packet<ServerOpcode> = [0x03, 0x00, 0x00, 0x00]
+        let value = ServerStatusResponse(.normal)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
     }
     
     func testCharacterListResponse() {
