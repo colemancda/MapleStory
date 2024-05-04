@@ -10,7 +10,7 @@ import MapleStory
 
 public struct ClientStartError: MapleStoryPacket, Equatable, Hashable, Codable, Sendable {
     
-    public static var opcode: ClientOpcode { .clientStart }
+    public static var opcode: ClientOpcode { .clientStartError }
     
     public let error: String
         
