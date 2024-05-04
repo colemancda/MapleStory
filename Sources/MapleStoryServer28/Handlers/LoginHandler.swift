@@ -42,8 +42,8 @@ extension MapleStoryServer.Connection where ClientOpcode == MapleStory28.ClientO
             )
             return .success(.init(user: user))
         }
-        catch let loginError as LoginError {
-            return .failure(loginError)
+        catch MapleStoryError.login(let error) {
+            return .failure(error)
         }
     }
 }

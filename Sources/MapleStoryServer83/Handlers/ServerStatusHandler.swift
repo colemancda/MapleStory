@@ -35,6 +35,6 @@ internal extension ServerStatusHandler {
             world: request.world,
             channel: request.channel
         )
-        return .init(status: status)
+        return .init(status)
     }
 }

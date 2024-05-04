@@ -38,8 +38,8 @@ internal extension LoginHandler {
             )
             return .success(username: request.username)
         }
-        catch let loginError as LoginError {
-            return .failure(reason: loginError)
+        catch MapleStoryError.login(let error) {
+            return .failure(reason: error)
         }
     }
 }

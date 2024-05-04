@@ -11,13 +11,30 @@ import MapleStory
 /// Server Status Response
 ///
 /// Packet detailing a server status message.
-public struct ServerStatusResponse: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+public enum ServerStatusResponse: UInt16, MapleStoryPacket, Codable, Equatable, Hashable {
     
     public static var opcode: ServerOpcode { .serverStatus }
     
-    public let status: Channel.Status
+    /// Normal
+    case normal         = 0
     
-    public init(status: Channel.Status) {
-        self.status = status
+    /// High Usage
+    case highUsage      = 1
+    
+    /// Full
+    case full           = 2
+}
+
+public extension ServerStatusResponse {
+    
+    init(_ status: Channel.Status) {
+        switch status {
+        case .normal:
+            self = .normal
+        case .highUsage:
+            self = .highUsage
+        case .full:
+            self = .full
+        }
     }
 }

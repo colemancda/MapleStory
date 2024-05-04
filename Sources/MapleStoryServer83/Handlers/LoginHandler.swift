@@ -40,8 +40,8 @@ internal extension LoginHandler {
             let configuration = try await connection.database.fetch(Configuration.self)
             return .success(.init(user: user, configuration: configuration))
         }
-        catch let loginError as LoginError {
-            return .failure(loginError)
+        catch MapleStoryError.login(let error) {
+            return .failure(error)
         }
     }
 }

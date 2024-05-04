@@ -8,7 +8,7 @@
 import Foundation
 
 /// Login Error
-public enum LoginError: UInt8, Codable, CaseIterable, Error {
+public enum LoginError: UInt8, Codable, CaseIterable, Sendable {
     
     /// User deleted or blocked
     case invalidUsername            = 3

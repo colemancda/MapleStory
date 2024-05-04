@@ -25,12 +25,12 @@ public extension MapleStoryServer.Connection {
         
         // validate username
         guard let username = Username(rawValue: username) else {
-            throw LoginError.invalidUsername
+            throw MapleStoryError.login(.invalidUsername)
         }
         
         // validate password
         guard let password = Password(rawValue: password) else {
-            throw LoginError.invalidPassword
+            throw MapleStoryError.login(.invalidPassword)
         }
         
         // fetch existing user
@@ -38,11 +38,11 @@ public extension MapleStoryServer.Connection {
         if var existingUser = try await User.fetch(username: username, in: database) {
             guard existingUser.isGuest == false else {
                 // cannot login as guest
-                throw LoginError.notRegistered
+                throw MapleStoryError.login(.notRegistered)
             }
             // validate password
             guard try await User.validate(password: password, for: username, in: database) else {
-                throw LoginError.invalidPassword
+                throw MapleStoryError.login(.invalidPassword)
             }
             // update IP address
             existingUser.ipAddress = ipAddress
@@ -59,7 +59,7 @@ public extension MapleStoryServer.Connection {
             log("Registered User - \(username)")
             user = newUser
         } else {
-            throw LoginError.notRegistered
+            throw MapleStoryError.login(.notRegistered)
         }
         
         assert(user.username.rawValue.lowercased() == username.rawValue.lowercased())
@@ -72,7 +72,7 @@ public extension MapleStoryServer.Connection {
         
         // check if terms of service was accepted
         guard user.termsAccepted else {
-            throw LoginError.licenseAgreement
+            throw MapleStoryError.login(.licenseAgreement)
         }
         
         return user

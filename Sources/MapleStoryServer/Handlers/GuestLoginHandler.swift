@@ -21,7 +21,7 @@ public extension MapleStoryServer.Connection {
             user = existingUser
         } else {
             // create new guest user
-            let userCount = try await database.count(User.self)
+            let userCount = try await database.fetch(configuration: .lastUserIndex)?.intValue ?? 1
             let rawUsername = "Guest\(userCount)"
             let rawPassword = "Guest\(Int(Date().timeIntervalSince1970))"
             guard let username = Username(rawValue: rawUsername),
@@ -40,11 +40,6 @@ public extension MapleStoryServer.Connection {
         
         // stay logged in as user
         await authenticate(user: user)
-        
-        // check if terms of service was accepted
-        guard user.termsAccepted else {
-            throw LoginError.licenseAgreement
-        }
         
         return user
     }
