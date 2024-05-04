@@ -259,6 +259,24 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x30163316))
     }
     
+    func testServerListRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x0B, 0x00]
+        let value = ServerListRequest()
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testServerListRerequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x04, 0x00]
+        let value = ServerListRerequest()
+        XCTAssertEqual(packet.opcode, type(of: value).opcode)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
     func testServerListResponse() throws {
         
         let packetData = Data([0x0A, 0x00, 0x00, 0x08, 0x00, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x20, 0x30, 0x02, 0x00, 0x00, 0x64, 0x00, 0x64, 0x00, 0x00, 0x02, 0x0A, 0x00, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x20, 0x30, 0x2D, 0x31, 0x00, 0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x0A, 0x00, 0x20, 0x57, 0x6F, 0x72, 0x6C, 0x64, 0x20, 0x30, 0x2D, 0x32, 0x00, 0x00, 0x00, 0x00, 0x01, 0x01, 0x00, 0x00, 0x00])
@@ -350,6 +368,30 @@ final class LoginTests: XCTestCase {
         
         let packet: Packet<ServerOpcode> = [0x03, 0x00, 0x00, 0x00]
         let value = ServerStatusResponse(.normal)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testViewAllCharactersRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x0D, 0x00]
+        let value = AllCharactersRequest()
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testCharacterListRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x05, 0x00, 0x00, 0x00]
+        let value = CharacterListRequest(world: 0, channel: 0)
+        XCTAssertEncode(value, packet)
+        XCTAssertDecode(value, packet)
+    }
+    
+    func testViewAllCharactersRerequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x0F, 0x00, 0x00] // unknownCharacter
+        let value = AllCharactersWorldSelectedRequest(world: 0)
         XCTAssertEncode(value, packet)
         XCTAssertDecode(value, packet)
     }
