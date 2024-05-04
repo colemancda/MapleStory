@@ -18,3 +18,12 @@ public struct ClientStartError: MapleStoryPacket, Equatable, Hashable, Codable, 
         self.error = error
     }
 }
+
+// MARK: - ExpressibleByStringLiteral
+
+extension ClientStartError: ExpressibleByStringLiteral {
+    
+    public init(stringLiteral value: StringLiteralType) {
+        self.error = value
+    }
+}
