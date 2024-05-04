@@ -22,7 +22,6 @@ public struct SelectCharacterHandler: PacketHandler {
     ) async throws {
         let response = try await selectCharacter(packet, connection: connection)
         try await connection.send(response)
-        await connection.close()
     }
 }
 
