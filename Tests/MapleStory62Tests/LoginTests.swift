@@ -291,6 +291,12 @@ final class LoginTests: XCTestCase {
         XCTAssertEqual(encrypted.header, UInt32(bigEndian: 0x30163316))
     }
     
+    func testPlayerDCRequest() {
+        
+        let packet: Packet<ClientOpcode> = [0x0C, 0x00]
+        XCTAssertEqual(packet.opcode, .playerDC)
+    }
+    
     func testServerListRequest() {
         
         let packet: Packet<ClientOpcode> = [0x0B, 0x00]
@@ -614,12 +620,6 @@ final class LoginTests: XCTestCase {
         
         XCTAssertEqual(encrypted.length, packet.data.count)
         XCTAssertEqual(encrypted.data, encryptedData)
-    }
-    
-    func testPlayerDCRequest() {
-        
-        let packet: Packet<ClientOpcode> = [0x0C, 0x00]
-        XCTAssertEqual(packet.opcode, .playerDC)
     }
     
     func testAllCharactersSelectRequest() throws {
