@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MapleStory
 
 public struct AllCharactersRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
     

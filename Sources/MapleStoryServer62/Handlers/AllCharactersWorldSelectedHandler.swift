@@ -1,0 +1,50 @@
+//
+//  AllCharactersWorldSelectedHandler.swift
+//
+//
+//  Created by Alsey Coleman Miller on 5/4/24.
+//
+
+import Foundation
+import CoreModel
+import MapleStory62
+import MapleStoryServer
+
+public struct AllCharactersWorldSelectedHandler: PacketHandler {
+    
+    public typealias Packet = MapleStory62.AllCharactersWorldSelectedRequest
+    
+    public init() { }
+    
+    public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
+        packet: Packet,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        let responses = try await characterList(packet, connection: connection)
+        for response in responses {
+            try await connection.send(response)
+        }
+    }
+}
+
+internal extension AllCharactersWorldSelectedHandler {
+    
+    func characterList<Socket: MapleStorySocket, Database: ModelStorage>(
+        _ request: Packet,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws -> [MapleStory62.AllCharactersResponse] {
+        let limit = 60
+        let charactersByWorld = try await connection.characterList()
+        guard charactersByWorld.isEmpty == false else {
+            return [.count(characters: 0, value0: 3)]
+        }
+        let charactersCount = charactersByWorld.reduce(into: 0, { $0 += $1.characters.count })
+        return [.count(charactersCount)] + charactersByWorld.map {
+            .characters(
+                world: $0.world,
+                characters: $0.characters.prefix(limit).map { .init($0) }
+            )
+        }
+    }
+}
+
