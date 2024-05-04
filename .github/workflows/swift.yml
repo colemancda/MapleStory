@@ -18,7 +18,9 @@ jobs:
       run: swift build -c debug
     - name: Build (Release)
       run: swift build -c release
-  
+    - name: Test (Debug)
+      run: swift test -c debug
+
   linux:
     name: Linux
     runs-on: ubuntu-20.04
@@ -33,7 +35,5 @@ jobs:
       run: swift --version
     - name: Build (Debug)
       run: swift build -c debug
-    - name: Build (Release)
-      run: swift build -c release
     - name: Test (Debug)
       run: swift test -c debug
