@@ -110,6 +110,7 @@ public extension MapleStoryServer where ClientOpcode == MapleStory83.ClientOpcod
     func registerLoginServer() async {
         await register(HandshakeHandler())
         await register(PingHandler())
+        await register(ClientErrorHandler())
         await register(LoginHandler())
         await register(GuestLoginHandler())
         await register(PinCodeHandler())
