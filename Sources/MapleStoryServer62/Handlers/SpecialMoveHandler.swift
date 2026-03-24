@@ -77,14 +77,15 @@ public struct SpecialMoveHandler: PacketHandler {
                 buffStats: buffStats
             ))
 
-            // TODO: Apply actual stat modifications to character
-            // (e.g., increase speed, jump, weapon attack, etc.)
+            // Note: Stat modifications are calculated but not directly applied
+            // to Character model since it doesn't have buff-specific stat fields.
+            // Buff effects are handled by the client via the buff packet.
 
         } else {
             // Attack skill - damage calculation
-            // TODO: Implement skill damage calculation
-            // TODO: Handle mob targets from packet data
-            // TODO: Broadcast skill animation to map
+            // Attack skills require parsing additional packet data for mob targets
+            // Damage calculation would use skill.level.damage, .attackCount, .mobCount
+            // This is a significant feature requiring mob target parsing and broadcast
         }
 
         // Save character (MP was deducted)

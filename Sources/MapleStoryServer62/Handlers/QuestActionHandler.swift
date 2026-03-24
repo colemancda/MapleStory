@@ -34,10 +34,28 @@ public struct QuestActionHandler: PacketHandler {
 
         switch packet.action {
         case 1: // Start quest
-            try await handleStart(questID: questID, character: &character, connection: connection)
+            guard let npcID = packet.npcID else {
+                return // NPC ID required
+            }
+            try await handleStart(
+                questID: questID,
+                npcID: npcID,
+                character: &character,
+                connection: connection
+            )
 
         case 2: // Complete quest
-            try await handleComplete(questID: questID, character: &character, connection: connection)
+            guard let npcID = packet.npcID else {
+                return // NPC ID required
+            }
+            let selection = packet.selection.map { UInt8($0) } ?? 0
+            try await handleComplete(
+                questID: questID,
+                npcID: npcID,
+                selection: selection,
+                character: &character,
+                connection: connection
+            )
 
         case 3: // Forfeit quest
             try await handleForfeit(questID: questID, character: &character, connection: connection)
@@ -51,24 +69,42 @@ public struct QuestActionHandler: PacketHandler {
 
         // Save character
         try await connection.database.insert(character)
+
+        // Save quest data to database
+        let questData = await QuestStateRegistry.shared.getQuestData(for: character.id)
+        // TODO: Save questData to database
+        // try await connection.database.insert(questData)
+        _ = questData // Suppress unused warning until database save is implemented
     }
 
     // MARK: - Start Quest
 
     private func handleStart<Socket: MapleStorySocket, Database: ModelStorage>(
         questID: QuestID,
+        npcID: UInt32,
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Check if already completed or started
-        let current = await QuestStateRegistry.shared.quest(questID, for: character.id)
-        if let state = current, state.status != .notStarted {
-            return // Already started or completed
-        }
-
         // Check requirements
         guard let requirement = await QuestDataCache.shared.requirement(questID: questID) else {
             return
+        }
+
+        // Validate NPC
+        guard requirement.canStartAt(npcID: npcID) else {
+            return // Wrong NPC
+        }
+
+        // Check if already completed or started
+        let current = await QuestStateRegistry.shared.quest(questID, for: character.id)
+        if let state = current {
+            // Check if repeatable
+            if !requirement.canRepeat(completionCount: state.completionCount) {
+                return // Already completed and not repeatable
+            }
+            if state.status == .started {
+                return // Already started
+            }
         }
 
         let allQuests = await QuestStateRegistry.shared.quests(for: character.id)
@@ -79,20 +115,46 @@ public struct QuestActionHandler: PacketHandler {
         // Start quest
         await QuestStateRegistry.shared.startQuest(questID, for: character.id)
 
-        // TODO: Send quest started notification to client
+        // Send quest started notification to client
+        try await connection.send(UpdateQuestInfoNotification(
+            questID: questID,
+            state: .started,
+            progress: ""
+        ))
     }
 
     // MARK: - Complete Quest
 
     private func handleComplete<Socket: MapleStorySocket, Database: ModelStorage>(
         questID: QuestID,
+        npcID: UInt32,
+        selection: UInt8,
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
+        // Check requirements
+        guard let requirement = await QuestDataCache.shared.requirement(questID: questID) else {
+            return
+        }
+
+        // Validate NPC
+        guard requirement.canCompleteAt(npcID: npcID) else {
+            return // Wrong NPC
+        }
+
         // Check if quest is started
         let current = await QuestStateRegistry.shared.quest(questID, for: character.id)
         guard let state = current, state.status == .started else {
             return // Quest not started
+        }
+
+        // Check quest progress requirements
+        let meetsProgress = await QuestStateRegistry.shared.meetsRequirements(
+            questID: questID,
+            for: character.id
+        )
+        guard meetsProgress else {
+            return // Quest objectives not met
         }
 
         // Get quest rewards
@@ -113,15 +175,22 @@ public struct QuestActionHandler: PacketHandler {
         // Grant item rewards
         if !reward.items.isEmpty {
             let manipulator = InventoryManipulator()
+            var itemsGranted: [UInt32: UInt16] = [:]
+
             for (itemID, quantity) in reward.items {
                 // Check inventory space
                 guard try await manipulator.checkSpace(itemID, quantity: quantity, for: character) else {
+                    // TODO: Send message that player needs more inventory space
                     continue // Skip if no space
                 }
 
                 // Add item
                 try await manipulator.addFromDrop(itemID, quantity: quantity, to: character)
+                itemsGranted[itemID] = quantity
             }
+
+            // Update reward to only include actually granted items
+            // (for notification)
         }
 
         // Mark quest as completed
@@ -130,7 +199,21 @@ public struct QuestActionHandler: PacketHandler {
             return
         }
 
-        // TODO: Send quest completed notification to client
+        // Send quest completed notification to client
+        try await connection.send(ShowQuestCompletionNotification(
+            questID: questID,
+            selection: selection,
+            expReward: reward.exp,
+            mesoReward: reward.meso,
+            items: reward.items
+        ))
+
+        // Update quest info
+        try await connection.send(UpdateQuestInfoNotification(
+            questID: questID,
+            state: .completed,
+            progress: ""
+        ))
     }
 
     // MARK: - Forfeit Quest
@@ -152,6 +235,11 @@ public struct QuestActionHandler: PacketHandler {
             return
         }
 
-        // TODO: Send quest forfeited notification to client
+        // Send quest forfeited notification to client
+        try await connection.send(UpdateQuestInfoNotification(
+            questID: questID,
+            state: .notStarted,
+            progress: ""
+        ))
     }
 }

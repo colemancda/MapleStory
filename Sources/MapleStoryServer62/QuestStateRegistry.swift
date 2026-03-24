@@ -9,6 +9,21 @@ import Foundation
 import CoreModel
 import MapleStory
 
+/// Character quest data for database persistence
+public struct CharacterQuestData: Codable, Equatable, Hashable, Sendable {
+    /// Character ID
+    public let characterID: Character.ID
+
+    /// Quest states
+    public let quests: [QuestID: QuestState]
+
+    /// Create character quest data
+    public init(characterID: Character.ID, quests: [QuestID: QuestState] = [:]) {
+        self.characterID = characterID
+        self.quests = quests
+    }
+}
+
 /// Registry tracking quest progress for all characters.
 public actor QuestStateRegistry {
 
@@ -98,5 +113,49 @@ public actor QuestStateRegistry {
     /// Reset all quests for a character (e.g., on rebirth).
     public func resetAll(for characterID: Character.ID) {
         quests[characterID] = nil
+    }
+
+    /// Set quest state directly (for database loading).
+    public func setState(_ state: QuestState, for characterID: Character.ID) {
+        if quests[characterID] == nil {
+            quests[characterID] = [:]
+        }
+        quests[characterID]?[state.questID] = state
+    }
+
+    /// Check if quest progress meets requirements.
+    public func meetsRequirements(
+        questID: QuestID,
+        for characterID: Character.ID
+    ) -> Bool {
+        guard let state = quests[characterID]?[questID] else {
+            return false
+        }
+
+        // Check if quest is started
+        guard state.status == .started else {
+            return false
+        }
+
+        // TODO: Check specific quest objectives
+        // - Mob kill counts
+        // - Item collection requirements
+        // - Etc.
+
+        // For now, require at least some progress
+        return !state.progress.isEmpty || state.startTime != nil
+    }
+
+    /// Get all quest states as CharacterQuestData for persistence.
+    public func getQuestData(for characterID: Character.ID) -> CharacterQuestData {
+        let quests = quests(for: characterID)
+        return CharacterQuestData(characterID: characterID, quests: quests)
+    }
+
+    /// Load quest states from database.
+    public func loadQuestData(_ data: CharacterQuestData) {
+        for (questID, state) in data.quests {
+            setState(state, for: data.characterID)
+        }
     }
 }

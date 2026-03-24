@@ -218,9 +218,10 @@ public struct StorageHandler: PacketHandler {
             ))
         }
 
-        // Send storage notification
+        // TODO: Track actual storage NPC ID from conversation
+        // For now, use 0 as placeholder
         try await connection.send(OpenStorageNotification(
-            npcID: 0, // TODO: Track actual storage NPC ID
+            npcID: 0,
             mesos: storage.mesos,
             slots: storage.slots,
             maxSlots: storage.maxSlots,

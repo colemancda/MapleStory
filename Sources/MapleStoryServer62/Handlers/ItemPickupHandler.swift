@@ -44,8 +44,9 @@ public struct ItemPickupHandler: PacketHandler {
             return // Not owner
         }
 
-        // Check distance (player must be close to drop)
-        // TODO: Implement distance check when player position is tracked
+        // Distance validation would require player position tracking
+        // Player position updates come via MovePlayerHandler packets
+        // For now, distance checking is deferred until position tracking is implemented
 
         // Meso pickup
         if mapItem.itemID == 0 {
