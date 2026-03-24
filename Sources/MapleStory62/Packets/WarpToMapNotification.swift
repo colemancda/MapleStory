@@ -19,7 +19,7 @@ public extension WarpToMapNotification {
     
     typealias CharacterStats = CharacterListResponse.CharacterStats
     
-    struct CharacterInfo: Codable, Equatable, Hashable, Sendable {
+    public struct CharacterInfo: Codable, Equatable, Hashable, Sendable {
         
         public let channel: UInt32
         
@@ -44,6 +44,17 @@ public extension WarpToMapNotification {
         public let etcSlots: UInt8 // 100
         
         public let cashSlots: UInt8 // 100
+
+        public init(
+            channel: UInt32, random0: UInt32, random1: UInt32, random2: UInt32,
+            stats: CharacterStats, buddyListSize: UInt8, meso: UInt32,
+            equipSlots: UInt8, useSlots: UInt8, setupSlots: UInt8, etcSlots: UInt8, cashSlots: UInt8
+        ) {
+            self.channel = channel; self.random0 = random0; self.random1 = random1; self.random2 = random2
+            self.stats = stats; self.buddyListSize = buddyListSize; self.meso = meso
+            self.equipSlots = equipSlots; self.useSlots = useSlots; self.setupSlots = setupSlots
+            self.etcSlots = etcSlots; self.cashSlots = cashSlots
+        }
         /*
         public let equipped: [Item]
         
