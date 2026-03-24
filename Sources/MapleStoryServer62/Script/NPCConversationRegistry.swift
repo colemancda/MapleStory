@@ -40,4 +40,9 @@ public actor NPCConversationRegistry {
     public func remove(_ address: MapleStoryAddress) {
         active[address] = nil
     }
+
+    /// Get the NPC ID for a player's active conversation.
+    public func getNPC(for address: MapleStoryAddress) -> UInt32? {
+        active[address]?.npcID
+    }
 }
