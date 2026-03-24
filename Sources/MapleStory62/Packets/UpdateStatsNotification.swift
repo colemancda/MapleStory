@@ -14,6 +14,37 @@ public struct UpdateStatsNotification: MapleStoryPacket, Equatable, Hashable, Se
 
     public static var opcode: ServerOpcode { .updateStats }
 
+    public init(
+        announce: Bool,
+        stats: MapleStat,
+        skin: UInt8?, face: UInt32?, hair: UInt32?,
+        level: UInt8?, job: Job?,
+        str: UInt16?, dex: UInt16?, int: UInt16?, luk: UInt16?,
+        hp: UInt16?, maxHp: UInt16?, mp: UInt16?, maxMp: UInt16?,
+        ap: UInt16?, sp: UInt16?, exp: UInt32?, fame: UInt16?, meso: UInt32?
+    ) {
+        self.announce = announce
+        self.stats = stats
+        self.skin = skin
+        self.face = face
+        self.hair = hair
+        self.level = level
+        self.job = job
+        self.str = str
+        self.dex = dex
+        self.int = int
+        self.luk = luk
+        self.hp = hp
+        self.maxHp = maxHp
+        self.mp = mp
+        self.maxMp = maxMp
+        self.ap = ap
+        self.sp = sp
+        self.exp = exp
+        self.fame = fame
+        self.meso = meso
+    }
+
     /// Whether this update should show in the UI (usually true).
     public let announce: Bool
 
