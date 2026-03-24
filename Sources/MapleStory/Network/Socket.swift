@@ -137,7 +137,7 @@ public final class MapleStorySocketIPv4TCP: MapleStorySocket {
     ) async throws -> Self {
         let fileDescriptor = try SocketDescriptor.tcp(localAddress) // [.closeOnExec, .nonBlocking])
         let socket = await Socket(fileDescriptor: fileDescriptor)
-        try fileDescriptor.closeIfThrows {
+        try await fileDescriptor.closeIfThrows {
             try fileDescriptor.setSocketOption(GenericSocketOption.ReuseAddress(true))
             try fileDescriptor.setNonblocking()
         }
@@ -153,7 +153,7 @@ public final class MapleStorySocketIPv4TCP: MapleStorySocket {
         backlog: Int = 100
     ) async throws -> Self {
         let fileDescriptor = try SocketDescriptor.tcp(address) // [.closeOnExec, .nonBlocking])
-        try fileDescriptor.closeIfThrows {
+        try await fileDescriptor.closeIfThrows {
             try fileDescriptor.listen(backlog: backlog)
             try fileDescriptor.setNonblocking()
         }
