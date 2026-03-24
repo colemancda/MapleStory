@@ -100,17 +100,32 @@ public struct QuestRequirement: Codable, Equatable, Hashable, Sendable {
     /// Required quests (quest ID -> completion count)
     public let completedQuests: [QuestID: UInt8]
 
+    /// NPCs that can start this quest
+    public let startNPCs: Set<UInt32>
+
+    /// NPCs that can complete this quest
+    public let endNPCs: Set<UInt32>
+
+    /// Is this quest repeatable?
+    public let repeatable: Bool
+
     /// Create quest requirement
     public init(
         minLevel: UInt8 = 0,
         maxLevel: UInt8 = 200,
         job: UInt16? = nil,
-        completedQuests: [QuestID: UInt8] = [:]
+        completedQuests: [QuestID: UInt8] = [:],
+        startNPCs: Set<UInt32> = [],
+        endNPCs: Set<UInt32> = [],
+        repeatable: Bool = false
     ) {
         self.minLevel = minLevel
         self.maxLevel = maxLevel
         self.job = job
         self.completedQuests = completedQuests
+        self.startNPCs = startNPCs
+        self.endNPCs = endNPCs
+        self.repeatable = repeatable
     }
 
     /// Check if character meets requirements
@@ -137,5 +152,20 @@ public struct QuestRequirement: Codable, Equatable, Hashable, Sendable {
         }
 
         return true
+    }
+
+    /// Check if NPC can start this quest
+    public func canStartAt(npcID: UInt32) -> Bool {
+        return startNPCs.isEmpty || startNPCs.contains(npcID)
+    }
+
+    /// Check if NPC can complete this quest
+    public func canCompleteAt(npcID: UInt32) -> Bool {
+        return endNPCs.isEmpty || endNPCs.contains(npcID)
+    }
+
+    /// Check if quest can be repeated
+    public func canRepeat(completionCount: UInt8) -> Bool {
+        return repeatable || completionCount == 0
     }
 }
