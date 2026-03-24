@@ -11,6 +11,9 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+// Type alias for MobInstance
+private typealias MobInstance = MapMobRegistry.MobInstance
+
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.ServerOpcode {
 
@@ -45,14 +48,65 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
             let updated = await MapMobRegistry.shared.applyDamage(validatedDamage, to: objectID)
             if let updated, updated.currentHP == 0 {
                 try await broadcast(KillMonsterNotification(objectID: objectID), map: mapID)
+
                 // Award experience for the kill.
                 if let template = await MobDataCache.shared.mob(id: updated.mobID) {
                     let exp = UInt32(max(0, template.exp))
                     if exp > 0 {
                         try await gainExp(exp)
                     }
+
+                    // Spawn drops
+                    await spawnDrops(from: updated, mapID: mapID)
                 }
+
+                // Remove mob from registry
+                await MapMobRegistry.shared.remove(objectID: objectID)
             }
+        }
+    }
+
+    // MARK: - Drop Spawning
+
+    /// Spawn drops from a killed mob.
+    private func spawnDrops(
+        from mobInstance: MobInstance,
+        mapID: Map.ID
+    ) async {
+        let position = DropPosition(x: mobInstance.x, y: mobInstance.y)
+
+        // Roll meso drop
+        if let mesoAmount = await DropDataCache.shared.rollMeso(
+            for: mobInstance.mobID,
+            level: 0 // TODO: Pass actual mob level
+        ) {
+            let drop = await MapItemRegistry.shared.createDrop(
+                itemID: 0, // 0 = meso
+                quantity: mesoAmount,
+                ownerID: 0, // Anyone can pick up
+                position: position,
+                mapID: mapID
+            )
+
+            // TODO: Broadcast SpawnMapItemNotification for meso drop
+            // For now, meso drops use a different packet opcode
+        }
+
+        // Roll item drops
+        let successfulDrops = await DropDataCache.shared.rollDrops(for: mobInstance.mobID)
+
+        for (dropData, quantity) in successfulDrops {
+            let drop = await MapItemRegistry.shared.createDrop(
+                itemID: dropData.itemID,
+                quantity: UInt32(quantity),
+                ownerID: 0, // Anyone can pick up (TODO: party drops)
+                position: position,
+                mapID: mapID
+            )
+
+            // Broadcast drop to map
+            // TODO: Broadcast SpawnMapItemNotification (opcode dropItemFromMapObject)
+            // Packet structure: objectID, itemID, quantity, ownerID, position, expiry
         }
     }
 }
