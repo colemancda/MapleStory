@@ -51,6 +51,11 @@ extension NPCScriptRegistry {
             try await ctx.warp(to: maps[selection])
         }
 
+        // 1012009 - Leatty (storage)
+        register(npc: 1012009) { ctx in
+            try await ctx.sendStorage()
+        }
+
         // 1012100 - Athena Pierce (Bowman Job Advancement)
         register(npc: 1012100) { ctx in
             let job = try await ctx.job

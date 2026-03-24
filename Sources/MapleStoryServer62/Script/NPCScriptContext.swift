@@ -133,6 +133,47 @@ public actor NPCScriptContext {
         _ = capacity
     }
 
+    /// Opens the player's storage. Stub.
+    public func sendStorage() async throws {
+        // TODO: implement storage
+        try await sendOk("Storage is not available yet.")
+    }
+
+    /// Returns true if the player has inventory space for the given item. Stub — always returns true.
+    public func canHold(_ itemID: UInt32) async throws -> Bool {
+        // TODO: implement inventory space check
+        return true
+    }
+
+    /// Change the player's hair style. Stub.
+    public func changeHair(_ hairID: UInt32) async throws {
+        // TODO: implement appearance changes
+        _ = hairID
+    }
+
+    /// Change the player's face. Stub.
+    public func changeFace(_ faceID: UInt32) async throws {
+        // TODO: implement appearance changes
+        _ = faceID
+    }
+
+    /// Reset the player's AP stats. Stub.
+    public func resetStats() async throws {
+        // TODO: implement AP reset
+    }
+
+    /// Give the player experience points. Stub.
+    public func gainExp(_ amount: UInt32) async throws {
+        // TODO: implement EXP gain
+        _ = amount
+    }
+
+    /// Teach the player a skill at the given level. Stub.
+    public func teachSkill(_ skillID: UInt32, _ currentLevel: Int, _ maxLevel: Int) async throws {
+        // TODO: implement skill teaching
+        _ = skillID; _ = currentLevel; _ = maxLevel
+    }
+
     // MARK: - Dialog API
 
     /// Show a dialog with an OK button. Waits for acknowledgement.

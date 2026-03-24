@@ -53,6 +53,11 @@ extension NPCScriptRegistry {
             try await ctx.warp(to: maps[selection])
         }
 
+        // 1002005 - Poy (storage)
+        register(npc: 1002005) { ctx in
+            try await ctx.sendStorage()
+        }
+
         // 1002001 - Cody
         register(npc: 1002001) { ctx in
             try await ctx.sendOk("Hello. I'm Cody. Nice to meet you!")

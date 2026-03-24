@@ -51,6 +51,112 @@ extension NPCScriptRegistry {
             try await ctx.warp(to: maps[selection])
         }
 
+        // 1032003 - Shane (Ellinia Jump Quest entrance)
+        register(npc: 1032003) { ctx in
+            try await ctx.sendNext("Hello there! I guard this mysterious path. Those with great agility can try their luck inside.")
+            try await ctx.sendNextPrev("There are two courses: JQ1 and JQ2. Each has a prize waiting at the end.")
+            let confirmed = try await ctx.sendYesNo("Would you like to enter the Jump Quest?")
+            guard confirmed else { return }
+            try await ctx.warp(to: 101000100)
+        }
+
+        // 1032004 - Shane (warp back to Ellinia from JQ)
+        register(npc: 1032004) { ctx in
+            let confirmed = try await ctx.sendYesNo("Would you like to return to Ellinia?")
+            guard confirmed else { return }
+            try await ctx.warp(to: 101000000)
+        }
+
+        // 1032006 - Rene (storage)
+        register(npc: 1032006) { ctx in
+            try await ctx.sendStorage()
+        }
+
+        // 1032007 - Joel (Orbis ship ticket seller — Ellinia Station)
+        register(npc: 1032007) { ctx in
+            let cost: UInt32 = 5000
+            let confirmed = try await ctx.sendYesNo(
+                "Hello, I'm in charge of selling tickets for the ship ride to Orbis Station of Ossyria. The ride to Orbis takes off every 15 minutes, beginning on the hour, and it'll cost you #b\(cost) mesos#k. Are you sure you want to purchase #b#t4031045##k?"
+            )
+            guard confirmed else { return }
+            guard try await ctx.meso >= cost else {
+                try await ctx.sendOk("Are you sure you have #b\(cost) mesos#k? If so, then I urge you to check your etc. inventory, and see if it's full or not.")
+                return
+            }
+            try await ctx.gainItem(4031045, 1)
+            try await ctx.gainMeso(-Int32(cost))
+        }
+
+        // 1032008 - Cherry (Ellinia boat loader to Orbis)
+        register(npc: 1032008) { ctx in
+            let confirmed = try await ctx.sendYesNo("Do you wish to board the boat?")
+            guard confirmed else { return }
+            guard try await ctx.hasItem(4031045) else {
+                try await ctx.sendOk("You do not have a ticket to get to Orbis.")
+                return
+            }
+            try await ctx.gainItem(4031045, -1)
+            try await ctx.warp(to: 101000301)
+        }
+
+        // 1032009 - Purin (on boat, can leave back to dock)
+        register(npc: 1032009) { ctx in
+            let confirmed = try await ctx.sendYesNo("Do you wish to leave the boat?")
+            guard confirmed else { return }
+            try await ctx.sendNext("Alright, see you next time. Take care.")
+            try await ctx.warp(to: 101000300)
+        }
+
+        // 1032100 - Arwen the Fairy (crafting: Moon Rock, Star Rock, Black Feather)
+        register(npc: 1032100) { ctx in
+            let level = try await ctx.level
+            guard level >= 40 else {
+                try await ctx.sendOk("I can make rare, valuable items but unfortunately I can't make it for a stranger like you.")
+                return
+            }
+            try await ctx.sendNext("Yeah... I am the master alchemist of the fairies. If you get me the materials, I'll make you a special item.")
+            let selection = try await ctx.sendSimple("What do you want to make?#b\r\n#L0#Moon Rock#l\r\n#L1#Star Rock#l\r\n#L2#Black Feather#l")
+            if selection == 0 {
+                let confirmed = try await ctx.sendYesNo("So you want to make Moon Rock? To do that you need one refined plate of each: #bBronze#k, #bSteel#k, #bMithril#k, #bAdamantium#k, #bSilver#k, #bOrihalcon#k and #bGold#k. Throw in 10,000 mesos and I'll make it for you.")
+                guard confirmed else { return }
+                let hasAll = try await ctx.hasItem(4011000) && ctx.hasItem(4011001) && ctx.hasItem(4011002) && ctx.hasItem(4011003) && ctx.hasItem(4011004) && ctx.hasItem(4011005) && ctx.hasItem(4011006) && ctx.meso >= 10000
+                guard hasAll else {
+                    try await ctx.sendNext("Please check and see if you have the refined plates, one of each.")
+                    return
+                }
+                try await ctx.gainMeso(-10000)
+                for i: UInt32 in 4011000...4011006 { try await ctx.gainItem(i, -1) }
+                try await ctx.gainItem(4011007, 1)
+                try await ctx.sendNext("Ok here, take the Moon Rock. It's well-made. If you need my help down the road, feel free to come back.")
+            } else if selection == 1 {
+                let confirmed = try await ctx.sendYesNo("So you want to make the Star Rock? To do that you need one refined jewel of each: #bGarnet#k, #bAmethyst#k, #bAquaMarine#k, #bEmerald#k, #bOpal#k, #bSapphire#k, #bTopaz#k, #bDiamond#k and #bBlack Crystal#k. Throw in 15,000 mesos and I'll make it for you.")
+                guard confirmed else { return }
+                let hasAll = try await ctx.hasItem(4021000) && ctx.hasItem(4021001) && ctx.hasItem(4021002) && ctx.hasItem(4021003) && ctx.hasItem(4021004) && ctx.hasItem(4021005) && ctx.hasItem(4021006) && ctx.hasItem(4021007) && ctx.hasItem(4021008) && ctx.meso >= 15000
+                guard hasAll else {
+                    try await ctx.sendNext("Please check and see if you have the refined jewels, one of each.")
+                    return
+                }
+                try await ctx.gainMeso(-15000)
+                for i: UInt32 in 4021000...4021008 { try await ctx.gainItem(i, -1) }
+                try await ctx.gainItem(4021009, 1)
+                try await ctx.sendNext("Ok here, take the Star Rock. It's well-made. If you need my help down the road, feel free to come back.")
+            } else if selection == 2 {
+                let confirmed = try await ctx.sendYesNo("So you want to make Black Feather? To do that you need #b1 Flaming Feather#k, #b1 Moon Rock#k and #b1 Black Crystal#k. Throw in 30,000 mesos and I'll make it for you.")
+                guard confirmed else { return }
+                let hasAll = try await ctx.hasItem(4001006) && ctx.hasItem(4011007) && ctx.hasItem(4021008) && ctx.meso >= 30000
+                guard hasAll else {
+                    try await ctx.sendNext("Please check and see if you have the required materials.")
+                    return
+                }
+                try await ctx.gainMeso(-30000)
+                try await ctx.gainItem(4001006, -1)
+                try await ctx.gainItem(4011007, -1)
+                try await ctx.gainItem(4021008, -1)
+                try await ctx.gainItem(4031042, 1)
+                try await ctx.sendNext("Ok here, take the Black Feather. It's well-made. If you need my help down the road, feel free to come back.")
+            }
+        }
+
         // 1032005 - VIP Cab (Ant Tunnel from Ellinia)
         register(npc: 1032005) { ctx in
             let isBeginner = try await ctx.job == .beginner

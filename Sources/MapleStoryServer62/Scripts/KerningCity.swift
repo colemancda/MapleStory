@@ -14,6 +14,11 @@ import MapleStory62
 extension NPCScriptRegistry {
 
     func registerKerningCity() {
+        // 1052017 - Kerning storage
+        register(npc: 1052017) { ctx in
+            try await ctx.sendStorage()
+        }
+
         // 1052016 - Kerning City Regular Cab
         register(npc: 1052016) { ctx in
             let maps: [Map.ID] = [104000000, 102000000, 101000000, 100000000]

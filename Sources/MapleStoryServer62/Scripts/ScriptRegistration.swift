@@ -17,6 +17,15 @@ public extension NPCScriptRegistry {
         registerEllinia()
         registerPerion()
         registerKerningCity()
+        registerSleepywood()
+        registerNautilus()
+        registerOssyria()
+        registerMapleIsland()
+        registerSingapore()
+        registerAmoria()
+        registerSpecialAreas()
+        registerSecondJob()
+        registerFourthJob()
         registerEventNPCs()
     }
 }
