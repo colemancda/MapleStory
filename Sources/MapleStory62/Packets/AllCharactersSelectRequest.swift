@@ -12,6 +12,6 @@ public struct AllCharactersSelectRequest: MapleStoryPacket, Decodable, Equatable
     public static var opcode: ClientOpcode { .pickAllCharacters }
     
     public let character: Character.Index
-    
-    public let macAddresses: String
+
+    public let world: World.Index
 }
