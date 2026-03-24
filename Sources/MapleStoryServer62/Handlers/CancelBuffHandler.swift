@@ -35,10 +35,10 @@ public struct CancelBuffHandler: PacketHandler {
             return // Buff wasn't active
         }
 
-        // TODO: Recalculate character stats without buff
-        // TODO: Send buff cancellation packet to client
+        // Send buff cancellation notification to client
+        try await connection.send(CancelBuffNotification(skillID: packet.skillID))
 
-        // Save character (if stats were modified)
-        // try await connection.database.insert(character)
+        // TODO: Recalculate character stats without buff
+        // TODO: Save character (if stats were modified)
     }
 }

@@ -31,14 +31,27 @@ public struct SpecialMoveHandler: PacketHandler {
             return // Invalid skill or level
         }
 
-        // Check if character has enough MP
-        let mpCost = UInt16(max(0, min(skillLevel.mpCost, Int32(UInt16.max))))
-        guard character.mp >= mpCost else {
-            return // Not enough MP
+        // Check if character can use this skill (has enough MP/HP, not on cooldown, etc.)
+        let canUse = await SkillStatCalculator.shared.canUseSkill(
+            packet.skillID,
+            level: Int(packet.skillLevel),
+            by: character,
+            skillCache: SkillDataCache.shared
+        )
+
+        guard canUse else {
+            return // Cannot use skill (not enough MP/HP, cooldown, etc.)
         }
 
-        // Deduct MP
+        // Deduct MP cost
+        let mpCost = UInt16(max(0, min(skillLevel.mpCost, Int32(UInt16.max))))
         character.mp = character.mp - mpCost
+
+        // Deduct HP cost if any
+        let hpCost = UInt16(max(0, min(skillLevel.hpCost, Int32(UInt16.max))))
+        if hpCost > 0 {
+            character.hp = character.hp - hpCost
+        }
 
         // Check if this is a buff skill
         let isBuff = skillLevel.time > 0
@@ -53,8 +66,19 @@ public struct SpecialMoveHandler: PacketHandler {
             )
             await CharacterBuffRegistry.shared.applyBuff(buff, to: character.id)
 
-            // TODO: Apply buff stat effects to character
-            // TODO: Send buff packet to client
+            // Calculate buff stat mask
+            let buffStats = calculateBuffStats(skillID: packet.skillID, level: skillLevel)
+
+            // Send buff notification to client
+            try await connection.send(GiveBuffNotification(
+                skillID: packet.skillID,
+                level: packet.skillLevel,
+                duration: UInt32(skillLevel.time),
+                buffStats: buffStats
+            ))
+
+            // TODO: Apply actual stat modifications to character
+            // (e.g., increase speed, jump, weapon attack, etc.)
 
         } else {
             // Attack skill - damage calculation
@@ -65,5 +89,24 @@ public struct SpecialMoveHandler: PacketHandler {
 
         // Save character (MP was deducted)
         try await connection.database.insert(character)
+    }
+
+    /// Calculate buff stat mask for packet encoding.
+    /// In v62, buff effects are encoded as bitflags.
+    private func calculateBuffStats(skillID: UInt32, level: WzSkillLevel) -> UInt32 {
+        var buffStats: UInt32 = 0
+
+        // Basic buff stat flags (simplified - v62 has more complex encoding)
+        if level.speed > 0 { buffStats |= 1 << 0 }  // Speed
+        if level.jump > 0 { buffStats |= 1 << 1 }  // Jump
+        if level.x > 0 { buffStats |= 1 << 2 }     // Watk (for some skills)
+        if level.y > 0 { buffStats |= 1 << 3 }     // Wdef (for some skills)
+        if level.z > 0 { buffStats |= 1 << 4 }     // Matk (for some skills)
+        if level.w > 0 { buffStats |= 1 << 5 }     // Mdef (for some skills)
+
+        // Skill-specific mappings would go here
+        // For now, return a basic mask
+
+        return buffStats
     }
 }
