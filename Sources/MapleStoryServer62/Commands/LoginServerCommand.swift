@@ -111,6 +111,8 @@ public extension MapleStoryServer where ClientOpcode == MapleStory62.ClientOpcod
         await register(HandshakeHandler())
         await register(PingHandler())
         await register(ClientErrorHandler())
+        await register(StrangeDataHandler())
+        await register(RelogHandler())
         await register(LoginHandler())
         await register(GuestLoginHandler())
         await register(PinCodeHandler())
