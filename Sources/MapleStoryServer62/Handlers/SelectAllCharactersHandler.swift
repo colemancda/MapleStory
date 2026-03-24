@@ -1,0 +1,58 @@
+//
+//  SelectAllCharactersHandler.swift
+//
+//
+//  Created by Alsey Coleman Miller on 3/23/26.
+//
+
+import Foundation
+import CoreModel
+import MapleStory
+import MapleStory62
+import MapleStoryServer
+
+public struct SelectAllCharactersHandler: PacketHandler {
+
+    public typealias Packet = MapleStory62.AllCharactersSelectRequest
+
+    public init() { }
+
+    public func handle<Socket: MapleStorySocket, Database: ModelStorage>(
+        packet: Packet,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        let response = try await selectCharacter(packet, connection: connection)
+        try await connection.send(response)
+    }
+}
+
+internal extension SelectAllCharactersHandler {
+
+    func selectCharacter<Socket: MapleStorySocket, Database: ModelStorage>(
+        _ request: MapleStory62.AllCharactersSelectRequest,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws -> MapleStory62.ServerIPResponse {
+        // Resolve the world from the packet (client sends world index, not state)
+        guard let world = try await World.fetch(
+            index: request.world,
+            version: connection.version,
+            region: connection.region,
+            in: connection.database
+        ) else {
+            throw MapleStoryError.invalidWorld
+        }
+        // Set world on connection state so selectCharacter can find it
+        connection.state.world = world.id
+        // Pick the first available channel
+        guard let channel = try await connection.database.fetch(
+            Channel.self,
+            predicate: FetchRequest.Predicate(predicate: Channel.Predicate.world(world.id)),
+            fetchLimit: 1
+        ).first else {
+            throw MapleStoryError.invalidChannel
+        }
+        connection.state.channel = channel.id
+        let resultChannel = try await connection.selectCharacter(request.character)
+        return .init(address: resultChannel.address, character: request.character)
+    }
+}
