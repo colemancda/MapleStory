@@ -32,7 +32,7 @@ public struct NPCTalkHandler: PacketHandler {
         }
 
         let address = connection.address
-        let ctx = connection.makeNPCContext(npcID: npcID)
+        let ctx = await connection.makeNPCContext(npcID: npcID)
 
         await NPCConversationRegistry.shared.set(ctx, for: address)
 
