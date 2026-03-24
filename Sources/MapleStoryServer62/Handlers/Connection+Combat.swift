@@ -88,8 +88,19 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
                 mapID: mapID
             )
 
-            // TODO: Broadcast SpawnMapItemNotification for meso drop
-            // For now, meso drops use a different packet opcode
+            // Broadcast meso drop to map
+            let timestamp = UInt32(Date().timeIntervalSince1970 * 1000)
+            try? await broadcast(DropItemFromMapobjectNotification(
+                source: 0, // 0 = mob drop
+                objectID: drop.objectID,
+                itemID: 0, // 0 = meso
+                quantity: drop.quantity,
+                ownerID: drop.ownerID,
+                ownerType: 0, // 0 = free for all
+                x: drop.position.x,
+                y: drop.position.y,
+                timestamp: timestamp
+            ), map: mapID)
         }
 
         // Roll item drops
@@ -105,8 +116,18 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
             )
 
             // Broadcast drop to map
-            // TODO: Broadcast SpawnMapItemNotification (opcode dropItemFromMapObject)
-            // Packet structure: objectID, itemID, quantity, ownerID, position, expiry
+            let timestamp = UInt32(Date().timeIntervalSince1970 * 1000)
+            try? await broadcast(DropItemFromMapobjectNotification(
+                source: 0, // 0 = mob drop
+                objectID: drop.objectID,
+                itemID: drop.itemID,
+                quantity: drop.quantity,
+                ownerID: drop.ownerID,
+                ownerType: 0, // 0 = free for all
+                x: drop.position.x,
+                y: drop.position.y,
+                timestamp: timestamp
+            ), map: mapID)
         }
     }
 }

@@ -78,7 +78,10 @@ public struct ItemPickupHandler: PacketHandler {
         // Remove from map
         await MapItemRegistry.shared.removeDrop(objectID: packet.objectID, from: character.currentMap)
 
-        // TODO: Broadcast item removal packet to map
-        // Other players on the map need to see the item disappear
+        // Broadcast item removal to map
+        try await connection.broadcast(RemoveItemFromMapNotification(
+            animation: 1, // 1 = pickup animation
+            objectID: packet.objectID
+        ), map: character.currentMap)
     }
 }
