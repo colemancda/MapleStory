@@ -41,23 +41,3 @@ public struct UseChairHandler: PacketHandler {
         // 3. Stop regeneration when character stands up
     }
 }
-
-// MARK: - Show Chair Notification
-
-/// Sent when a character sits in a chair
-public struct ShowChairNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
-
-    public static var opcode: ServerOpcode { .showChair }
-
-    /// Character ID sitting in the chair
-    public let characterID: UInt32
-
-    /// Chair item ID
-    public let itemID: UInt32
-
-    public init(characterID: UInt32, itemID: UInt32) {
-        self.characterID = characterID
-        self.itemID = itemID
-    }
-}
-
