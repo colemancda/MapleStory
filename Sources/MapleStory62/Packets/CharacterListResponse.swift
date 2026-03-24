@@ -39,7 +39,7 @@ public extension CharacterListResponse {
 
 public extension CharacterListResponse {
     
-    struct CharacterStats: Codable, Equatable, Hashable, Sendable {
+    public struct CharacterStats: Codable, Equatable, Hashable, Sendable {
         
         public let id: UInt32
         
@@ -93,7 +93,28 @@ public extension CharacterListResponse {
         
         public let spawnPoint: UInt8
         
-        internal let value3: UInt32
+        public let value3: UInt32
+
+        public init(
+            id: UInt32, name: CharacterName, gender: Gender, skinColor: SkinColor,
+            face: UInt32, hair: Hair,
+            value0: UInt64, value1: UInt64, value2: UInt64,
+            level: UInt8, job: Job,
+            str: UInt16, dex: UInt16, int: UInt16, luk: UInt16,
+            hp: UInt16, maxHp: UInt16, mp: UInt16, maxMp: UInt16,
+            ap: UInt16, sp: UInt16, exp: UInt32, fame: UInt16,
+            isMarried: UInt32, currentMap: Map.ID, spawnPoint: UInt8, value3: UInt32
+        ) {
+            self.id = id; self.name = name; self.gender = gender; self.skinColor = skinColor
+            self.face = face; self.hair = hair
+            self.value0 = value0; self.value1 = value1; self.value2 = value2
+            self.level = level; self.job = job
+            self.str = str; self.dex = dex; self.int = int; self.luk = luk
+            self.hp = hp; self.maxHp = maxHp; self.mp = mp; self.maxMp = maxMp
+            self.ap = ap; self.sp = sp; self.exp = exp; self.fame = fame
+            self.isMarried = isMarried; self.currentMap = currentMap
+            self.spawnPoint = spawnPoint; self.value3 = value3
+        }
     }
 }
 
