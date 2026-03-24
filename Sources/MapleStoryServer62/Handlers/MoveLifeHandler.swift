@@ -21,7 +21,7 @@ public struct MoveLifeHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let mapID = connection.mapID else { return }
+        guard let mapID = await connection.mapID else { return }
 
         // Relay movement to all other clients on the map.
         let notification = MoveMonsterNotification(
