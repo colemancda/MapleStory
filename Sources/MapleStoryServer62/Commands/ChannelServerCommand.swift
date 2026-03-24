@@ -142,6 +142,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
             let wzRoot = URL(fileURLWithPath: wzPath)
             await MobDataCache.shared.load(from: wzRoot.appendingPathComponent("Mob"))
             await MapDataCache.shared.load(from: wzRoot.appendingPathComponent("Map").appendingPathComponent("Map"))
+            try? await ItemDataCache.shared.load(from: wzRoot.appendingPathComponent("Item"))
         }
         NPCScriptRegistryShared.registerAll()
         await server.registerChannelServer(channel: channelObj.id)
