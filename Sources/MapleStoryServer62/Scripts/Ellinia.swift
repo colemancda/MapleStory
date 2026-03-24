@@ -51,6 +51,29 @@ extension NPCScriptRegistry {
             try await ctx.warp(to: maps[selection])
         }
 
+        // 1032005 - VIP Cab (Ant Tunnel from Ellinia)
+        register(npc: 1032005) { ctx in
+            let isBeginner = try await ctx.job == .beginner
+            let price: UInt32 = isBeginner ? 1000 : 10000
+            try await ctx.sendNext(
+                "Hi there! This cab is for VIP customers only. Instead of just taking you to different towns like the regular cabs, we offer a much better service worthy of VIP class. It's a bit pricey, but... for only 10,000 mesos, we'll take you safely to the \r\n#bAnt Tunnel#k."
+            )
+            let prompt = isBeginner
+                ? "We have a special 90% discount for beginners. The Ant Tunnel is located deep inside in the dungeon that's placed at the center of the Victoria Island, where the 24 Hr Mobile Store is. Would you like to go there for #b1,000 mesos#k?"
+                : "The regular fee applies for all non-beginners. The Ant Tunnel is located deep inside in the dungeon that's placed at the center of the Victoria Island, where 24 Hr Mobile Store is. Would you like to go there for #b10,000 mesos#k?"
+            let confirmed = try await ctx.sendYesNo(prompt)
+            guard confirmed else {
+                try await ctx.sendNext("This town also has a lot to offer. Find us if and when you feel the need to go to the Ant Tunnel Park.")
+                return
+            }
+            guard try await ctx.meso >= price else {
+                try await ctx.sendNext("It looks like you don't have enough mesos. Sorry but you won't be able to use this without it.")
+                return
+            }
+            try await ctx.gainMeso(-Int32(price))
+            try await ctx.warp(to: 105070001)
+        }
+
         // 1032001 - Grendel the Really Old (Magician Job Advancement)
         register(npc: 1032001) { ctx in
             let job = try await ctx.job

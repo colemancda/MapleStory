@@ -93,5 +93,31 @@ extension NPCScriptRegistry {
             try await ctx.gainMeso(-Int32(price))
             try await ctx.warp(to: 105070001)
         }
+
+        // 1002003 - Mr. Goldstein (Buddy List capacity upgrade)
+        register(npc: 1002003) { ctx in
+            let capacity = await ctx.buddyCapacity
+            let newCapacity = capacity + 5
+            let price: UInt32 = 100000
+            try await ctx.sendNext("Hello, I can update your Buddy List Capacity.")
+            guard capacity < 100 else {
+                try await ctx.sendOk("You already have the maximum capacity of 100, you cannot upgrade your Buddy List any further")
+                return
+            }
+            let confirmed = try await ctx.sendYesNo(
+                "Would you like to update your Buddy List Capacity to #b\(newCapacity)#k for #b\(price) #kmesos?"
+            )
+            guard confirmed else {
+                try await ctx.sendOk("If you want to increase your Buddy List Capacity in the future, feel free to come back.")
+                return
+            }
+            guard try await ctx.meso >= price else {
+                try await ctx.sendOk("Sorry but it doesn't look like you have enough mesos!")
+                return
+            }
+            try await ctx.setBuddyCapacity(newCapacity)
+            try await ctx.gainMeso(-Int32(price))
+            try await ctx.sendOk("Enjoy your new buddy capacity.")
+        }
     }
 }

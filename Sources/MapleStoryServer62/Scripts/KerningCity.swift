@@ -14,6 +14,41 @@ import MapleStory62
 extension NPCScriptRegistry {
 
     func registerKerningCity() {
+        // 1052016 - Kerning City Regular Cab
+        register(npc: 1052016) { ctx in
+            let maps: [Map.ID] = [104000000, 102000000, 101000000, 100000000]
+            let cost: [UInt32] = [1000, 800, 1200, 1000]
+            let costBeginner: [UInt32] = [100, 80, 120, 100]
+
+            let isBeginner = try await ctx.job == .beginner
+            try await ctx.sendNext("What's up? I drive the Regular Cab. If you want to go from town to town safely and fast, then ride our cab. We'll gladly take you to your destination with an affordable price.")
+
+            var selStr = isBeginner
+                ? "We have a special 90% discount for beginners. Choose your destination, for fees will change from place to place.#b"
+                : "Choose your destination, for fees will change from place to place.#b"
+            for i in 0 ..< maps.count {
+                let price = isBeginner ? costBeginner[i] : cost[i]
+                selStr += "\r\n#L\(i)##m\(maps[i].rawValue)# (\(price) mesos)#l"
+            }
+            let selection = Int(try await ctx.sendSimple(selStr))
+            guard selection < maps.count else { return }
+
+            let price = isBeginner ? costBeginner[selection] : cost[selection]
+            let confirmed = try await ctx.sendYesNo(
+                "You don't have anything else to do here, huh? Do you really want to go to #b#m\(maps[selection].rawValue)##k? It'll cost you #b\(price) mesos#k."
+            )
+            guard confirmed else {
+                try await ctx.sendNext("There's a lot to see in this town, too. Come back and find us when you need to go to a different town.")
+                return
+            }
+            guard try await ctx.meso >= price else {
+                try await ctx.sendNext("You don't have enough mesos. Sorry to say this, but without them, you won't be able to ride the cab.")
+                return
+            }
+            try await ctx.gainMeso(-Int32(price))
+            try await ctx.warp(to: maps[selection])
+        }
+
         // 1052001 - Dark Lord (Thief Job Advancement)
         register(npc: 1052001) { ctx in
             let job = try await ctx.job

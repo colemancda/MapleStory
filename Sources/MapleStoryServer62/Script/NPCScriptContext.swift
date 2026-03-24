@@ -121,6 +121,18 @@ public actor NPCScriptContext {
         return false
     }
 
+    /// Returns the player's current buddy list capacity.
+    /// Stub — returns 20 until buddy list is implemented.
+    public var buddyCapacity: UInt8 {
+        get async { 20 }
+    }
+
+    /// Sets the player's buddy list capacity. Stub.
+    public func setBuddyCapacity(_ capacity: UInt8) async throws {
+        // TODO: implement buddy list capacity
+        _ = capacity
+    }
+
     // MARK: - Dialog API
 
     /// Show a dialog with an OK button. Waits for acknowledgement.

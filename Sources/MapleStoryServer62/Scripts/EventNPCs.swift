@@ -57,5 +57,25 @@ extension NPCScriptRegistry {
         register(npc: 9000002) { ctx in
             try await ctx.warp(to: 100000000)
         }
+
+        // 9001000 - Coke Bear (Coke World warp)
+        register(npc: 9001000) { ctx in
+            let selection = try await ctx.sendSimple(
+                " Do you want to go to the Coke World or get out of the Coke World ?\r\n#L0#I want to go to the Coke World !#l\r\n#L1#I want to get out of the Coke World :(#l"
+            )
+            if selection == 0 {
+                try await ctx.warp(to: 211040300)
+            } else if selection == 1 {
+                try await ctx.warp(to: 910000000)
+            }
+        }
+
+        // 9001002 - PvP warp NPC
+        register(npc: 9001002) { ctx in
+            let confirmed = try await ctx.sendYesNo("Do you want to go to the PvP map and fight with your friends?")
+            guard confirmed else { return }
+            try await ctx.sendNext("Alright, good luck in there!")
+            try await ctx.warp(to: 800020400)
+        }
     }
 }
