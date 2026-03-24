@@ -11,7 +11,7 @@ public struct SkillMacroRequest: MapleStoryPacket, Equatable, Hashable, Sendable
 
     public static var opcode: ClientOpcode { .skillMacro }
 
-    public struct Macro: Equatable, Hashable, Sendable {
+    public struct Macro: Codable, Equatable, Hashable, Sendable {
         public let name: String
         public let shout: UInt8
         public let skill1: UInt32
