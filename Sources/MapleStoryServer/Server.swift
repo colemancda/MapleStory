@@ -4,8 +4,8 @@ import CoreModel
 @_exported import MapleStory
 
 /// MapleStory Classic Server
-public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.ModelStorage, ClientOpcode: MapleStoryOpcode, ServerOpcode: MapleStoryOpcode> {
-        
+public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.ModelStorage, ClientOpcode: MapleStoryOpcode, ServerOpcode: MapleStoryOpcode> {
+    
     // MARK: - Properties
     
     public let configuration: ServerConfiguration
