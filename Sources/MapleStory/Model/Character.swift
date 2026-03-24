@@ -64,7 +64,9 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     public var exp: Experience
     
     public var fame: UInt16
-    
+
+    public var meso: UInt32
+
     public var isMarried: Bool
     
     public var currentMap: Map.ID
@@ -117,6 +119,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         sp: UInt16 = 0,
         exp: Experience = 0,
         fame: UInt16 = 0,
+        meso: UInt32 = 0,
         isMarried: Bool = false,
         currentMap: Map.ID = .mushroomTown, // Mushroom Town
         spawnPoint: UInt8 = 1,
@@ -155,6 +158,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.sp = sp
         self.exp = exp
         self.fame = fame
+        self.meso = meso
         self.isMarried = isMarried
         self.currentMap = currentMap
         self.spawnPoint = spawnPoint
@@ -197,6 +201,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case sp
         case exp
         case fame
+        case meso
         case isMarried
         case currentMap
         case spawnPoint
@@ -239,6 +244,7 @@ extension Character: Entity {
             .sp: .int32,
             .exp: .int64,
             .fame: .int32,
+            .meso: .int64,
             .isMarried: .bool,
             .currentMap: .int64,
             .spawnPoint: .int16,
