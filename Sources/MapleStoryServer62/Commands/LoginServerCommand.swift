@@ -123,6 +123,8 @@ public extension MapleStoryServer where ClientOpcode == MapleStory62.ClientOpcod
         await register(AllCharactersWorldSelectedHandler())
         await register(PlayerDCRequestHandler())
         await register(CharacterListHandler())
+        await register(SelectCharacterHandler())
+        await register(SelectAllCharactersHandler())
         await register(CheckCharacterNameHandler())
         await register(CreateCharacterHandler())
         await register(DeleteCharacterHandler())
