@@ -25,19 +25,60 @@ public struct ItemPickupHandler: PacketHandler {
             return
         }
 
-        // TODO: Implement Phase 3 (Mob Drops & Map Items) first
-        // This requires:
-        // - MapItemRegistry to track dropped items
-        // - MapItem struct with objectID, itemID, quantity, ownerID, position, expiry
-        // - Drop system that creates map items on mob death
+        // Look up the dropped item
+        guard let mapItem = await MapItemRegistry.shared.drop(
+            objectID: packet.objectID,
+            on: character.currentMap
+        ) else {
+            return // Drop doesn't exist
+        }
 
-        // For now, this is a no-op until Phase 3 is implemented
-        // When implemented:
-        // 1. Look up MapItem by objectID
-        // 2. Check if player is owner (or if ownerless)
-        // 3. Check if player has inventory space
-        // 4. Add item to player's inventory
-        // 5. Remove map item from MapItemRegistry
-        // 6. Broadcast item removal packet to map
+        // Check if expired
+        if mapItem.isExpired {
+            await MapItemRegistry.shared.removeDrop(objectID: packet.objectID, from: character.currentMap)
+            return
+        }
+
+        // Check if player can pick up (owner check)
+        guard mapItem.canPickUp(by: character.index) else {
+            return // Not owner
+        }
+
+        // Check distance (player must be close to drop)
+        // TODO: Implement distance check when player position is tracked
+
+        // Meso pickup
+        if mapItem.itemID == 0 {
+            character.meso = UInt32(min(Int64(character.meso) + Int64(mapItem.quantity), Int64(UInt32.max)))
+            try await connection.database.insert(character)
+        } else {
+            // Item pickup
+            let manipulator = InventoryManipulator()
+
+            // Check if player has space
+            guard try await manipulator.checkSpace(
+                mapItem.itemID,
+                quantity: UInt16(mapItem.quantity),
+                for: character
+            ) else {
+                return // No inventory space
+            }
+
+            // Add to inventory
+            try await manipulator.addFromDrop(
+                mapItem.itemID,
+                quantity: UInt16(mapItem.quantity),
+                to: character
+            )
+
+            // Save character
+            try await connection.database.insert(character)
+        }
+
+        // Remove from map
+        await MapItemRegistry.shared.removeDrop(objectID: packet.objectID, from: character.currentMap)
+
+        // TODO: Broadcast item removal packet to map
+        // Other players on the map need to see the item disappear
     }
 }
