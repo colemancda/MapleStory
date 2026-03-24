@@ -42,7 +42,7 @@ internal extension SelectAllCharactersHandler {
             throw MapleStoryError.invalidWorld
         }
         // Set world on connection state so selectCharacter can find it
-        connection.state.world = world.id
+        await connection.setWorld(world.id)
         // Pick the first available channel
         guard let channel = try await connection.database.fetch(
             Channel.self,
@@ -51,7 +51,7 @@ internal extension SelectAllCharactersHandler {
         ).first else {
             throw MapleStoryError.invalidChannel
         }
-        connection.state.channel = channel.id
+        await connection.setChannel(channel.id)
         let resultChannel = try await connection.selectCharacter(request.character)
         return .init(address: resultChannel.address, character: request.character)
     }
