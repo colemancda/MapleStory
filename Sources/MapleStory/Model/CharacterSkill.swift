@@ -9,7 +9,9 @@ import Foundation
 import CoreModel
 
 /// Character's skill level and mastery level
-public struct CharacterSkill: Codable, Equatable, Hashable, Sendable {
+public struct CharacterSkill: Codable, Equatable, Hashable, Identifiable, Sendable {
+
+    public let id: UUID
 
     public let characterID: Character.ID
 
@@ -22,11 +24,13 @@ public struct CharacterSkill: Codable, Equatable, Hashable, Sendable {
     public var masteryLevel: UInt8
 
     public init(
+        id: UUID = UUID(),
         characterID: Character.ID,
         skillID: UInt32,
         level: UInt8 = 0,
         masteryLevel: UInt8 = 0
     ) {
+        self.id = id
         self.characterID = characterID
         self.skillID = skillID
         self.level = level
@@ -38,24 +42,25 @@ public struct CharacterSkill: Codable, Equatable, Hashable, Sendable {
 
 extension CharacterSkill: Entity {
 
-    public static var attributes: [String: AttributeType] {
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
+        case id
+        case characterID
+        case skillID
+        case level
+        case masteryLevel
+    }
+
+    public static var attributes: [CodingKeys: AttributeType] {
         [
-            "characterID": .string,
-            "skillID": .int64,
-            "level": .int32,
-            "masteryLevel": .int32
+            .id: .string,
+            .characterID: .string,
+            .skillID: .int64,
+            .level: .int32,
+            .masteryLevel: .int32
         ]
     }
 
-    public static var relationships: [String: Relationship] {
-        [
-            "characterID": Relationship(
-                id: "characterID",
-                entity: CharacterSkill.self,
-                destination: Character.self,
-                type: .toOne,
-                inverseRelationship: nil
-            )
-        ]
+    public static var relationships: [CodingKeys: Relationship] {
+        [:]
     }
 }
