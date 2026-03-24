@@ -20,6 +20,16 @@ public struct NPCTalkMoreHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // NPC dialog continuation / selection — script execution not yet implemented.
+        guard let ctx = await NPCConversationRegistry.shared.get(for: connection.address) else {
+            return  // no active conversation
+        }
+
+        // action == 0xFF (-1 as signed byte) means the player closed the dialog
+        if packet.action == 0xFF {
+            await ctx.cancel()
+            await NPCConversationRegistry.shared.remove(connection.address)
+        } else {
+            await ctx.resume(with: packet)
+        }
     }
 }
