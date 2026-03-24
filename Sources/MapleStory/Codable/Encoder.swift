@@ -210,9 +210,15 @@ private extension MapleStoryEncoder.Encoder {
             throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: "Cannot encode to ASCII."))
         }
         guard stringData.count <= UInt16.max else {
-            throw EncodingError.invalidValue(value, EncodingError.Context(codingPath: codingPath, debugDescription: "String must be less than \(Int(UInt16.max) + 1) characters to be encoded."))
+            throw EncodingError.invalidValue(
+                value,
+                EncodingError.Context(
+                    codingPath: codingPath,
+                    debugDescription: "String exceeds maximum length of \(UInt16.max) ASCII bytes."
+                )
+            )
         }
-        var encodedData = Data(capacity: 1 + stringData.count)
+        var encodedData = Data(capacity: 2 + stringData.count)
         let length = UInt16(stringData.count)
         encodedData.append(boxInteger(length))
         encodedData.append(stringData)
