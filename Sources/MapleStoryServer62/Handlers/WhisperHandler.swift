@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,44 @@ public struct WhisperHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Whisper / find player — not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        switch packet.mode {
+        case 5: // Find player
+            // TODO: Implement player search by name
+            // Would need to query database for character by name
+            // For now, just ignore
+            return
+
+        case 6: // Send whisper
+            guard let message = packet.message else { return }
+
+            // Send whisper packet
+            try await connection.send(WhisperNotification(
+                sender: character.name.rawValue,
+                message: message
+            ))
+
+        default:
+            return
+        }
     }
 }
+
+// MARK: - Whisper Notification
+
+/// Whisper message notification
+public struct WhisperNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+
+    public static var opcode: ServerOpcode { .whisper }
+
+    public let sender: String
+
+    public let message: String
+
+    public init(sender: String, message: String) {
+        self.sender = sender
+        self.message = message
+    }
+}
+
