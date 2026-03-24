@@ -75,23 +75,12 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
     }
 
     /// Create an `NPCScriptContext` wired to this connection.
-    func makeNPCContext(npcID: UInt32) -> NPCScriptContext {
+    func makeNPCContext(npcID: UInt32) -> NPCScriptContext<Socket, Database> {
         NPCScriptContext(
             npcID: npcID,
-            send: { [weak self] notification in
+            connection: self,
+            sendPacket: { [weak self] notification in
                 try await self?.send(notification)
-            },
-            readCharacter: { [weak self] in
-                guard let character = try await self?.character else {
-                    throw MapleStoryError.notAuthenticated
-                }
-                return character
-            },
-            writeCharacter: { [weak self] character in
-                try await self?.database.insert(character)
-            },
-            warpPlayer: { [weak self] mapID, spawn in
-                try await self?.warp(to: mapID, spawn: spawn)
             }
         )
     }

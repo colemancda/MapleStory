@@ -9,6 +9,9 @@ import Foundation
 import CoreModel
 import MapleStory62
 import MapleStoryServer
+import Socket
+import MongoSwift
+import MongoDBModel
 
 public struct NPCTalkHandler: PacketHandler {
 
@@ -22,7 +25,8 @@ public struct NPCTalkHandler: PacketHandler {
     ) async throws {
         let npcID = packet.objectID
 
-        guard let script = NPCScriptRegistry.shared.script(for: npcID) else {
+        // Use the v62-specific registry (cast required since registry uses concrete types)
+        guard let script = NPCScriptRegistryShared.script(for: npcID) else {
             return  // no script registered for this NPC
         }
 
@@ -34,11 +38,13 @@ public struct NPCTalkHandler: PacketHandler {
         let address = connection.address
         let ctx = await connection.makeNPCContext(npcID: npcID)
 
-        await NPCConversationRegistry.shared.set(ctx, for: address)
+        // Cast to concrete type for registry
+        let v62Ctx = ctx as! V62NPCScriptContext
+        await NPCConversationRegistry.shared.set(v62Ctx, for: address)
 
         Task {
             do {
-                try await script(ctx)
+                try await script(v62Ctx)
             } catch is CancellationError {
                 // player dismissed the dialog — normal flow
             } catch {

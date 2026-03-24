@@ -143,7 +143,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
             await MobDataCache.shared.load(from: wzRoot.appendingPathComponent("Mob"))
             await MapDataCache.shared.load(from: wzRoot.appendingPathComponent("Map").appendingPathComponent("Map"))
         }
-        NPCScriptRegistry.shared.registerAll()
+        NPCScriptRegistryShared.registerAll()
         await server.registerChannelServer(channel: channelObj.id)
 
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))

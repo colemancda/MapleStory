@@ -6,109 +6,161 @@
 //
 
 import Foundation
+import CoreModel
 import MapleStory
 import MapleStory62
+import MapleStoryServer
+import Socket
 
 /// Execution context passed to every NPC script.
 ///
 /// Scripts call the async methods on this type to send dialogs and wait for
 /// the player's response, and to read/mutate character state.
-public actor NPCScriptContext {
+public actor NPCScriptContext<Socket: MapleStorySocket, Database: ModelStorage> {
 
     // MARK: - Properties
 
     public let npcID: UInt32
-
+    private let connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     private let sendPacket: @Sendable (NPCTalkNotification) async throws -> Void
-    private let readCharacter: @Sendable () async throws -> MapleStory.Character
-    private let writeCharacter: @Sendable (MapleStory.Character) async throws -> Void
-    private let warpPlayer: @Sendable (Map.ID, UInt8) async throws -> Void
-
     private var continuation: CheckedContinuation<NPCTalkMoreRequest, Error>?
 
     // MARK: - Initialization
 
     init(
         npcID: UInt32,
-        send: @Sendable @escaping (NPCTalkNotification) async throws -> Void,
-        readCharacter: @Sendable @escaping () async throws -> MapleStory.Character,
-        writeCharacter: @Sendable @escaping (MapleStory.Character) async throws -> Void,
-        warpPlayer: @Sendable @escaping (Map.ID, UInt8) async throws -> Void
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection,
+        sendPacket: @Sendable @escaping (NPCTalkNotification) async throws -> Void
     ) {
         self.npcID = npcID
-        self.sendPacket = send
-        self.readCharacter = readCharacter
-        self.writeCharacter = writeCharacter
-        self.warpPlayer = warpPlayer
+        self.connection = connection
+        self.sendPacket = sendPacket
     }
 
     // MARK: - Character Access
 
     /// Fetch the current character state.
     public func character() async throws -> MapleStory.Character {
-        try await readCharacter()
+        guard let character = try await connection.character else {
+            throw MapleStoryError.notAuthenticated
+        }
+        return character
     }
 
     public var level: UInt16 {
-        get async throws { try await readCharacter().level }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.level
+        }
     }
 
     public var job: Job {
-        get async throws { try await readCharacter().job }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.job
+        }
     }
 
     public var meso: UInt32 {
-        get async throws { try await readCharacter().meso }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.meso
+        }
     }
 
     public var str: UInt16 {
-        get async throws { try await readCharacter().str }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.str
+        }
     }
 
     public var dex: UInt16 {
-        get async throws { try await readCharacter().dex }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.dex
+        }
     }
 
     public var int: UInt16 {
-        get async throws { try await readCharacter().int }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.int
+        }
     }
 
     public var luk: UInt16 {
-        get async throws { try await readCharacter().luk }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.luk
+        }
     }
 
     public var name: CharacterName {
-        get async throws { try await readCharacter().name }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.name
+        }
     }
 
     public var gender: Gender {
-        get async throws { try await readCharacter().gender }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.gender
+        }
     }
 
     public var hair: Hair {
-        get async throws { try await readCharacter().hair }
+        get async throws {
+            guard let character = try await connection.character else {
+                throw MapleStoryError.notAuthenticated
+            }
+            return character.hair
+        }
     }
 
     // MARK: - Character Mutation
 
     /// Add or subtract mesos. Pass a negative value to charge the player.
     public func gainMeso(_ amount: Int32) async throws {
-        var character = try await readCharacter()
+        guard var character = try await connection.character else {
+            throw MapleStoryError.notAuthenticated
+        }
         let current = Int64(character.meso)
         character.meso = UInt32(max(0, current + Int64(amount)))
-        try await writeCharacter(character)
+        try await connection.database.insert(character)
     }
 
     /// Teleport the player to the given map and spawn point.
     public func warp(to map: Map.ID, spawn: UInt8 = 0) async throws {
-        try await warpPlayer(map, spawn)
+        try await connection.warp(to: map, spawn: spawn)
     }
 
     /// Change the player's job.
     public func changeJob(_ job: Job) async throws {
-        var character = try await readCharacter()
+        guard var character = try await connection.character else {
+            throw MapleStoryError.notAuthenticated
+        }
         character.job = job
-        try await writeCharacter(character)
+        try await connection.database.insert(character)
     }
 
     /// Give or take items. Positive quantity = give, negative = take.
@@ -172,10 +224,9 @@ public actor NPCScriptContext {
         // TODO: implement AP reset
     }
 
-    /// Give the player experience points. Stub.
+    /// Give the player experience points.
     public func gainExp(_ amount: UInt32) async throws {
-        // TODO: implement EXP gain
-        _ = amount
+        try await connection.gainExp(amount)
     }
 
     /// Teach the player a skill at the given level. Stub.

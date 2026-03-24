@@ -7,6 +7,9 @@
 
 import Foundation
 import MapleStory62
+import MapleStoryServer
+import Socket
+import CoreModel
 
 public extension NPCScriptRegistry {
 

@@ -7,6 +7,14 @@
 
 import Foundation
 import MapleStory
+import MapleStoryServer
+import Socket
+import CoreModel
+import MongoSwift
+import MongoDBModel
+
+/// Type alias for v62-specific NPC context (used in conversation registry)
+public typealias V62NPCScriptContext = NPCScriptContext<MapleStorySocketIPv4TCP, MongoModelStorage>
 
 /// Tracks the active NPC conversation for each connected player.
 ///
@@ -17,15 +25,15 @@ public actor NPCConversationRegistry {
 
     public static let shared = NPCConversationRegistry()
 
-    private var active = [MapleStoryAddress: NPCScriptContext]()
+    private var active = [MapleStoryAddress: V62NPCScriptContext]()
 
     private init() { }
 
-    public func set(_ ctx: NPCScriptContext, for address: MapleStoryAddress) {
+    public func set(_ ctx: V62NPCScriptContext, for address: MapleStoryAddress) {
         active[address] = ctx
     }
 
-    public func get(for address: MapleStoryAddress) -> NPCScriptContext? {
+    public func get(for address: MapleStoryAddress) -> V62NPCScriptContext? {
         active[address]
     }
 
