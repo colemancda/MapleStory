@@ -21,7 +21,43 @@ public struct RangedAttackHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let character = try await connection.character else { return }
-        try await connection.processAttack(targets: packet.targets, mapID: character.currentMap)
+        guard var character = try await connection.character else { return }
+
+        // Ranged attacks use skills (arrow rain, mortal blow, etc.)
+        if packet.skillID > 0 {
+            // Look up skill data
+            guard let skill = await SkillDataCache.shared.skill(id: packet.skillID),
+                  let skillLevel = skill.levels[0] else {
+                return // Invalid skill
+            }
+
+            // Check MP cost
+            let mpCost = UInt16(max(0, min(skillLevel.mpCost, Int32(UInt16.max))))
+            guard character.mp >= mpCost else {
+                return // Not enough MP
+            }
+
+            // Deduct MP
+            character.mp = character.mp - mpCost
+
+            // Validate stance
+            if packet.stance == 2 { // Sitting
+                return
+            }
+
+            // Save character
+            try await connection.database.insert(character)
+        }
+
+        // TODO: Consume ammo (stars/arrows) from inventory
+        // For now, ranged attacks don't consume ammo
+
+        // Process attack damage
+        // Ranged attacks use physical defense
+        try await connection.processAttack(
+            targets: packet.targets,
+            mapID: character.currentMap,
+            useMagicDefense: false
+        )
     }
 }
