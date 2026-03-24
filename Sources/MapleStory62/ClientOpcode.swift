@@ -74,7 +74,10 @@ public enum ClientOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     
     /// Strange data packet header.
     case clientError = 0x1A
-    
+
+    /// Relog packet header.
+    case relog = 0x1C
+
     /// Change map packet header.
     case changeMap = 0x23
     
