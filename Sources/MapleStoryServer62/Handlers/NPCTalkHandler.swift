@@ -32,9 +32,7 @@ public struct NPCTalkHandler: PacketHandler {
         }
 
         let address = connection.address
-        let ctx = NPCScriptContext(npcID: npcID) { [weak connection] notification in
-            try await connection?.send(notification)
-        }
+        let ctx = connection.makeNPCContext(npcID: npcID)
 
         await NPCConversationRegistry.shared.set(ctx, for: address)
 
