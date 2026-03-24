@@ -114,7 +114,8 @@ public struct StorageHandler: PacketHandler {
             to: character
         )
 
-        // TODO: Send storage update packet to client
+        // Send storage update notification
+        try await sendStorageUpdate(userID: userID, connection: connection)
     }
 
     // MARK: - Deposit
@@ -166,7 +167,8 @@ public struct StorageHandler: PacketHandler {
             return
         }
 
-        // TODO: Send storage update packet to client
+        // Send storage update notification
+        try await sendStorageUpdate(userID: userID, connection: connection)
     }
 
     // MARK: - Meso
@@ -194,6 +196,35 @@ public struct StorageHandler: PacketHandler {
             await StorageRegistry.shared.addMesos(UInt32(amount), to: userID)
         }
 
-        // TODO: Send storage update packet to client
+        // Send storage update notification
+        try await sendStorageUpdate(userID: userID, connection: connection)
+    }
+
+    // MARK: - Helper
+
+    private func sendStorageUpdate<Socket: MapleStorySocket, Database: ModelStorage>(
+        userID: User.ID,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        let storage = await StorageRegistry.shared.storage(userID: userID)
+
+        // Convert storage items to notification format
+        var items: [StorageItemEntry] = []
+        for (slot, item) in storage.items {
+            items.append(StorageItemEntry(
+                slot: slot,
+                itemID: item.itemId,
+                quantity: item.quantity
+            ))
+        }
+
+        // Send storage notification
+        try await connection.send(OpenStorageNotification(
+            npcID: 0, // TODO: Track actual storage NPC ID
+            mesos: storage.mesos,
+            slots: storage.slots,
+            maxSlots: storage.maxSlots,
+            items: items
+        ))
     }
 }

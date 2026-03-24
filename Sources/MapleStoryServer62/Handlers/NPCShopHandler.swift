@@ -138,7 +138,13 @@ public struct NPCShopHandler: PacketHandler {
             to: character
         )
 
-        // TODO: Send confirmation packet to client
+        // Send confirmation to client
+        try await connection.send(ConfirmShopTransactionNotification(
+            mode: 0, // buy
+            slot: slot,
+            itemID: itemID,
+            quantity: quantity
+        ))
     }
 
     // MARK: - Sell
@@ -186,7 +192,13 @@ public struct NPCShopHandler: PacketHandler {
         // Add mesos
         character.meso = character.meso + sellPrice
 
-        // TODO: Send confirmation packet to client
+        // Send confirmation to client
+        try await connection.send(ConfirmShopTransactionNotification(
+            mode: 1, // sell
+            slot: slot,
+            itemID: itemID,
+            quantity: quantity
+        ))
     }
 
     // MARK: - Recharge
@@ -240,6 +252,12 @@ public struct NPCShopHandler: PacketHandler {
         }
         await character.setInventory(updatedInventory)
 
-        // TODO: Send confirmation packet to client
+        // Send confirmation to client
+        try await connection.send(ConfirmShopTransactionNotification(
+            mode: 2, // recharge
+            slot: slot,
+            itemID: item.itemId,
+            quantity: maxQuantity
+        ))
     }
 }
