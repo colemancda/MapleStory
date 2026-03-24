@@ -18,6 +18,14 @@ public struct ServerIPResponse: MapleStoryPacket, Codable, Equatable, Hashable, 
     public let character: Character.Index
     
     public let value1: UInt32
-    
+
     public let value2: UInt8
+
+    public init(address: MapleStoryAddress, character: Character.Index) {
+        self.value0 = 0x0000
+        self.address = address
+        self.character = character
+        self.value1 = 0
+        self.value2 = 0
+    }
 }
