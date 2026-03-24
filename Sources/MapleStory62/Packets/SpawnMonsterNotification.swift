@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Shared Mob Spawn Data
 
 /// Mob data shared by both spawn packet types.
-public struct MobSpawnData: Equatable, Hashable, Sendable {
+public struct MobSpawnData: Codable, Equatable, Hashable, Sendable {
     public let objectID: UInt32
     public let mobID: UInt32
     public let x: Int16
