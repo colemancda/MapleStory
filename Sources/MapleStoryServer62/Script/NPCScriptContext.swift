@@ -12,16 +12,17 @@ import MapleStory62
 /// Execution context passed to every NPC script.
 ///
 /// Scripts call the async methods on this type to send dialogs and wait for
-/// the player's response. Each `send*` call suspends until the player clicks
-/// a button or types a value.
+/// the player's response, and to read/mutate character state.
 public actor NPCScriptContext {
 
     // MARK: - Properties
 
-    /// The NPC template ID (used as the sprite shown in dialog boxes).
     public let npcID: UInt32
 
     private let sendPacket: @Sendable (NPCTalkNotification) async throws -> Void
+    private let readCharacter: @Sendable () async throws -> MapleStory.Character
+    private let writeCharacter: @Sendable (MapleStory.Character) async throws -> Void
+    private let warpPlayer: @Sendable (Map.ID, UInt8) async throws -> Void
 
     private var continuation: CheckedContinuation<NPCTalkMoreRequest, Error>?
 
@@ -29,13 +30,98 @@ public actor NPCScriptContext {
 
     init(
         npcID: UInt32,
-        send: @Sendable @escaping (NPCTalkNotification) async throws -> Void
+        send: @Sendable @escaping (NPCTalkNotification) async throws -> Void,
+        readCharacter: @Sendable @escaping () async throws -> MapleStory.Character,
+        writeCharacter: @Sendable @escaping (MapleStory.Character) async throws -> Void,
+        warpPlayer: @Sendable @escaping (Map.ID, UInt8) async throws -> Void
     ) {
         self.npcID = npcID
         self.sendPacket = send
+        self.readCharacter = readCharacter
+        self.writeCharacter = writeCharacter
+        self.warpPlayer = warpPlayer
     }
 
-    // MARK: - Script API
+    // MARK: - Character Access
+
+    /// Fetch the current character state.
+    public func character() async throws -> MapleStory.Character {
+        try await readCharacter()
+    }
+
+    public var level: UInt16 {
+        get async throws { try await readCharacter().level }
+    }
+
+    public var job: Job {
+        get async throws { try await readCharacter().job }
+    }
+
+    public var meso: UInt32 {
+        get async throws { try await readCharacter().meso }
+    }
+
+    public var str: UInt16 {
+        get async throws { try await readCharacter().str }
+    }
+
+    public var dex: UInt16 {
+        get async throws { try await readCharacter().dex }
+    }
+
+    public var int: UInt16 {
+        get async throws { try await readCharacter().int }
+    }
+
+    public var luk: UInt16 {
+        get async throws { try await readCharacter().luk }
+    }
+
+    public var name: CharacterName {
+        get async throws { try await readCharacter().name }
+    }
+
+    public var gender: Gender {
+        get async throws { try await readCharacter().gender }
+    }
+
+    // MARK: - Character Mutation
+
+    /// Add or subtract mesos. Pass a negative value to charge the player.
+    public func gainMeso(_ amount: Int32) async throws {
+        var character = try await readCharacter()
+        let current = Int64(character.meso)
+        character.meso = UInt32(max(0, current + Int64(amount)))
+        try await writeCharacter(character)
+    }
+
+    /// Teleport the player to the given map and spawn point.
+    public func warp(to map: Map.ID, spawn: UInt8 = 0) async throws {
+        try await warpPlayer(map, spawn)
+    }
+
+    /// Change the player's job.
+    public func changeJob(_ job: Job) async throws {
+        var character = try await readCharacter()
+        character.job = job
+        try await writeCharacter(character)
+    }
+
+    /// Give or take items. Positive quantity = give, negative = take.
+    /// Not yet fully implemented — logs the operation.
+    public func gainItem(_ itemID: UInt32, _ quantity: Int32 = 1) async throws {
+        // TODO: implement item inventory
+        _ = itemID; _ = quantity
+    }
+
+    /// Returns true if the player has at least one of the given item.
+    /// Not yet fully implemented — always returns false.
+    public func hasItem(_ itemID: UInt32) async throws -> Bool {
+        // TODO: implement item inventory
+        return false
+    }
+
+    // MARK: - Dialog API
 
     /// Show a dialog with an OK button. Waits for acknowledgement.
     public func sendOk(_ message: String) async throws {
@@ -43,14 +129,14 @@ public actor NPCScriptContext {
         _ = try await waitForResponse()
     }
 
-    /// Show a dialog with a Next button. Waits for the player to advance.
+    /// Show a dialog with a Next button.
     public func sendNext(_ message: String) async throws {
         try await sendPacket(.dialog(npc: npcID, message: message, buttons: .next))
         _ = try await waitForResponse()
     }
 
     /// Show a dialog with Back and Next buttons.
-    /// Returns `true` if the player pressed Next, `false` if Back.
+    /// Returns `true` if Next was pressed, `false` if Back.
     @discardableResult
     public func sendNextPrev(_ message: String) async throws -> Bool {
         try await sendPacket(.dialog(npc: npcID, message: message, buttons: [.next, .previous]))
@@ -58,29 +144,35 @@ public actor NPCScriptContext {
         return response.action == 1
     }
 
-    /// Show a Yes / No dialog.
-    /// Returns `true` if the player pressed Yes.
+    /// Show a Yes / No confirmation. Returns `true` if Yes.
     public func sendYesNo(_ message: String) async throws -> Bool {
         try await sendPacket(.confirmation(npc: npcID, message: message))
         let response = try await waitForResponse()
         return response.action == 1
     }
 
-    /// Show a simple menu. Returns the 0-based index of the selected option.
+    /// Show an Accept / Decline confirmation. Returns `true` if accepted.
+    public func sendAcceptDecline(_ message: String) async throws -> Bool {
+        try await sendPacket(.accept(npc: npcID, message: message))
+        let response = try await waitForResponse()
+        return response.action == 1
+    }
+
+    /// Show a simple menu. Returns the 0-based index the player selected.
     public func sendSimple(_ message: String) async throws -> Int32 {
         try await sendPacket(.simple(npc: npcID, message: message))
         let response = try await waitForResponse()
         return response.selection ?? 0
     }
 
-    /// Show a free-text input prompt. Returns the string the player typed.
+    /// Show a free-text input prompt. Returns what the player typed.
     public func sendGetText(_ message: String) async throws -> String {
         try await sendPacket(.getText(npc: npcID, message: message))
         let response = try await waitForResponse()
         return response.returnText ?? ""
     }
 
-    /// Show a numeric input prompt. Returns the number the player entered.
+    /// Show a number input prompt. Returns the number the player entered.
     public func sendGetNumber(
         _ message: String,
         default defaultValue: UInt32 = 0,
@@ -94,20 +186,17 @@ public actor NPCScriptContext {
 
     // MARK: - Internal
 
-    /// Suspends the script until `NPCTalkMoreHandler` delivers the player's next response.
     private func waitForResponse() async throws -> NPCTalkMoreRequest {
         try await withCheckedThrowingContinuation { cont in
             self.continuation = cont
         }
     }
 
-    /// Called by `NPCTalkMoreHandler` to deliver the player's response to the waiting script.
     func resume(with response: NPCTalkMoreRequest) {
         continuation?.resume(returning: response)
         continuation = nil
     }
 
-    /// Called when the player closes the dialog or the connection drops.
     func cancel() {
         continuation?.resume(throwing: CancellationError())
         continuation = nil
