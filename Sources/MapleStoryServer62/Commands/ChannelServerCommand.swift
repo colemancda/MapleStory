@@ -15,33 +15,53 @@ import MapleStory62
 import MapleStoryServer
 
 struct ChannelServerCommand: AsyncParsableCommand {
-    
+
     static let configuration = CommandConfiguration(
         commandName: "channel",
         abstract: "Run the channel server."
     )
-    
+
+    @Option(help: "World Index")
+    var world: Int = 1
+
+    @Option(help: "Channel Index")
+    var channel: Int = 1
+
     @Option(help: "Address to bind server.")
     var address: String?
-    
+
     @Option(help: "Port to bind server.")
     var port: UInt16 = 7575
-    
+
     @Option(help: "Server backlog.")
     var backlog: Int = 1000
-    
+
     @Option(help: "Database URL.")
     var databaseURL: String = "mongodb://localhost:27017"
-    
+
     @Option(help: "Database username.")
     var databaseUsername: String?
-    
+
     @Option(help: "Database password.")
     var databasePassword: String?
-    
+
     @Option(help: "Database name.")
     var databaseName: String = "maplestory"
-    
+
+    func validate() throws {
+        if let address {
+            guard let _ = MapleStoryAddress(address: address, port: port) else {
+                throw MapleStoryError.invalidAddress(address)
+            }
+        }
+        guard world > 0 else {
+            throw MapleStoryError.invalidWorld
+        }
+        guard channel > 0 else {
+            throw MapleStoryError.invalidChannel
+        }
+    }
+
     func run() async throws {
         
         defer { cleanupMongoSwift() }
@@ -94,21 +114,45 @@ struct ChannelServerCommand: AsyncParsableCommand {
             database: store,
             socket: MapleStorySocketIPv4TCP.self
         )
-        
-        await server.registerChannelServer()
-        
+
+        guard let world = try await World.fetch(
+            index: World.Index(self.world - 1),
+            version: configuration.version,
+            region: configuration.region,
+            in: store
+        ) else {
+            throw MapleStoryError.invalidWorld
+        }
+
+        guard let channelObj = try await MapleStory.Channel.fetch(
+            MapleStory.Channel.Index(self.channel - 1),
+            world: world.id,
+            in: store
+        ) else {
+            throw MapleStoryError.invalidChannel
+        }
+
+        await server.registerChannelServer(channel: channelObj.id)
+
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
-        
+
         // retain
         let _ = server
     }
 }
 
-public extension MapleStoryServer {
-    
-    func registerChannelServer() async {
-        //await register(HandshakeHandler())
-        //await register(PingHandler())
-        
+public extension MapleStoryServer where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.ServerOpcode {
+
+    func registerChannelServer(channel: MapleStory.Channel.ID) async {
+        await register(HandshakeHandler(channel: channel))
+        await register(PingHandler())
+        await register(PlayerLoginRequestHandler(channel: channel))
+        await register(MovePlayerHandler())
+        await register(PlayerUpdateHandler())
+        await register(HealOverTimeHandler())
+        await register(GeneralChatHandler())
+        await register(NPCTalkHandler())
+        await register(NPCActionHandler())
+        await register(ChangeMapSpecialHandler())
     }
 }
