@@ -85,6 +85,10 @@ public actor NPCScriptContext {
         get async throws { try await readCharacter().gender }
     }
 
+    public var hair: Hair {
+        get async throws { try await readCharacter().hair }
+    }
+
     // MARK: - Character Mutation
 
     /// Add or subtract mesos. Pass a negative value to charge the player.
@@ -155,6 +159,12 @@ public actor NPCScriptContext {
     public func changeFace(_ faceID: UInt32) async throws {
         // TODO: implement appearance changes
         _ = faceID
+    }
+
+    /// Change the player's skin color. Stub.
+    public func changeSkin(_ skinID: UInt32) async throws {
+        // TODO: implement appearance changes
+        _ = skinID
     }
 
     /// Reset the player's AP stats. Stub.

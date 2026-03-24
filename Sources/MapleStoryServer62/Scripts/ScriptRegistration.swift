@@ -26,6 +26,11 @@ public extension NPCScriptRegistry {
         registerSpecialAreas()
         registerSecondJob()
         registerFourthJob()
+        registerBeautyNPCs()
+        registerThirdJob()
+        registerRefiningNPCs()
+        registerGachaponNPCs()
+        registerPartyQuestNPCs()
         registerEventNPCs()
     }
 }
