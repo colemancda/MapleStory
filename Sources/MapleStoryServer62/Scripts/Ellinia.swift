@@ -119,7 +119,15 @@ extension NPCScriptRegistry {
             if selection == 0 {
                 let confirmed = try await ctx.sendYesNo("So you want to make Moon Rock? To do that you need one refined plate of each: #bBronze#k, #bSteel#k, #bMithril#k, #bAdamantium#k, #bSilver#k, #bOrihalcon#k and #bGold#k. Throw in 10,000 mesos and I'll make it for you.")
                 guard confirmed else { return }
-                let hasAll = try await ctx.hasItem(4011000) && ctx.hasItem(4011001) && ctx.hasItem(4011002) && ctx.hasItem(4011003) && ctx.hasItem(4011004) && ctx.hasItem(4011005) && ctx.hasItem(4011006) && ctx.meso >= 10000
+                let meso = try await ctx.meso
+                let i4011000 = try await ctx.hasItem(4011000)
+                let i4011001 = try await ctx.hasItem(4011001)
+                let i4011002 = try await ctx.hasItem(4011002)
+                let i4011003 = try await ctx.hasItem(4011003)
+                let i4011004 = try await ctx.hasItem(4011004)
+                let i4011005 = try await ctx.hasItem(4011005)
+                let i4011006 = try await ctx.hasItem(4011006)
+                let hasAll = i4011000 && i4011001 && i4011002 && i4011003 && i4011004 && i4011005 && i4011006 && meso >= 10000
                 guard hasAll else {
                     try await ctx.sendNext("Please check and see if you have the refined plates, one of each.")
                     return
@@ -131,7 +139,17 @@ extension NPCScriptRegistry {
             } else if selection == 1 {
                 let confirmed = try await ctx.sendYesNo("So you want to make the Star Rock? To do that you need one refined jewel of each: #bGarnet#k, #bAmethyst#k, #bAquaMarine#k, #bEmerald#k, #bOpal#k, #bSapphire#k, #bTopaz#k, #bDiamond#k and #bBlack Crystal#k. Throw in 15,000 mesos and I'll make it for you.")
                 guard confirmed else { return }
-                let hasAll = try await ctx.hasItem(4021000) && ctx.hasItem(4021001) && ctx.hasItem(4021002) && ctx.hasItem(4021003) && ctx.hasItem(4021004) && ctx.hasItem(4021005) && ctx.hasItem(4021006) && ctx.hasItem(4021007) && ctx.hasItem(4021008) && ctx.meso >= 15000
+                let meso2 = try await ctx.meso
+                let j0 = try await ctx.hasItem(4021000)
+                let j1 = try await ctx.hasItem(4021001)
+                let j2 = try await ctx.hasItem(4021002)
+                let j3 = try await ctx.hasItem(4021003)
+                let j4 = try await ctx.hasItem(4021004)
+                let j5 = try await ctx.hasItem(4021005)
+                let j6 = try await ctx.hasItem(4021006)
+                let j7 = try await ctx.hasItem(4021007)
+                let j8 = try await ctx.hasItem(4021008)
+                let hasAll = j0 && j1 && j2 && j3 && j4 && j5 && j6 && j7 && j8 && meso2 >= 15000
                 guard hasAll else {
                     try await ctx.sendNext("Please check and see if you have the refined jewels, one of each.")
                     return
@@ -143,7 +161,11 @@ extension NPCScriptRegistry {
             } else if selection == 2 {
                 let confirmed = try await ctx.sendYesNo("So you want to make Black Feather? To do that you need #b1 Flaming Feather#k, #b1 Moon Rock#k and #b1 Black Crystal#k. Throw in 30,000 mesos and I'll make it for you.")
                 guard confirmed else { return }
-                let hasAll = try await ctx.hasItem(4001006) && ctx.hasItem(4011007) && ctx.hasItem(4021008) && ctx.meso >= 30000
+                let meso3 = try await ctx.meso
+                let k0 = try await ctx.hasItem(4001006)
+                let k1 = try await ctx.hasItem(4011007)
+                let k2 = try await ctx.hasItem(4021008)
+                let hasAll = k0 && k1 && k2 && meso3 >= 30000
                 guard hasAll else {
                     try await ctx.sendNext("Please check and see if you have the required materials.")
                     return
