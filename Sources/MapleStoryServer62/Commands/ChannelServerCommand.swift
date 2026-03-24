@@ -230,6 +230,8 @@ public extension MapleStoryServer where ClientOpcode == MapleStory62.ClientOpcod
         await register(RingActionHandler())
         await register(PlayerShopHandler())
         // UI / Other
+        await register(UseItemEffectHandler())
+        await register(BBSOperationHandler())
         await register(CloseChalkboardHandler())
         await register(SkillMacroHandler())
         await register(ReportHandler())
