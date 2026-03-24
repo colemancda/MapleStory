@@ -62,6 +62,7 @@ public extension MapleStoryServer.Connection {
         self.state.session = session.id
         self.state.character = session.character
         self.state.channel = session.channel
+        self.state.channelIndex = channel.index
         self.state.world = channel.world
         self.state.map = character.currentMap
         assert(self.state.world == channel.world)

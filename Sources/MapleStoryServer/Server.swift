@@ -216,6 +216,8 @@ internal extension MapleStoryServer.Connection {
 
         var channel: Channel.ID?
 
+        var channelIndex: Channel.Index?
+
         var world: World.ID?
 
         var user: User.ID?
@@ -423,7 +425,13 @@ public extension MapleStoryServer.Connection {
 
     var channelID: Channel.ID? { state.channel }
 
+    var channelIndex: Channel.Index? { state.channelIndex }
+
     var mapID: Map.ID? { state.map }
+
+    func setMap(_ map: Map.ID) {
+        state.map = map
+    }
 
     /// Broadcast a packet to all connections in the same channel and map, optionally excluding this connection.
     func broadcast<T>(
