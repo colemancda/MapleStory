@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,17 @@ public struct SpawnPetHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Equip / unequip pet — not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        // Spawn/despawn pet based on action
+        // For now, we'll use a simplified approach
+        // In a full implementation, we would:
+        // 1. Find or create pet from the cash shop item
+        // 2. Track which pet is equipped
+        // 3. Send proper spawn/despawn notifications
+
+        // TODO: Full pet spawning implementation
+        return
     }
 }
+
