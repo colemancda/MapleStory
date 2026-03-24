@@ -132,6 +132,7 @@ struct ChannelServerCommand: AsyncParsableCommand {
             throw MapleStoryError.invalidChannel
         }
 
+        NPCScriptRegistry.shared.registerAll()
         await server.registerChannelServer(channel: channelObj.id)
 
         try await Task.sleep(for: .seconds(Date.distantFuture.timeIntervalSinceNow))
