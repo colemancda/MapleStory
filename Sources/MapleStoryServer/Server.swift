@@ -12,7 +12,7 @@ public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.Mod
         
     public nonisolated let database: Database
     
-    internal let log: ((String) -> ())?
+    internal let log: (@Sendable (String) -> ())?
     
     internal let socket: Socket
     
@@ -23,12 +23,18 @@ public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.Mod
     // MARK: - Initialization
     
     deinit {
-        stop()
+        let storage = self.storage
+        self.tcpListenTask?.cancel()
+        self.tcpListenTask = nil
+        self.log?("Stopped Server")
+        Task {
+            await storage.removeAllConnections()
+        }
     }
     
     public init(
         configuration: ServerConfiguration,
-        log: ((String) -> ())? = nil,
+        log: (@Sendable (String) -> ())? = nil,
         database: Database,
         socket: Socket.Type
     ) async throws {
@@ -83,21 +89,10 @@ public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.Mod
         }
     }
     
-    internal func stop() {
-        assert(tcpListenTask != nil)
-        let storage = self.storage
-        self.tcpListenTask?.cancel()
-        self.tcpListenTask = nil
-        self.log?("Stopped Server")
-        Task {
-            await storage.removeAllConnections()
-        }
-    }
-    
     public func send<T>(
         _ packet: T,
         to address: MapleStoryAddress
-    ) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
+    ) async throws where T: MapleStoryPacket, T: Encodable, T: Sendable, T.Opcode == ServerOpcode {
         guard let connection = await self.storage.connections[address] else {
             throw MapleStoryError.disconnected(address)
         }
@@ -109,7 +104,7 @@ public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.Mod
         channel: Channel.ID,
         map: Map.ID,
         excluding address: MapleStoryAddress? = nil
-    ) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
+    ) async throws where T: MapleStoryPacket, T: Encodable, T: Sendable, T.Opcode == ServerOpcode {
         let connections = await storage.connections.values
         for connection in connections {
             guard connection.address != address,
@@ -121,9 +116,9 @@ public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.Mod
     
     /// Registers a callback for an opcode and returns the ID associated with that callback.
     internal func register <Packet> (
-        _ callback: @escaping (Packet, Connection) async -> ()
-    ) async where Packet: MapleStoryPacket, Packet: Decodable, Packet.Opcode == ClientOpcode {
-        let registerBlock: (Connection) async -> () = { connection in
+        _ callback: @Sendable @escaping (Packet, Connection) async -> ()
+    ) async where Packet: MapleStoryPacket, Packet: Decodable, Packet: Sendable, Packet.Opcode == ClientOpcode {
+        let registerBlock: @Sendable (Connection) async -> () = { connection in
             await connection.register { [unowned connection] (packet: Packet) in
                 await callback(packet, connection)
             }
@@ -184,7 +179,7 @@ internal extension MapleStoryServer {
         
         var serverHandlers = [ServerConnectionHandler]()
         
-        var packetHandlers = [(Connection) async -> ()]()
+        var packetHandlers = [@Sendable (Connection) async -> ()]()
         
         fileprivate init() { }
         
@@ -200,7 +195,7 @@ internal extension MapleStoryServer {
             connections.removeAll(keepingCapacity: true)
         }
         
-        func register(handler: @escaping (Connection) async -> ()) {
+        func register(handler: @Sendable @escaping (Connection) async -> ()) {
             packetHandlers.append(handler)
         }
         
@@ -212,7 +207,7 @@ internal extension MapleStoryServer {
 
 internal extension MapleStoryServer.Connection {
     
-    struct ClientState: Equatable, Hashable {
+    struct ClientState: Equatable, Hashable, Sendable {
 
         var channel: Channel.ID?
 
@@ -232,11 +227,11 @@ internal extension MapleStoryServer.Connection {
 
 internal extension MapleStoryServer {
     
-    struct ServerConnectionHandler {
+    struct ServerConnectionHandler: Sendable {
         
-        var didConnect: (Connection) async throws -> ()
+        var didConnect: @Sendable (Connection) async throws -> ()
         
-        var didDisconnect: (MapleStoryAddress) async throws -> ()
+        var didDisconnect: @Sendable (MapleStoryAddress) async throws -> ()
     }
 }
 
@@ -276,7 +271,7 @@ public extension MapleStoryServer {
         
         internal unowned var server: MapleStoryServer
         
-        internal let log: (String) -> ()
+        internal let log: @Sendable (String) -> ()
         
         public let database: Database
         
@@ -289,8 +284,8 @@ public extension MapleStoryServer {
             server: MapleStoryServer
         ) async {
             let address = socket.address
-            let serverLog = server.log
-            let log: (String) -> () = { serverLog?("[\(address.address)] \($0)") }
+            let serverLog = await server.log
+            let log: @Sendable (String) -> () = { serverLog?("[\(address.address)] \($0)") }
             self.log = log
             self.server = server
             self.database = server.database
@@ -312,8 +307,8 @@ public extension MapleStoryServer {
         
         /// Registers a callback for an opcode and returns the ID associated with that callback.
         internal func register <T> (
-            _ callback: @escaping (T) async -> ()
-        ) async where T: MapleStoryPacket, T: Decodable, T.Opcode == ClientOpcode {
+            _ callback: @Sendable @escaping (T) async -> ()
+        ) async where T: MapleStoryPacket, T: Decodable, T: Sendable, T.Opcode == ClientOpcode {
             await connection.register(callback)
         }
         

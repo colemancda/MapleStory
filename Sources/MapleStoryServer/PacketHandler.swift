@@ -10,7 +10,7 @@ import MapleStory
 import CoreModel
 
 /// MapleStory Server Event Handler
-public protocol ServerHandler {
+public protocol ServerHandler: Sendable {
     
     associatedtype ClientOpcode: MapleStoryOpcode
     
@@ -31,7 +31,7 @@ public protocol ServerHandler {
 }
 
 /// MapleStory Server Packet Handler
-public protocol PacketHandler {
+public protocol PacketHandler: Sendable {
     
     associatedtype ServerOpcode: MapleStoryOpcode
     

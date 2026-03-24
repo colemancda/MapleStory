@@ -9,7 +9,7 @@ import Foundation
 import Socket
 
 /// MapleStory Socket protocol
-public protocol MapleStorySocket {
+public protocol MapleStorySocket: Sendable {
     
     /// Socket address
     var address: MapleStoryAddress { get }
@@ -40,7 +40,7 @@ public protocol MapleStorySocket {
     ) async throws -> Self
 }
 
-public protocol MapleStorySocketUDP {
+public protocol MapleStorySocketUDP: Sendable {
     
     /// Initialize with address
     init(address: MapleStoryAddress) async throws
@@ -59,7 +59,7 @@ public protocol MapleStorySocketUDP {
 }
 
 /// MapleStory Socket Event
-public enum MapleStorySocketEvent {
+public enum MapleStorySocketEvent: Sendable {
     
     /// New connection
     case connection
@@ -84,8 +84,6 @@ public enum MapleStorySocketEvent {
 }
 
 public typealias MapleStorySocketEventStream = AsyncStream<MapleStorySocketEvent>
-
-extension MapleStorySocketEvent: @unchecked Sendable {}
 
 // MARK: - Implementation
 

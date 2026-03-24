@@ -251,7 +251,7 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
     
     /// Registers a callback for an opcode and returns the ID associated with that callback.
     public func register <T> (
-        _ callback: @escaping (T) async -> ()
+        _ callback: @escaping @Sendable (T) async -> ()
     ) where T: MapleStoryPacket, T: Decodable, T: Sendable, T.Opcode == ReadOpcode {
         let notify = Notify(
             opcode: T.opcode,
@@ -400,7 +400,7 @@ internal extension Connection {
 
         let opcode: ReadOpcode
 
-        let notify: (T) async -> ()
+        let notify: @Sendable (T) async -> ()
 
         var id: UInt {
             .init(opcode.rawValue)
@@ -416,7 +416,7 @@ internal extension Connection {
 
         init(
             opcode: ReadOpcode,
-            notify: @escaping (T) async -> ()
+            notify: @escaping @Sendable (T) async -> ()
         ) {
             self.opcode = opcode
             self.notify = notify
@@ -424,7 +424,7 @@ internal extension Connection {
     }
 }
 
-internal protocol ConnectionNotifyType {
+internal protocol ConnectionNotifyType: Sendable {
 
     var id: UInt { get }
 

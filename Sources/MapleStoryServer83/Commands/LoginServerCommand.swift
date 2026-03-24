@@ -10,6 +10,7 @@ import ArgumentParser
 import NIO
 import Socket
 import CoreModel
+@preconcurrency import MongoSwift
 import MongoDBModel
 import MapleStory83
 import MapleStoryServer
@@ -61,7 +62,9 @@ struct LoginServerCommand: AsyncParsableCommand {
         let elg = MultiThreadedEventLoopGroup(numberOfThreads: 2)
         
         defer {
-            try? elg.syncShutdownGracefully()
+            Task {
+                try? await elg.shutdownGracefully()
+            }
         }
         
         let mongoClient = try MongoClient(

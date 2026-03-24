@@ -104,7 +104,7 @@ extension Packet: ExpressibleByArrayLiteral {
 // MARK: - Supporting Types
 
 /// MapleStory Packet Parameters protocol
-public protocol MapleStoryPacket {
+public protocol MapleStoryPacket: Sendable {
     
     associatedtype Opcode: MapleStoryOpcode
     
