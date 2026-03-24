@@ -642,7 +642,7 @@ final class LoginTests: XCTestCase {
         
         let value = AllCharactersSelectRequest(
             character: 1,
-            macAddresses: ""
+            world: 0
         )
         
         XCTAssertDecode(value, packet)
@@ -657,11 +657,8 @@ final class LoginTests: XCTestCase {
         let nonce: Nonce = 0x96278178
         
         let value = ServerIPResponse(
-            value0: 0,
             address: MapleStoryAddress(rawValue: "172.17.0.3:7575")!,
-            character: 1,
-            value1: 0,
-            value2: 0
+            character: 1
         )
         
         guard let packet = Packet<ServerOpcode>(data: packetData) else {
