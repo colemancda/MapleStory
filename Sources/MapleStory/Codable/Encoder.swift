@@ -463,6 +463,12 @@ public struct MapleStoryEncodingContainer {
         }
         try setValue(string, data: data)
     }
+
+    /// Encodes a MapleStory length-prefixed ASCII string (`UInt16` length + ASCII bytes).
+    public func encodeMapleAsciiString(_ value: String) throws {
+        let data = try encoder.boxLengthPrefixString(value)
+        try setValue(value, data: data)
+    }
     
     private func encodeNumeric <T: MapleStoryRawEncodable & FixedWidthInteger> (_ value: T, isLittleEndian: Bool = true) throws {
         let data = encoder.boxInteger(value, isLittleEndian: isLittleEndian)
