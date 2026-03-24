@@ -28,9 +28,9 @@ public struct PartyMember: Codable, Equatable, Hashable, Sendable {
 
     public let level: UInt16
 
-    public let channel: UInt8
+    public var channel: UInt8
 
-    public let map: Map.ID
+    public var map: Map.ID
 
     public var status: PartyMemberStatus
 

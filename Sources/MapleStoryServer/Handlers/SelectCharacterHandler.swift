@@ -7,7 +7,6 @@
 
 import Foundation
 import MapleStory
-import MapleStoryServer62
 
 public extension MapleStoryServer.Connection {
 
@@ -33,12 +32,6 @@ public extension MapleStoryServer.Connection {
         guard var character = try await Character.fetch(characterIndex, world: world.id, in: database) else {
             throw MapleStoryError.invalidCharacter
         }
-
-        // Load character skills from database/registry
-        try await CharacterSkillRegistry.shared.loadSkills(for: character.id, database: database)
-
-        // Load quest data
-        try await await character.loadQuestData(from: database)
 
         // create session
         if let previousSession = character.session {

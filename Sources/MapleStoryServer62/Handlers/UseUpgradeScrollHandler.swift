@@ -38,7 +38,7 @@ public struct UseUpgradeScrollHandler: PacketHandler {
         }
 
         // Get equipment from EQUIP inventory
-        guard var equipItem = inventory[.equip][packet.destinationSlot] else {
+        guard var equipItem = inventory[.equip][Int8(packet.destinationSlot)] else {
             return // Equipment doesn't exist
         }
 
@@ -52,7 +52,7 @@ public struct UseUpgradeScrollHandler: PacketHandler {
         }
 
         // Get scroll data
-        let scrollData = ScrollDataCache.shared.scroll(scrollID)
+        let scrollData = await ScrollDataCache.shared.scroll(scrollID)
         guard let data = scrollData else {
             return // Invalid scroll
         }
@@ -86,19 +86,19 @@ public struct UseUpgradeScrollHandler: PacketHandler {
 
             equipData.slots -= 1
             equipItem.equip = equipData
-            inventory[.equip][packet.destinationSlot] = equipItem
+            inventory[.equip][Int8(packet.destinationSlot)] = equipItem
 
             result = .success
         } else if roll <= (successChance + destroyedChance) {
             // Catastrophic failure - destroy equipment
-            inventory[.equip][packet.destinationSlot] = nil
+            inventory[.equip][Int8(packet.destinationSlot)] = nil
             result = .destroyed
         } else {
             // Normal failure - just consume a slot
             if !hasWhiteScroll {
                 equipData.slots -= 1
                 equipItem.equip = equipData
-                inventory[.equip][packet.destinationSlot] = equipItem
+                inventory[.equip][Int8(packet.destinationSlot)] = equipItem
             }
             result = .failure
         }
@@ -139,61 +139,57 @@ public actor ScrollDataCache {
     private var scrolls: [UInt32: ScrollData] = [:]
 
     private init() {
-        loadCommonScrolls()
+        // Initialize with common scrolls inline (avoiding actor-isolated call)
+        var scrollsDict: [UInt32: ScrollData] = [:]
+
+        // 100% Scrolls (always work, no destruction)
+        scrollsDict[2_040_001] = ScrollData(successRate: 100, destroyChance: 0, str: 1, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_002] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 1, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_003] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 1, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_005] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 1, speed: 0, jump: 0)
+        scrollsDict[2_040_006] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 2, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_007] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 2, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_008] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 1, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_009] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 1, jump: 0)
+        scrollsDict[2_040_010] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 1)
+        scrollsDict[2_040_011] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 2, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_016] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_018] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+
+        // 60% Scrolls
+        scrollsDict[2_040_300] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 1, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_301] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 1, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_302] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 1, speed: 0, jump: 0)
+        scrollsDict[2_040_303] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 1)
+        scrollsDict[2_040_304] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 1, jump: 0)
+        scrollsDict[2_040_305] = ScrollData(successRate: 60, destroyChance: 0, str: 1, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_306] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 1, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_307] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 1, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_308] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 1, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_309] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 1, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_310] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_311] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_312] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+
+        // 10% Scrolls
+        scrollsDict[2_040_400] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 5, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_401] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 3, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_402] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 3, speed: 0, jump: 0)
+        scrollsDict[2_040_403] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 3)
+        scrollsDict[2_040_404] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 3, jump: 0)
+        scrollsDict[2_040_405] = ScrollData(successRate: 10, destroyChance: 50, str: 3, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_406] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 3, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_407] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 3, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_408] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 3, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_409] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 3, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_410] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 5, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+        scrollsDict[2_040_411] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 5, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0)
+
+        self.scrolls = scrollsDict
     }
 
     public func scroll(_ itemID: UInt32) -> ScrollData? {
         return scrolls[itemID]
-    }
-
-    private func loadCommonScrolls() {
-        var scrollsDict: [UInt32: ScrollData] = [:]
-
-        // 100% Scrolls (always work, no destruction)
-        scrollsDict[2_040_001] = ScrollData(successRate: 100, destroyChance: 0, str: 1, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet DEF
-        scrollsDict[2_040_002] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 1, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Armor DEF
-        scrollsDict[2_040_003] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 1, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Eye Accessory DEF
-        scrollsDict[2_040_005] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 1, speed: 0, jump: 0) // Shield DEF
-        scrollsDict[2_040_006] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 2, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Topwear DEF
-        scrollsDict[2_040_007] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 2, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Bottomwear DEF
-        scrollsDict[2_040_008] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 1, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Overall DEF
-        scrollsDict[2_040_009] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 1, jump: 0) // Shoes Speed
-        scrollsDict[2_040_010] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 1) // Shoes Jump
-        scrollsDict[2_040_011] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 2, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Gloves DEF
-        scrollsDict[2_040_012] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Gloves for DEX
-        scrollsDict[2_040_016] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet HP
-        scrollsDict[2_040_018] = ScrollData(successRate: 100, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Shield MP
-
-        // 60% Scrolls (common upgrade rate)
-        scrollsDict[2_040_300] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 1, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // 1H Sword ATT
-        scrollsDict[2_040_301] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 1, avoid: 0, speed: 0, jump: 0) // Accuracy
-        scrollsDict[2_040_302] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 1, speed: 0, jump: 0) // Avoid
-        scrollsDict[2_040_303] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 1, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Shoes Jump
-        scrollsDict[2_040_304] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 1, jump: 0) // Shoes Speed
-        scrollsDict[2_040_305] = ScrollData(successRate: 60, destroyChance: 0, str: 1, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet STR
-        scrollsDict[2_040_306] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 1, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet DEX
-        scrollsDict[2_040_307] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 1, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet INT
-        scrollsDict[2_040_308] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 1, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet LUK
-        scrollsDict[2_040_309] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 1, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Earring INT
-        scrollsDict[2_040_310] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Overall DEF
-        scrollsDict[2_040_311] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Overall DEF
-        scrollsDict[2_040_312] = ScrollData(successRate: 60, destroyChance: 0, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Armor DEF
-
-        // 10% Scrolls (high stats, low success, destroy on failure)
-        scrollsDict[2_040_400] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 5, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // 1H Sword ATT
-        scrollsDict[2_040_401] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 3, avoid: 0, speed: 0, jump: 0) // Accuracy
-        scrollsDict[2_040_402] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 3, speed: 0, jump: 0) // Avoid
-        scrollsDict[2_040_403] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 3) // Shoes Jump
-        scrollsDict[2_040_404] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 3, jump: 0) // Shoes Speed
-        scrollsDict[2_040_405] = ScrollData(successRate: 10, destroyChance: 50, str: 3, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet STR
-        scrollsDict[2_040_406] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 3, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet DEX
-        scrollsDict[2_040_407] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 3, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet INT
-        scrollsDict[2_040_408] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 3, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Helmet LUK
-        scrollsDict[2_040_409] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 3, weaponDefense: 0, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Earring INT
-        scrollsDict[2_040_410] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 5, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Overall DEF
-        scrollsDict[2_040_411] = ScrollData(successRate: 10, destroyChance: 50, str: 0, dex: 0, int: 0, luk: 0, hp: 0, mp: 0, weaponAttack: 0, magicAttack: 0, weaponDefense: 5, magicDefense: 0, accuracy: 0, avoid: 0, speed: 0, jump: 0) // Overall DEF
-
-        self.scrolls = scrollsDict
     }
 }
 

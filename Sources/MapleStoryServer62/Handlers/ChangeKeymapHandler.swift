@@ -23,8 +23,13 @@ public struct ChangeKeymapHandler: PacketHandler {
     ) async throws {
         guard let character = try await connection.character else { return }
 
+        // Convert bindings to keymap entries
+        let keymap = packet.bindings.map { binding in
+            KeymapEntry(key: binding.key, type: binding.type, action: binding.action)
+        }
+
         // Save keymap to registry
-        await KeymapRegistry.shared.saveKeymap(packet.keymap, for: character.id)
+        await KeymapRegistry.shared.saveKeymap(keymap, for: character.id)
 
         // Save to database (for persistence across server restarts)
         try await KeymapRegistry.shared.saveKeymap(for: character.id, database: connection.database)

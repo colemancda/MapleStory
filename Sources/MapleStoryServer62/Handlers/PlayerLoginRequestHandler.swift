@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -28,6 +29,16 @@ public struct PlayerLoginRequestHandler: PacketHandler {
             character: packet.character,
             channel: self.channel
         )
+
+        // Load character skills from database/registry
+        try await CharacterSkillRegistry.shared.loadSkills(for: character.id, database: connection.database)
+
+        // Load quest data
+        try await character.loadQuestData(from: connection.database)
+
+        // Load keymap
+        try await KeymapRegistry.shared.loadKeymap(for: character.id, database: connection.database)
+
         let stats = WarpToMapNotification.CharacterStats(
             id: character.index,
             name: character.name,
