@@ -10,14 +10,14 @@ import Socket
 
 /// MapleStory Connection
 public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode, WriteOpcode: MapleStoryOpcode> {
-    
-    public nonisolated var address: MapleStoryAddress {
-        socket.address
-    }
-    
-    let socket: Socket
-    
-    let log: ((String) -> ())?
+
+    public nonisolated let address: MapleStoryAddress
+
+    // Stored as nonisolated(unsafe) because they are write-once at init and
+    // their own async APIs are internally thread-safe.
+    nonisolated(unsafe) let socket: Socket
+
+    nonisolated(unsafe) let log: ((String) -> ())?
     
     public nonisolated let version: Version
     
@@ -37,9 +37,9 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
     
     public var username: Username?
     
-    nonisolated let encoder = MapleStoryEncoder()
-    
-    nonisolated let decoder = MapleStoryDecoder()
+    nonisolated(unsafe) let encoder = MapleStoryEncoder()
+
+    nonisolated(unsafe) let decoder = MapleStoryDecoder()
     
     private var shouldEncrypt = false
     
@@ -62,6 +62,7 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
         key: Key? = .default,
         didDisconnect: ((Error?) async -> ())? = nil
     ) async {
+        self.address = socket.address
         self.version = version
         self.region = region
         self.key = key
@@ -93,8 +94,8 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
     }
     
     private func run() {
+        let stream = socket.event
         Task.detached(priority: .high) { [weak self] in
-            guard let stream = self?.socket.event else { return }
             for await event in stream {
                 await self?.socketEvent(event)
             }
@@ -251,7 +252,7 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
     /// Registers a callback for an opcode and returns the ID associated with that callback.
     public func register <T> (
         _ callback: @escaping (T) async -> ()
-    ) where T: MapleStoryPacket, T: Decodable, T.Opcode == ReadOpcode {
+    ) where T: MapleStoryPacket, T: Decodable, T: Sendable, T.Opcode == ReadOpcode {
         let notify = Notify(
             opcode: T.opcode,
             notify: callback
@@ -323,7 +324,7 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
     }
     
     private func handle(notify packet: Packet<ReadOpcode>) async throws {
-        
+
         let opcode = packet.opcode
         guard let notify = notifyList[opcode] else {
             #if DEBUG
@@ -331,10 +332,10 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
             #endif
             return
         }
-        
-        let value: Decodable
+
         do {
-            value = try decoder.decodeGeneric(type(of: notify).packetType, from: packet)
+            // Each notify handler decodes and dispatches the typed (Sendable) value internally.
+            try await notify.handle(packetData: packet.data, decoder: decoder)
         }
         catch {
             #if DEBUG
@@ -342,9 +343,6 @@ public actor Connection <Socket: MapleStorySocket, ReadOpcode: MapleStoryOpcode,
             #endif
             throw MapleStoryError.invalidData(packet.data)
         }
-        
-        // execute callback
-        await notify.callback(value)
     }
 }
 
@@ -397,23 +395,25 @@ internal extension Connection.SendOperation.PacketData {
 }
 
 internal extension Connection {
-    
-    struct Notify<T>: ConnectionNotifyType, Identifiable where T: MapleStoryPacket, T: Decodable, T.Opcode == ReadOpcode {
-                                
+
+    struct Notify<T>: ConnectionNotifyType, Identifiable where T: MapleStoryPacket, T: Decodable, T: Sendable, T.Opcode == ReadOpcode {
+
         let opcode: ReadOpcode
-        
+
         let notify: (T) async -> ()
-        
-        static var packetType: Decodable.Type { T.self }
-        
+
         var id: UInt {
             .init(opcode.rawValue)
         }
-        
-        var callback: (Decodable) async -> () {
-            { await self.notify($0 as! T) }
+
+        func handle(packetData: Data, decoder: MapleStoryDecoder) async throws {
+            guard let packet = Packet<T.Opcode>(data: packetData) else {
+                throw MapleStoryError.invalidData(packetData)
+            }
+            let value = try decoder.decode(T.self, from: packet)
+            await notify(value)
         }
-        
+
         init(
             opcode: ReadOpcode,
             notify: @escaping (T) async -> ()
@@ -425,10 +425,8 @@ internal extension Connection {
 }
 
 internal protocol ConnectionNotifyType {
-    
-    static var packetType: Decodable.Type { get }
-    
+
     var id: UInt { get }
-    
-    var callback: (any Decodable) async -> () { get }
+
+    func handle(packetData: Data, decoder: MapleStoryDecoder) async throws
 }
