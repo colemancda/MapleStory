@@ -35,6 +35,9 @@ public struct MoveLifeRequest: MapleStoryPacket, Equatable, Hashable, Sendable {
 
     /// Starting position Y
     public let startY: Int16
+
+    /// Decoded movement commands to relay to other clients.
+    public let movements: [Movement]
 }
 
 extension MoveLifeRequest: MapleStoryDecodable {
@@ -52,6 +55,18 @@ extension MoveLifeRequest: MapleStoryDecodable {
         let _ = try container.decode(UInt32.self) // unknown
         self.startX = try container.decode(Int16.self)
         self.startY = try container.decode(Int16.self)
-        // movement data after this point is intentionally ignored
+
+        let count = Int(try container.decode(UInt8.self))
+        var movements: [Movement] = []
+        movements.reserveCapacity(count)
+        for _ in 0 ..< count {
+            guard container.remainingBytes > 0 else { break }
+            if let m = try? container.decode(Movement.self) {
+                movements.append(m)
+            } else {
+                break
+            }
+        }
+        self.movements = movements
     }
 }

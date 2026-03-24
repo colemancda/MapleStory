@@ -22,6 +22,7 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
         try await database.insert(character)
         setMap(mapID)
         try await send(warpToMapNotification(character: character))
+        try await sendMapMobs(for: mapID)
     }
 
     /// Build a `WarpToMapNotification` for the given character using current connection state.

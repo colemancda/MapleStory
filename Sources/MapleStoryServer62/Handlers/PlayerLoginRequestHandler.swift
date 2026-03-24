@@ -72,5 +72,6 @@ public struct PlayerLoginRequestHandler: PacketHandler {
             cashSlots: 100
         )
         try await connection.send(WarpToMapNotification.characterInfo(info))
+        try await connection.sendMapMobs(for: character.currentMap)
     }
 }
