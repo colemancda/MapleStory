@@ -11,7 +11,7 @@ public struct ChangeKeymapRequest: MapleStoryPacket, Equatable, Hashable, Sendab
 
     public static var opcode: ClientOpcode { .changeKeymap }
 
-    public struct KeyBinding: Equatable, Hashable, Sendable {
+    public struct KeyBinding: Codable, Equatable, Hashable, Sendable {
         public let key: UInt32
         public let type: UInt8
         public let action: UInt32
