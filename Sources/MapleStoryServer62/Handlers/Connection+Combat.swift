@@ -45,6 +45,13 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
             let updated = await MapMobRegistry.shared.applyDamage(validatedDamage, to: objectID)
             if let updated, updated.currentHP == 0 {
                 try await broadcast(KillMonsterNotification(objectID: objectID), map: mapID)
+                // Award experience for the kill.
+                if let template = await MobDataCache.shared.mob(id: updated.mobID) {
+                    let exp = UInt32(max(0, template.exp))
+                    if exp > 0 {
+                        try await gainExp(exp)
+                    }
+                }
             }
         }
     }
