@@ -433,6 +433,14 @@ public extension MapleStoryServer.Connection {
         state.map = map
     }
 
+    func setWorld(_ world: World.ID) {
+        state.world = world
+    }
+
+    func setChannel(_ channel: Channel.ID) {
+        state.channel = channel
+    }
+
     /// Broadcast a packet to all connections in the same channel and map, optionally excluding this connection.
     func broadcast<T>(
         _ packet: T,
