@@ -20,7 +20,11 @@ public struct MovePlayerHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Movement is acknowledged implicitly; broadcast to other players on the same map
-        // is not yet implemented (requires map player tracking).
+        guard let character = try await connection.character else { return }
+        let notification = MovePlayerNotification(
+            characterID: character.index,
+            movements: packet.movements
+        )
+        try await connection.broadcast(notification, map: character.currentMap)
     }
 }
