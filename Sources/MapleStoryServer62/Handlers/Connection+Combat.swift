@@ -60,6 +60,24 @@ where ClientOpcode == MapleStory62.ClientOpcode, ServerOpcode == MapleStory62.Se
                     await spawnDrops(from: updated, mapID: mapID)
                 }
 
+                // Update quest mob kill progress
+                guard let character = try await self.character else {
+                    return
+                }
+
+                // Get all active quests for this character
+                let questStates = await QuestStateRegistry.shared.quests(for: character.id)
+
+                // Check each active quest to see if it requires this mob
+                for (questID, state) in questStates where state.status == .started {
+                    // Record the mob kill (quest registry will check if it's needed)
+                    await QuestStateRegistry.shared.recordMobKill(
+                        mobID: updated.mobID,
+                        questID: questID,
+                        characterID: character.id
+                    )
+                }
+
                 // Remove mob from registry
                 await MapMobRegistry.shared.remove(objectID: objectID)
             }

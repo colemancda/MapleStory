@@ -44,9 +44,17 @@ public struct ItemPickupHandler: PacketHandler {
             return // Not owner
         }
 
-        // Distance validation would require player position tracking
-        // Player position updates come via MovePlayerHandler packets
-        // For now, distance checking is deferred until position tracking is implemented
+        // Check distance - player must be within 150 units of the drop
+        let dropPosition = PlayerPosition(x: mapItem.position.x, y: mapItem.position.y)
+        let inRange = await PlayerPositionRegistry.shared.isInRange(
+            characterID: character.id,
+            position: dropPosition,
+            range: 150 // Maximum pickup distance
+        )
+
+        guard inRange else {
+            return // Too far away
+        }
 
         // Meso pickup
         if mapItem.itemID == 0 {
