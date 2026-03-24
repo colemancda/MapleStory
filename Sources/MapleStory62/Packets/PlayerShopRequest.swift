@@ -55,6 +55,13 @@ public enum PlayerShopRequest: MapleStoryPacket, Equatable, Hashable, Sendable {
     case cancelExit
 }
 
+extension PlayerShopRequest: Decodable {
+    public init(from decoder: any Decoder) throws {
+        // Packet decoding uses MapleStoryDecodable below; this conformance is required by the protocol hierarchy.
+        throw DecodingError.dataCorrupted(.init(codingPath: decoder.codingPath, debugDescription: "Use MapleStoryDecoder"))
+    }
+}
+
 extension PlayerShopRequest: MapleStoryDecodable {
 
     public init(from container: MapleStoryDecodingContainer) throws {
