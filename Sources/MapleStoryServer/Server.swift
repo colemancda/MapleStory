@@ -103,6 +103,21 @@ public final class MapleStoryServer <Socket: MapleStorySocket, Database: CoreMod
         }
         try await connection.send(packet)
     }
+
+    public func broadcast<T>(
+        _ packet: T,
+        channel: Channel.ID,
+        map: Map.ID,
+        excluding address: MapleStoryAddress? = nil
+    ) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
+        let connections = await storage.connections.values
+        for connection in connections {
+            guard connection.address != address,
+                  await connection.channelID == channel,
+                  await connection.mapID == map else { continue }
+            try await connection.send(packet)
+        }
+    }
     
     /// Registers a callback for an opcode and returns the ID associated with that callback.
     internal func register <Packet> (
@@ -198,16 +213,18 @@ internal extension MapleStoryServer {
 internal extension MapleStoryServer.Connection {
     
     struct ClientState: Equatable, Hashable {
-        
+
         var channel: Channel.ID?
-        
-        var world: Channel.ID?
-        
+
+        var world: World.ID?
+
         var user: User.ID?
-        
+
         var character: Character.ID?
-        
+
         var session: Session.ID?
+
+        var map: Map.ID?
     }
 }
 
@@ -402,5 +419,20 @@ public extension MapleStoryServer.Connection {
             }
             return try await database.fetch(Session.self, for: id)
         }
+    }
+
+    var channelID: Channel.ID? { state.channel }
+
+    var mapID: Map.ID? { state.map }
+
+    /// Broadcast a packet to all connections in the same channel and map, optionally excluding this connection.
+    func broadcast<T>(
+        _ packet: T,
+        map: Map.ID,
+        excludeSelf: Bool = true
+    ) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
+        guard let channelID = self.channelID else { return }
+        let excludedAddress: MapleStoryAddress? = excludeSelf ? self.address : nil
+        try await server.broadcast(packet, channel: channelID, map: map, excluding: excludedAddress)
     }
 }
