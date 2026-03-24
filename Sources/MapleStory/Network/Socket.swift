@@ -85,6 +85,8 @@ public enum MapleStorySocketEvent {
 
 public typealias MapleStorySocketEventStream = AsyncStream<MapleStorySocketEvent>
 
+extension MapleStorySocketEvent: @unchecked Sendable {}
+
 // MARK: - Implementation
 
 public final class MapleStorySocketIPv4TCP: MapleStorySocket {

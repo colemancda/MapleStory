@@ -26,7 +26,7 @@ public struct Password: RawRepresentable, Equatable, Hashable, Codable, Sendable
 
 internal extension Password {
     
-    static let regex = Regex {
+    nonisolated(unsafe) static let regex = Regex {
         OneOrMore(.word)
         ZeroOrMore(.digit)
     }

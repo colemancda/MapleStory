@@ -26,7 +26,7 @@ public struct Username: RawRepresentable, Equatable, Hashable, Codable, Sendable
 
 internal extension Username {
     
-    static let regex = Regex {
+    nonisolated(unsafe) static let regex = Regex {
         OneOrMore(.word)
         ZeroOrMore(.digit)
     }

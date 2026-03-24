@@ -20,7 +20,7 @@ public struct Email: RawRepresentable, Equatable, Hashable, Codable, Sendable {
 
 internal extension Email {
     
-    static let regularExpression = try! Regex("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]+")
+    nonisolated(unsafe) static let regularExpression = try! Regex("[A-Z0-9a-z._%+-]+@[A-Za-z0-9.-]+\\.[A-Za-z]+")
     
     static func validate(_ string: String) -> Bool {
         string.wholeMatch(of: regularExpression) != nil
