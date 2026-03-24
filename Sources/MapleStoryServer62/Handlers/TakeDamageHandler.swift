@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,35 @@ public struct TakeDamageHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Player takes damage — HP update and death handling not yet implemented.
+        guard var character = try await connection.character else { return }
+
+        // Validate damage against WZ mob stats when the source is a known monster.
+        let damage: UInt32
+        if packet.damageFrom >= 0, packet.monsterIDFrom > 0 {
+            if let mob = await MobDataCache.shared.mob(id: packet.monsterIDFrom) {
+                // Cap reported damage at the mob's physical attack to resist client manipulation.
+                let cap = UInt32(max(0, mob.paDamage))
+                damage = (cap > 0) ? min(packet.damage, cap) : packet.damage
+            } else {
+                damage = packet.damage
+            }
+        } else {
+            // Map damage or fall damage — trust the client value.
+            damage = packet.damage
+        }
+
+        let newHP = UInt32(character.hp) > damage ? UInt16(UInt32(character.hp) - damage) : 0
+        character.hp = newHP
+        try await connection.database.insert(character)
+
+        try await connection.send(UpdateStatsNotification.hp(newHP))
+
+        if newHP == 0 {
+            // Character died — respawn at current map spawn point for now.
+            // A proper death flow (respawn choice, EXP penalty) can extend this later.
+            character.hp = max(1, character.maxHp / 10)
+            try await connection.database.insert(character)
+            try await connection.warp(to: character.currentMap, spawn: 0)
+        }
     }
 }

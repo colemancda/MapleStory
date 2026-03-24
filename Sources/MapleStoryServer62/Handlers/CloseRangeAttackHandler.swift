@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,7 @@ public struct CloseRangeAttackHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Melee attack — damage calculation and monster HP not yet implemented.
+        guard let character = try await connection.character else { return }
+        try await connection.processAttack(targets: packet.targets, mapID: character.currentMap)
     }
 }

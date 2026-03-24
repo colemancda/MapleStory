@@ -16,6 +16,15 @@ public struct CloseRangeAttackRequest: MapleStoryPacket, Equatable, Hashable, Se
     public let skillID: UInt32
 
     public let stance: UInt8
+
+    /// Per-target damage. Key = monster object ID, value = list of damage values for that target.
+    public let targets: [UInt32: [UInt32]]
+
+    /// Number of targets hit (high nibble of `numAttackedAndDamage`).
+    public var numTargets: Int { Int(numAttackedAndDamage >> 4) }
+
+    /// Number of damage values per target (low nibble of `numAttackedAndDamage`).
+    public var numDamagePerTarget: Int { Int(numAttackedAndDamage & 0xF) }
 }
 
 extension CloseRangeAttackRequest: MapleStoryDecodable {
@@ -26,6 +35,19 @@ extension CloseRangeAttackRequest: MapleStoryDecodable {
         self.skillID = try container.decode(UInt32.self)
         let _ = try container.decode(UInt8.self)
         self.stance = try container.decode(UInt8.self)
-        // remaining attack target data is intentionally not parsed
+
+        let nTargets = Int(numAttackedAndDamage >> 4)
+        let nDamage  = Int(numAttackedAndDamage & 0xF)
+        var targets: [UInt32: [UInt32]] = [:]
+        for _ in 0 ..< nTargets {
+            guard container.remainingBytes >= 4 + nDamage * 4 else { break }
+            let objectID = try container.decode(UInt32.self)
+            var damages: [UInt32] = []
+            for _ in 0 ..< nDamage {
+                damages.append(try container.decode(UInt32.self))
+            }
+            targets[objectID] = damages
+        }
+        self.targets = targets
     }
 }
