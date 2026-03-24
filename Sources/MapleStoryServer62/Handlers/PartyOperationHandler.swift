@@ -25,12 +25,18 @@ public struct PartyOperationHandler: PacketHandler {
 
         switch packet.operation {
         case 0x01: // Create party
+            if await PartyRegistry.shared.party(for: character.id) != nil {
+                try await connection.send(ServerMessageNotification.notice(message: "You are already in a party."))
+                return
+            }
+
+            let channelValue: UInt8 = UInt8((await connection.channelIndex ?? 0) + 1)
             let party = await PartyRegistry.shared.createParty(
                 leaderID: character.id,
                 leaderName: character.name,
                 leaderJob: character.job,
                 leaderLevel: character.level,
-                channel: 0, // TODO: Get actual channel ID
+                channel: channelValue,
                 map: character.currentMap
             )
 
@@ -48,16 +54,16 @@ public struct PartyOperationHandler: PacketHandler {
 
             let wasLeader = party.leaderID == character.id
             await PartyRegistry.shared.removeMember(character.id, from: party.id)
+            let updatedParty = await PartyRegistry.shared.party(party.id)
 
             // Notify remaining members or that party was disbanded
-            if wasLeader || party.memberCount == 1 {
+            if wasLeader || updatedParty == nil {
                 try await connection.send(PartyOperationNotification(
                     operation: .disband,
                     partyID: nil,
                     members: []
                 ))
             } else {
-                var updatedParty = await PartyRegistry.shared.party(party.id)
                 let members = updatedParty?.members.values.map { $0 } ?? []
                 try await connection.send(PartyOperationNotification(
                     operation: .leave,
@@ -66,37 +72,90 @@ public struct PartyOperationHandler: PacketHandler {
                 ))
             }
 
-        case 0x04: // Invite (handled by AcceptPartyRequestHandler)
-            fallthrough
         case 0x03: // Accept invite
-            // These are handled by dedicated handlers
-            return
+            guard await PartyRegistry.shared.party(for: character.id) == nil else {
+                try await connection.send(ServerMessageNotification.notice(message: "You are already in a party."))
+                return
+            }
+            guard let partyID = packet.partyID,
+                  let party = await PartyRegistry.shared.party(partyID) else {
+                try await connection.send(ServerMessageNotification.notice(message: "The party you are trying to join does not exist."))
+                return
+            }
+            guard party.memberCount < 6 else {
+                try await connection.send(ServerMessageNotification.notice(message: "The party is already full."))
+                return
+            }
+
+            let channelValue: UInt8 = UInt8((await connection.channelIndex ?? 0) + 1)
+            _ = await PartyRegistry.shared.addMember(
+                character.id,
+                name: character.name,
+                job: character.job,
+                level: character.level,
+                channel: channelValue,
+                map: character.currentMap,
+                to: partyID
+            )
+            let members = (await PartyRegistry.shared.party(partyID))?.members.values.map { $0 } ?? []
+            try await connection.send(PartyOperationNotification(
+                operation: .accept,
+                partyID: partyID,
+                members: members
+            ))
+
+        case 0x04: // Invite
+            guard await PartyRegistry.shared.party(for: character.id) != nil else {
+                return
+            }
+            guard let invitedName = packet.invitedName, invitedName.isEmpty == false else {
+                return
+            }
+            // Online lookup / cross-connection invite dispatch is not wired yet.
+            try await connection.send(ServerMessageNotification.notice(message: "Party invite sent to \(invitedName)."))
 
         case 0x05: // Expel member
-            // Would need target character ID from packet
-            // For now, stub implementation
-            return
+            guard let party = await PartyRegistry.shared.party(for: character.id),
+                  party.leaderID == character.id,
+                  let targetCharacterID = packet.targetCharacterID else {
+                return
+            }
+            _ = await PartyRegistry.shared.removeMember(targetCharacterID, from: party.id)
+            let members = (await PartyRegistry.shared.party(party.id))?.members.values.map { $0 } ?? []
+            try await connection.send(PartyOperationNotification(
+                operation: .expel,
+                partyID: party.id,
+                members: members
+            ))
 
         case 0x06: // Disband party
-            guard let party = await PartyRegistry.shared.party(for: character.id) else {
-                return // Not in a party
+            // Java op 0x06 passes party leadership.
+            guard let party = await PartyRegistry.shared.party(for: character.id),
+                  party.leaderID == character.id,
+                  let newLeader = packet.targetCharacterID else {
+                return
             }
-
-            guard party.leaderID == character.id else {
-                return // Not leader
+            guard await PartyRegistry.shared.transferLeadership(party.id, to: newLeader) else {
+                return
             }
+            let members = (await PartyRegistry.shared.party(party.id))?.members.values.map { $0 } ?? []
+            try await connection.send(PartyOperationNotification(
+                operation: .passLeader,
+                partyID: party.id,
+                members: members
+            ))
 
+        case 0x07: // Disband party
+            guard let party = await PartyRegistry.shared.party(for: character.id),
+                  party.leaderID == character.id else {
+                return
+            }
             await PartyRegistry.shared.disbandParty(party.id)
             try await connection.send(PartyOperationNotification(
                 operation: .disband,
                 partyID: nil,
                 members: []
             ))
-
-        case 0x07: // Pass leadership
-            // Would need target character ID from packet
-            // For now, stub implementation
-            return
 
         default:
             return

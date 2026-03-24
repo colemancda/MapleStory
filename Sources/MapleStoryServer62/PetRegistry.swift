@@ -20,6 +20,9 @@ public actor PetRegistry {
     /// Currently spawned pets (Pet ID -> Pet)
     private var spawnedPets: [PetID: Pet] = [:]
 
+    /// Character ID -> active pet IDs in visual slot order (0...2).
+    private var activePetSlots: [Character.ID: [PetID]] = [:]
+
     /// Next pet ID
     private var nextPetID: PetID = 1
 
@@ -59,26 +62,103 @@ public actor PetRegistry {
         return ownedPets[ownerID] ?? []
     }
 
+    /// Find owned pet by item ID.
+    public func pet(ownerID: Character.ID, itemID: UInt32) -> Pet? {
+        ownedPets[ownerID]?.first { $0.itemID == itemID }
+    }
+
     /// Get spawned pet by ID
     public func spawnedPet(_ petID: PetID) -> Pet? {
         return spawnedPets[petID]
     }
 
+    /// Get all spawned pets for a character in active slot order.
+    public func spawnedPets(for ownerID: Character.ID) -> [Pet] {
+        let slots = activePetSlots[ownerID] ?? []
+        return slots.compactMap { spawnedPets[$0] }
+    }
+
+    /// Get active slot index for a specific pet.
+    public func activeSlot(for petID: PetID, ownerID: Character.ID) -> UInt8? {
+        guard let index = activePetSlots[ownerID]?.firstIndex(of: petID) else {
+            return nil
+        }
+        return UInt8(index)
+    }
+
     /// Spawn a pet (make visible)
     public func spawnPet(_ petID: PetID, ownerID: Character.ID) -> Bool {
+        return spawnPet(petID, ownerID: ownerID, lead: false, position: nil) != nil
+    }
+
+    /// Spawn a pet with explicit lead/slot semantics.
+    /// - Returns: Active slot index (0...2) on success.
+    public func spawnPet(
+        _ petID: PetID,
+        ownerID: Character.ID,
+        lead: Bool,
+        position: PetPosition?
+    ) -> UInt8? {
         guard let pets = ownedPets[ownerID],
               let pet = pets.first(where: { $0.id == petID }) else {
-            return false
+            return nil
+        }
+
+        // Already active: optionally update position and return current slot.
+        if var existing = spawnedPets[petID] {
+            if let position {
+                existing.position = position
+                spawnedPets[petID] = existing
+            }
+            return activeSlot(for: petID, ownerID: ownerID)
+        }
+
+        var slots = activePetSlots[ownerID] ?? []
+        guard slots.count < 3 else { return nil }
+
+        if lead {
+            slots.insert(petID, at: 0)
+        } else {
+            slots.append(petID)
+        }
+
+        // Keep only first 3 in case of defensive misuse.
+        if slots.count > 3 {
+            slots = Array(slots.prefix(3))
         }
 
         var spawned = pet
         spawned.isSpawned = true
+        if let position {
+            spawned.position = position
+        }
         spawnedPets[petID] = spawned
-        return true
+        activePetSlots[ownerID] = slots
+
+        // Mirror spawned state in owned storage.
+        if let index = ownedPets[ownerID]?.firstIndex(where: { $0.id == petID }) {
+            ownedPets[ownerID]?[index] = spawned
+        }
+
+        guard let slot = slots.firstIndex(of: petID) else {
+            return nil
+        }
+        return UInt8(slot)
     }
 
     /// Despawn a pet
     public func despawnPet(_ petID: PetID) {
+        if let pet = spawnedPets[petID] {
+            if let index = ownedPets[pet.ownerID]?.firstIndex(where: { $0.id == petID }) {
+                var updated = ownedPets[pet.ownerID]![index]
+                updated.isSpawned = false
+                ownedPets[pet.ownerID]![index] = updated
+            }
+            activePetSlots[pet.ownerID]?.removeAll(where: { $0 == petID })
+            if activePetSlots[pet.ownerID]?.isEmpty == true {
+                activePetSlots[pet.ownerID] = nil
+            }
+        }
         spawnedPets.removeValue(forKey: petID)
     }
 

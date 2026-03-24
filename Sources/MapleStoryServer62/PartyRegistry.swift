@@ -143,6 +143,16 @@ public actor PartyRegistry {
         parties.removeValue(forKey: partyID)
     }
 
+    /// Transfer party leadership.
+    @discardableResult
+    public func transferLeadership(_ partyID: PartyID, to characterID: Character.ID) -> Bool {
+        guard var party = parties[partyID] else { return false }
+        guard party.members[characterID] != nil else { return false }
+        party.leaderID = characterID
+        parties[partyID] = party
+        return true
+    }
+
     /// Load parties from database
     public func loadParties(from database: some ModelStorage) async throws {
         // TODO: Implement database loading

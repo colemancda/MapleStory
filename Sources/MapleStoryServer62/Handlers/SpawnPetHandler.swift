@@ -22,16 +22,73 @@ public struct SpawnPetHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         guard let character = try await connection.character else { return }
+        let inventory = await character.getInventory()
+        let inventorySlot = Int8(bitPattern: packet.slot)
+        guard let cashItem = inventory.cash[inventorySlot] else {
+            return
+        }
 
-        // Spawn/despawn pet based on action
-        // For now, we'll use a simplified approach
-        // In a full implementation, we would:
-        // 1. Find or create pet from the cash shop item
-        // 2. Track which pet is equipped
-        // 3. Send proper spawn/despawn notifications
+        let itemID = cashItem.itemId
+        let registry = PetRegistry.shared
 
-        // TODO: Full pet spawning implementation
-        return
+        // Toggle pet: if this pet is already active, despawn it.
+        if let existing = await registry.pet(ownerID: character.id, itemID: itemID),
+           let slot = await registry.activeSlot(for: existing.id, ownerID: character.id) {
+            await registry.despawnPet(existing.id)
+            try await connection.broadcast(
+                SpawnPetNotification(
+                    characterID: character.index,
+                    slot: slot,
+                    remove: true,
+                    hunger: false
+                ),
+                map: character.currentMap
+            )
+            return
+        }
+
+        let pet: Pet
+        if let ownedPet = await registry.pet(ownerID: character.id, itemID: itemID) {
+            pet = ownedPet
+        } else {
+            let defaultName = "Pet"
+            pet = await registry.createPet(
+                itemID: itemID,
+                name: defaultName,
+                ownerID: character.id
+            )
+        }
+
+        // Position slightly above player origin, matching Java's y-12 spawn behavior.
+        let playerPosition = await PlayerPositionRegistry.shared.position(for: character.id)
+        let petPosition = PetPosition(
+            x: playerPosition?.x ?? 0,
+            y: (playerPosition?.y ?? 0) - 12
+        )
+
+        guard let activeSlot = await registry.spawnPet(
+            pet.id,
+            ownerID: character.id,
+            lead: packet.isLead == 1,
+            position: petPosition
+        ) else {
+            return
+        }
+
+        try await connection.broadcast(
+            SpawnPetNotification(
+                characterID: character.index,
+                slot: activeSlot,
+                remove: false,
+                itemID: pet.itemID,
+                name: pet.name,
+                uniqueID: UInt32(truncatingIfNeeded: pet.id),
+                positionX: petPosition.x,
+                positionY: petPosition.y,
+                stance: 0,
+                foothold: 0
+            ),
+            map: character.currentMap
+        )
     }
 }
-

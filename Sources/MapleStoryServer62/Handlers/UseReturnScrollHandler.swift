@@ -25,16 +25,7 @@ public struct UseReturnScrollHandler: PacketHandler {
 
         // Determine return destination based on current map
         let returnMap = getReturnTown(for: character.currentMap)
-
-        // Warp character to return map
-        var updatedCharacter = character
-        updatedCharacter.currentMap = returnMap
-        try await connection.database.insert(updatedCharacter)
-
-        // Send warp notification
-        // For now, we'll use a simplified warp
-        // TODO: Implement proper return scroll warp notification
-        return
+        try await connection.warp(to: returnMap, spawn: 0)
     }
 
     // MARK: - Private Helpers
@@ -71,4 +62,3 @@ public struct UseReturnScrollHandler: PacketHandler {
         }
     }
 }
-

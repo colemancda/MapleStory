@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,26 @@ public struct PetChatHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Pet chat broadcast — not yet implemented.
+        guard let character = try await connection.character else { return }
+        guard let mapID = await connection.mapID else { return }
+
+        let petID = PetID(packet.petID)
+        guard let spawnedPet = await PetRegistry.shared.spawnedPet(petID),
+              spawnedPet.ownerID == character.id else {
+            return
+        }
+        guard let slot = await PetRegistry.shared.activeSlot(for: petID, ownerID: character.id) else {
+            return
+        }
+
+        try await connection.broadcast(
+            PetChatNotification(
+                characterID: character.index,
+                slot: slot,
+                unknown: 0,
+                text: packet.message
+            ),
+            map: mapID
+        )
     }
 }
