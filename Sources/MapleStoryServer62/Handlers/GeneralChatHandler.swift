@@ -20,6 +20,12 @@ public struct GeneralChatHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Broadcast chat message to other players on the same map — not yet implemented.
+        guard let character = try await connection.character else { return }
+        let notification = ChatTextNotification(
+            characterID: character.index,
+            message: packet.message,
+            show: packet.show
+        )
+        try await connection.broadcast(notification, map: character.currentMap)
     }
 }
