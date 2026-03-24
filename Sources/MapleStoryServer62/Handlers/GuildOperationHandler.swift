@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,49 @@ public struct GuildOperationHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Guild create / invite / leave / expel / rank / emblem — not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        switch packet.type {
+        case 0x02: // Create guild
+            // For now, stub - would need guild name from packet
+            return
+
+        case 0x05: // Leave guild
+            guard let guild = await GuildRegistry.shared.guild(for: character.id) else {
+                return // Not in a guild
+            }
+
+            await GuildRegistry.shared.removeMember(character.id, from: guild.id)
+
+            try await connection.send(GuildOperationNotification(
+                operation: .leave,
+                guildID: nil
+            ))
+
+        case 0x0C: // Expel member
+            return
+
+        case 0x0E: // Change rank
+            return
+
+        case 0x10: // Disband guild
+            guard let guild = await GuildRegistry.shared.guild(for: character.id) else {
+                return // Not in a guild
+            }
+
+            guard guild.leaderID == character.id else {
+                return // Not guild master
+            }
+
+            await GuildRegistry.shared.disbandGuild(guild.id)
+
+            try await connection.send(GuildOperationNotification(
+                operation: .disband,
+                guildID: nil
+            ))
+
+        default:
+            return
+        }
     }
 }
