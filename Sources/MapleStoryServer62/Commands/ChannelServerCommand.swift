@@ -48,8 +48,8 @@ struct ChannelServerCommand: AsyncParsableCommand {
     @Option(help: "Database name.")
     var databaseName: String = "maplestory"
 
-    @Option(help: "Path to extracted Mob.wz directory (optional, enables server-side mob validation).")
-    var mobWzPath: String?
+    @Option(help: "Path to extracted WZ root directory (optional, enables server-side game data validation).")
+    var wzPath: String?
 
     func validate() throws {
         if let address {
@@ -135,8 +135,9 @@ struct ChannelServerCommand: AsyncParsableCommand {
             throw MapleStoryError.invalidChannel
         }
 
-        if let mobWzPath {
-            await MobDataCache.shared.load(from: URL(fileURLWithPath: mobWzPath))
+        if let wzPath {
+            let wzRoot = URL(fileURLWithPath: wzPath)
+            await MobDataCache.shared.load(from: wzRoot.appendingPathComponent("Mob"))
         }
         NPCScriptRegistry.shared.registerAll()
         await server.registerChannelServer(channel: channelObj.id)
