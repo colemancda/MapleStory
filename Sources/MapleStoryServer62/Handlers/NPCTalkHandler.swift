@@ -20,6 +20,33 @@ public struct NPCTalkHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // NPC interaction — script execution not yet implemented.
+        let npcID = packet.objectID
+
+        guard let script = NPCScriptRegistry.shared.script(for: npcID) else {
+            return  // no script registered for this NPC
+        }
+
+        // Cancel any in-progress conversation first
+        if let existing = await NPCConversationRegistry.shared.get(for: connection.address) {
+            await existing.cancel()
+        }
+
+        let address = connection.address
+        let ctx = NPCScriptContext(npcID: npcID) { [weak connection] notification in
+            try await connection?.send(notification)
+        }
+
+        await NPCConversationRegistry.shared.set(ctx, for: address)
+
+        Task {
+            do {
+                try await script(ctx)
+            } catch is CancellationError {
+                // player dismissed the dialog — normal flow
+            } catch {
+                // script error; conversation ends
+            }
+            await NPCConversationRegistry.shared.remove(address)
+        }
     }
 }
