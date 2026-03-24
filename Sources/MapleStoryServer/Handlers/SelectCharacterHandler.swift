@@ -7,19 +7,20 @@
 
 import Foundation
 import MapleStory
+import MapleStoryServer62
 
 public extension MapleStoryServer.Connection {
-    
+
     /// Select Character
     func selectCharacter(
         _ characterIndex: Character.Index
     ) async throws -> Channel {
-        
+
         log("Select Character \(characterIndex)")
-        
+
         let ipAddress = self.address.address
         let requestTime = Date()
-        
+
         guard self.state.user != nil else {
             throw MapleStoryError.notAuthenticated
         }
@@ -32,7 +33,13 @@ public extension MapleStoryServer.Connection {
         guard var character = try await Character.fetch(characterIndex, world: world.id, in: database) else {
             throw MapleStoryError.invalidCharacter
         }
-        
+
+        // Load character skills from database/registry
+        try await CharacterSkillRegistry.shared.loadSkills(for: character.id, database: database)
+
+        // Load quest data
+        try await await character.loadQuestData(from: database)
+
         // create session
         if let previousSession = character.session {
             channel.sessions.removeAll(where: { $0 == previousSession })
@@ -51,7 +58,7 @@ public extension MapleStoryServer.Connection {
         character.session = session.id
         try await database.insert(channel)
         try await database.insert(character)
-        
+
         return channel
     }
 }

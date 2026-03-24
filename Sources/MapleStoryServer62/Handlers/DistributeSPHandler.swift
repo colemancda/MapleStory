@@ -24,11 +24,40 @@ public struct DistributeSPHandler: PacketHandler {
         guard var character = try await connection.character else { return }
         guard character.sp > 0 else { return }
 
-        // Decrement the SP pool. Skill leveling requires a skill system (Phase 3);
-        // for now just consume the point and notify the client.
+        // Look up skill data
+        guard let skill = await SkillDataCache.shared.skill(id: packet.skillID) else {
+            return // Invalid skill
+        }
+
+        // Get current skill data
+        let currentSkill = await CharacterSkillRegistry.shared.skill(packet.skillID, for: character.id)
+        let currentLevel = currentSkill?.level ?? 0
+
+        // Check if skill exists for this job
+        guard canLearnSkill(skillID: packet.skillID, job: character.job) else {
+            return // Wrong job for this skill
+        }
+
+        // Check if max level reached
+        let maxLevel = currentSkill?.masteryLevel ?? 10
+        guard currentLevel < maxLevel else {
+            return // Already at max level
+        }
+
+        // Try to add skill level
+        let success = await CharacterSkillRegistry.shared.addSkillLevel(packet.skillID, for: character.id)
+        guard success else {
+            return // Failed to level up
+        }
+
+        // Decrement SP
         character.sp -= 1
         try await connection.database.insert(character)
 
+        // Save skills to database
+        try await CharacterSkillRegistry.shared.saveSkills(for: character.id, database: connection.database)
+
+        // Send stat update
         let notification = UpdateStatsNotification(
             announce: true,
             stats: .availableSP,
@@ -39,5 +68,43 @@ public struct DistributeSPHandler: PacketHandler {
             exp: nil, fame: nil, meso: nil
         )
         try await connection.send(notification)
+
+        // TODO: Send skill level update packet (updateSkills opcode)
+    }
+
+    // MARK: - Private Helpers
+
+    private func canLearnSkill(skillID: UInt32, job: Job) -> Bool {
+        // Simple job check: skill ID prefix must match job type
+        let jobPrefix = skillID / 10000
+
+        switch job.type {
+        case .beginner:
+            return jobPrefix == 1000 // Beginner skills
+        case .warrior:
+            return jobPrefix == 1100 || jobPrefix == 1200 || jobPrefix == 1300 || // 1st job
+                   jobPrefix == 1110 || jobPrefix == 1210 || jobPrefix == 1310 || // 2nd job
+                   jobPrefix == 1111 || jobPrefix == 1211 || jobPrefix == 1311 || // 3rd job
+                   jobPrefix == 1120 || jobPrefix == 1220 || jobPrefix == 1320     // 4th job (Hero/Paladin/DK)
+        case .magician:
+            return jobPrefix == 2000 || // 1st job (Magician)
+                   jobPrefix == 2100 || jobPrefix == 2200 || jobPrefix == 2300 || // 2nd job (F/P/I/L)
+                   jobPrefix == 2110 || jobPrefix == 2210 || jobPrefix == 2310 || // 3rd job
+                   jobPrefix == 2120 || jobPrefix == 2220 || jobPrefix == 2320     // 4th job
+        case .bowman:
+            return jobPrefix == 3000 || jobPrefix == 3100 || jobPrefix == 3200 ||
+                   jobPrefix == 3110 || jobPrefix == 3210 ||
+                   jobPrefix == 3120 || jobPrefix == 3220 // 4th job
+        case .thief:
+            return jobPrefix == 4000 || jobPrefix == 4100 || jobPrefix == 4200 ||
+                   jobPrefix == 4110 || jobPrefix == 4210 ||
+                   jobPrefix == 4120 || jobPrefix == 4220 // 4th job
+        case .pirate:
+            return jobPrefix == 5000 || jobPrefix == 5100 || jobPrefix == 5200 ||
+                   jobPrefix == 5110 || jobPrefix == 5210 ||
+                   jobPrefix == 5120 || jobPrefix == 5220 // 4th job
+        default:
+            return false
+        }
     }
 }
