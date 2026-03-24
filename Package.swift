@@ -200,6 +200,9 @@ let package = Package(
             dependencies: [
                 "MapleStory",
                 "MapleStoryServer"
+            ],
+            resources: [
+                .copy("Resources")
             ]
         ),
         .testTarget(
