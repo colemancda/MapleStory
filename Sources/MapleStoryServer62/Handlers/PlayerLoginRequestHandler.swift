@@ -64,7 +64,7 @@ public struct PlayerLoginRequestHandler: PacketHandler {
             random2: UInt32.random(in: 0 ..< .max),
             stats: stats,
             buddyListSize: 20,
-            meso: 0,
+            meso: character.meso,
             equipSlots: 100,
             useSlots: 100,
             setupSlots: 100,
