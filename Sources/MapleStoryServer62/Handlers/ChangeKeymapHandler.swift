@@ -11,6 +11,60 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles changes to a player's keymap configuration.
+///
+/// # Keymap System
+///
+/// The keymap allows players to customize which keyboard keys activate
+/// skills, items, and other actions. Each player can have a unique
+/// keymap configuration.
+///
+/// # Keymap Change Flow
+///
+/// 1. Player opens keymap settings UI
+/// 2. Player drags skills/items to key slots
+/// 3. Player saves changes
+/// 4. Client sends updated keymap bindings
+/// 5. Server saves keymap to KeymapRegistry
+/// 6. Server persists keymap to database
+///
+/// # Keymap Structure
+///
+/// Each keymap entry contains:
+/// - **Key**: Keyboard key identifier (e.g., A, 1, F1)
+/// - **Type**: Action type (skill, item, general, etc.)
+/// - **Action**: Action ID (skill ID, item ID, etc.)
+///
+/// # Common Keymap Actions
+///
+/// - **Skills**: Most skills (1st-4th job skills)
+/// - **Items**: Potions, consumables, etc.
+/// - **Emotes**: Happiness, anger, etc.
+/// - **Chat**: Chat macros
+/// - **Pick up**: Quick item pickup
+/// - **Sit**: Sit/rest action
+///
+/// # Persistence
+///
+/// Keymaps are saved in two places:
+/// 1. **KeymapRegistry**: In-memory for active players
+/// 2. **Database**: Persisted for cross-session storage
+///
+/// This ensures keymap is:
+/// - Available during gameplay (memory)
+/// - Saved between server restarts (database)
+/// - Restored when player logs in
+///
+/// # TODO
+///
+/// - Implement database loading of keymaps
+/// - Implement database saving of keymaps
+/// - Handle keymap validation (invalid key combinations)
+///
+/// # Response
+///
+/// No response sent. The keymap is silently saved and will be
+/// sent to the client when the character logs in or changes channels.
 public struct ChangeKeymapHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.ChangeKeymapRequest

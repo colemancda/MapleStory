@@ -10,6 +10,31 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles requests to list all characters across all worlds.
+///
+/// # Character List Flow
+///
+/// 1. Client requests all characters for logged-in account
+/// 2. Server fetches characters grouped by world
+/// 3. Server limits to 60 characters per world
+/// 4. Server sends character count packet
+/// 5. Server sends character list packets (one per world)
+///
+/// # Response Structure
+///
+/// The server sends multiple packets:
+/// - First packet: Total character count
+/// - Subsequent packets: Characters per world (max 60 per world)
+///
+/// # Empty Account
+///
+/// If the account has no characters:
+/// - Returns single packet with count = 0, value0 = 3
+///
+/// # Purpose
+///
+/// This handler is used to display the character selection screen showing
+/// all characters the account has created across all worlds.
 public struct AllCharactersListHandler: PacketHandler {
     
     public typealias Packet = MapleStory62.AllCharactersRequest

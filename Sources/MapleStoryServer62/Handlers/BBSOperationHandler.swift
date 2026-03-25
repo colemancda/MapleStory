@@ -11,6 +11,66 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles guild BBS (Bulletin Board System) operations.
+///
+/// # Guild BBS System
+///
+/// The BBS allows guild members to post and reply to messages, similar to a forum.
+/// Each guild has its own BBS with threads and replies.
+///
+/// # Operations
+///
+/// ## New Thread
+/// - Creates a new BBS thread
+/// - Requires valid icon (0-2 or 0x64-0x6a)
+/// - Any guild member can create threads
+///
+/// ## Edit Thread
+/// - Modifies existing thread title, body, and icon
+/// - Only thread owner can edit
+/// - Guild masters/juniors can edit any thread
+///
+/// ## Delete Thread
+/// - Removes a thread and all its replies
+/// - Only thread owner can delete
+/// - Guild masters/juniors can delete any thread
+///
+/// ## List Threads
+/// - Returns paginated list of guild BBS threads
+/// - Notice thread always displayed first (pinned)
+/// - Regular threads paginated (10 per page)
+///
+/// ## View Thread
+/// - Returns full thread content and all replies
+/// - Shows thread title, body, icon, and replies
+///
+/// ## Reply to Thread
+/// - Adds a reply to an existing thread
+/// - Any guild member can reply
+///
+/// ## Delete Reply
+/// - Removes a specific reply from a thread
+/// - Only guild masters/juniors can delete replies
+///
+/// # Icons
+///
+/// Thread icons:
+/// - **0-2**: Free icons (no NX required)
+/// - **0x64-0x6a (100-106)**: NX cash shop icons
+///
+/// # Permissions
+///
+/// Thread modification permissions:
+/// - ✅ Thread owner: Can edit/delete own thread
+/// - ✅ Guild master: Can edit/delete any thread/reply
+/// - ✅ Junior master: Can edit/delete any thread/reply
+/// - ❌ Regular member: Cannot edit/delete others' threads
+///
+/// # Response
+///
+/// - **New/Edit/Delete/Reply**: Sends updated thread list or thread view
+/// - **List**: Sends paginated thread list with notice thread first
+/// - **View**: Sends full thread with all replies
 public struct BBSOperationHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.BBSOperationRequest

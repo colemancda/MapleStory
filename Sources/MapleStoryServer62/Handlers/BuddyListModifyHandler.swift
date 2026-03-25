@@ -11,6 +11,53 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles buddy list modifications (add, accept, remove).
+///
+/// # Buddy List System
+///
+/// The buddy list allows players to add friends and see when they're online.
+/// Buddy list changes are stored in the BuddyListRegistry and updated in real-time.
+///
+/// # Operations
+///
+/// ## Add Buddy
+/// - Request to add a character by name
+/// - Server searches for character in the same world
+/// - If found, adds to player's buddy list
+/// - If already in list, sends error message
+/// - If not found, sends "Character not found" error
+///
+/// ## Accept Buddy Request
+/// - Accepts a pending buddy request
+/// - Adds the requesting player to buddy list
+/// - Both players become mutual buddies
+///
+/// ## Remove Buddy
+/// - Removes a character from buddy list
+/// - Takes effect immediately
+/// - Buddy list is updated and sent to client
+///
+/// # Buddy List Limitations
+///
+/// - Buddy list has a maximum capacity (typically 20-30 slots)
+/// - Cannot add yourself as a buddy
+/// - Can only add characters in the same world
+/// - Character must exist to be added
+///
+/// # Response
+///
+/// After any modification, sends `BuddyListNotification.update` with:
+/// - Complete updated buddy list
+/// - Online status of each buddy
+/// - Channel of each online buddy
+/// - -1 if buddy is offline
+///
+/// # Error Messages
+///
+/// | Situation | Message |
+/// |-----------|---------|
+/// | Character not found | "Character not found." |
+/// | Already in buddy list | "[Name] is already in your buddy list." |
 public struct BuddyListModifyHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.BuddyListModifyRequest

@@ -11,6 +11,41 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles cancellation of active skill buffs.
+///
+/// # Buff Cancellation Flow
+///
+/// 1. Player right-clicks buff icon or presses skill key to cancel buff
+/// 2. Client sends cancel buff request with skill ID
+/// 3. Server validates player is logged in
+/// 4. Server removes buff from CharacterBuffRegistry
+/// 5. Server sends cancellation notification to client
+/// 6. (TODO) Server recalculates character stats without buff
+///
+/// # Buff System
+///
+/// Buffs are temporary stat modifications from skills:
+/// - **Attack buffs**: Increase attack power
+/// - **Defense buffs**: Increase defense
+/// - **Speed buffs**: Increase movement speed
+/// - **Stat boosts**: Increase STR, DEX, INT, LUK
+/// - **Skill buffs**: Enable special abilities
+///
+/// # Cancellation
+///
+/// Players can cancel buffs:
+/// - By right-clicking the buff icon
+/// - By pressing the skill key again
+/// - When the buff expires naturally (timeout)
+/// - When the player dies
+/// - When the player changes maps (some buffs)
+///
+/// # TODO
+///
+/// - Recalculate character stats after buff removal
+/// - Save character if stats were modified
+/// - Handle multiple buffs that affect the same stat
+/// - Broadcast buff cancellation to nearby players
 public struct CancelBuffHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.CancelBuffRequest
