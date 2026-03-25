@@ -9,7 +9,6 @@ public struct BoatEffectNotification: MapleStoryPacket, Equatable, Hashable, Sen
 
     public static var opcode: ServerOpcode { .boatEffect }
 
-    /// Java sends 1 or 2.
     public let effect: UInt16
 
     public init(effect: UInt16) {

@@ -21,17 +21,16 @@ import MapleStoryServer
 ///
 /// | Mode | Operation | Description |
 /// |------|-----------|-------------|
-/// | 0 | Open | Open storage UI |
-/// | 1 | Deposit | Store item in storage |
-/// | 2 | Withdraw | Take item from storage |
-/// | 3 | Meso | Deposit/withdraw mesos |
-/// | 4 | Close | Close storage UI |
+/// | 4 | Withdraw | Take item from storage |
+/// | 5 | Deposit | Store item in storage (costs 100 mesos) |
+/// | 7 | Meso | Deposit/withdraw mesos |
+/// | 8 | Close | Close storage UI |
 ///
 /// # Storage Limits
 ///
-/// - **Slots**: Default 4 slots, expandable with NX
+/// - **Slots**: Default 16 slots, expandable with NX
 /// - **Items**: Up to 1 item per slot
-/// - **Mesos**: Can store unlimited mesos
+/// - **Mesos**: Can store mesos (with overflow protection)
 ///
 /// # Cross-Character Access
 ///
@@ -40,6 +39,9 @@ import MapleStoryServer
 public struct StorageHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.StorageRequest
+
+    /// Fee for depositing items into storage
+    public static let depositFee: UInt32 = 100
 
     public init() { }
 
@@ -94,6 +96,9 @@ public struct StorageHandler: PacketHandler {
                 connection: connection
             )
 
+        case 8: // Close
+            await handleClose(userID: userID)
+
         default:
             return // Invalid mode
         }
@@ -111,16 +116,26 @@ public struct StorageHandler: PacketHandler {
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
+        let storage = await StorageRegistry.shared.storage(userID: userID)
+        
+        // Convert UI slot to actual storage slot based on inventory type
+        guard let actualSlot = await StorageRegistry.shared.getSlot(
+            inventoryType: InventoryType(rawValue: inventoryType) ?? .etc,
+            uiSlot: Int8(slot),
+            userID: userID
+        ) else {
+            return // Invalid slot
+        }
+        
         // Withdraw item from storage
         guard let item = await StorageRegistry.shared.withdrawItem(
-            slot: Int8(slot),
+            slot: actualSlot,
             from: userID
         ) else {
             return // No item at slot
         }
 
         let manipulator = InventoryManipulator()
-        let invType = InventoryType(rawValue: inventoryType) ?? .etc
 
         // Check inventory space
         guard try await manipulator.checkSpace(
@@ -130,6 +145,8 @@ public struct StorageHandler: PacketHandler {
         ) else {
             // Return item to storage
             _ = await StorageRegistry.shared.depositItem(item, to: userID)
+            // Send "inventory full" notice
+            try await connection.send(ServerMessageNotification.alert("Your inventory is full"))
             return
         }
 
@@ -140,8 +157,12 @@ public struct StorageHandler: PacketHandler {
             to: character
         )
 
-        // Send storage update notification
-        try await sendStorageUpdate(userID: userID, connection: connection)
+        // Send storage update notification (taken out)
+        try await sendTakenOutNotification(
+            inventoryType: InventoryType(rawValue: inventoryType) ?? .etc,
+            userID: userID,
+            connection: connection
+        )
     }
 
     // MARK: - Deposit
@@ -154,6 +175,23 @@ public struct StorageHandler: PacketHandler {
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
+        guard quantity >= 1 else {
+            return // Invalid quantity
+        }
+        
+        let storage = await StorageRegistry.shared.storage(userID: userID)
+        
+        guard !storage.isFull else {
+            try await connection.send(StorageFullNotification())
+            return
+        }
+        
+        // Check if player has enough mesos for deposit fee
+        guard character.meso >= Self.depositFee else {
+            try await connection.send(ServerMessageNotification.alert("You don't have enough mesos to store the item"))
+            return
+        }
+        
         let inventory = await character.getInventory()
 
         // Determine inventory type from item ID
@@ -166,9 +204,14 @@ public struct StorageHandler: PacketHandler {
             return
         }
 
-        // Verify item ID
+        // Verify item ID matches 
         guard item.itemId == itemID else {
-            return
+            return // Item ID mismatch - potential exploit
+        }
+        
+        // Verify quantity
+        guard item.quantity >= UInt16(quantity) else {
+            return // Quantity mismatch - potential exploit
         }
 
         // Remove from character inventory
@@ -182,19 +225,31 @@ public struct StorageHandler: PacketHandler {
         guard removed else {
             return
         }
+        
+        // Deduct deposit fee 
+        character.meso = character.meso - Self.depositFee
+
+        // Prepare item for storage with correct quantity
+        var storageItem = item
+        storageItem.quantity = UInt16(quantity)
 
         // Deposit into storage
-        guard let storageSlot = await StorageRegistry.shared.depositItem(
-            item,
+        guard let _ = await StorageRegistry.shared.depositItem(
+            storageItem,
             to: userID
         ) else {
-            // Return item to character (no storage space)
+            // Return item to character (no storage space) - should not happen since we checked
             try await manipulator.addFromDrop(itemID, quantity: UInt16(quantity), to: character)
+            character.meso = character.meso + Self.depositFee // Refund fee
             return
         }
 
-        // Send storage update notification
-        try await sendStorageUpdate(userID: userID, connection: connection)
+        // Send storage update notification (stored)
+        try await sendStoredNotification(
+            inventoryType: inventoryType,
+            userID: userID,
+            connection: connection
+        )
     }
 
     // MARK: - Meso
@@ -205,53 +260,140 @@ public struct StorageHandler: PacketHandler {
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        if meso > 0 {
-            // Withdraw mesos from storage
-            let success = await StorageRegistry.shared.removeMesos(meso, from: userID)
-            guard success else {
+        let mesoSigned = Int32(bitPattern: meso)
+        let storage = await StorageRegistry.shared.storage(userID: userID)
+        let storageMesos = Int32(bitPattern: storage.mesos)
+        let playerMesos = Int32(bitPattern: character.meso)
+        
+        var transferAmount = mesoSigned
+        
+        // if ((meso > 0 && storageMesos >= meso) || (meso < 0 && playerMesos >= -meso))
+        if mesoSigned > 0 {
+            // Withdrawing from storage
+            guard storageMesos >= mesoSigned else {
                 return // Not enough mesos in storage
             }
-            character.meso = character.meso + meso
-        } else {
-            // Deposit mesos to storage
-            let amount = abs(Int32(bitPattern: meso))
-            guard character.meso >= UInt32(amount) else {
-                return // Not enough mesos
+            
+            // Overflow protection
+            if playerMesos + mesoSigned < 0 {
+                // Would overflow - cap at max
+                transferAmount = Int32.max - playerMesos
+                guard transferAmount <= storageMesos else {
+                    return // Should never happen
+                }
             }
-            character.meso = character.meso - UInt32(amount)
-            await StorageRegistry.shared.addMesos(UInt32(amount), to: userID)
+            
+            // Update storage and character
+            let _ = await StorageRegistry.shared.removeMesos(UInt32(bitPattern: transferAmount), from: userID)
+            character.meso = UInt32(bitPattern: playerMesos + transferAmount)
+            
+        } else if mesoSigned < 0 {
+            // Depositing to storage (negative value means deposit)
+            let depositAmount = -mesoSigned
+            guard playerMesos >= depositAmount else {
+                return // Not enough mesos on character
+            }
+            
+            // Overflow protection 
+            if storageMesos + depositAmount < 0 {
+                // Would overflow - cap at max
+                transferAmount = -(Int32.max - storageMesos)
+                let cappedDeposit = -transferAmount
+                guard cappedDeposit <= playerMesos else {
+                    return // Should never happen
+                }
+            }
+            
+            // Update storage and character
+            await StorageRegistry.shared.addMesos(UInt32(bitPattern: -transferAmount), to: userID)
+            character.meso = UInt32(bitPattern: playerMesos + transferAmount) // transferAmount is negative
+            
+        } else {
+            return // meso == 0, nothing to do
         }
 
-        // Send storage update notification
-        try await sendStorageUpdate(userID: userID, connection: connection)
+        // Send meso update notification
+        try await sendMesoNotification(userID: userID, connection: connection)
     }
 
-    // MARK: - Helper
+    // MARK: - Close
 
-    private func sendStorageUpdate<Socket: MapleStorySocket, Database: ModelStorage>(
+    private func handleClose(userID: User.ID) async {
+        await StorageRegistry.shared.close(userID: userID)
+    }
+
+    // MARK: - Notifications
+
+    private func sendStoredNotification<Socket: MapleStorySocket, Database: ModelStorage>(
+        inventoryType: InventoryType,
         userID: User.ID,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let storage = await StorageRegistry.shared.storage(userID: userID)
-
-        // Convert storage items to notification format
-        var items: [StorageItemEntry] = []
-        for (slot, item) in storage.items {
-            items.append(StorageItemEntry(
-                slot: slot,
-                itemID: item.itemId,
-                quantity: item.quantity
-            ))
-        }
-
-        // TODO: Track actual storage NPC ID from conversation
-        // For now, use 0 as placeholder
-        try await connection.send(OpenStorageNotification(
-            npcID: 0,
-            mesos: storage.mesos,
-            slots: storage.slots,
-            maxSlots: storage.maxSlots,
-            items: items
+        let items = await StorageRegistry.shared.getItemsByType(inventoryType, userID: userID)
+        
+        try await connection.send(StorageStoredNotification(
+            slots: storage.maxSlots,
+            inventoryType: inventoryType,
+            items: items.map { StorageItemEntry(slot: $0.slot, itemID: $0.itemId, quantity: $0.quantity) }
         ))
     }
+
+    private func sendTakenOutNotification<Socket: MapleStorySocket, Database: ModelStorage>(
+        inventoryType: InventoryType,
+        userID: User.ID,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        let storage = await StorageRegistry.shared.storage(userID: userID)
+        let items = await StorageRegistry.shared.getItemsByType(inventoryType, userID: userID)
+        
+        try await connection.send(StorageTakenOutNotification(
+            slots: storage.maxSlots,
+            inventoryType: inventoryType,
+            items: items.map { StorageItemEntry(slot: $0.slot, itemID: $0.itemId, quantity: $0.quantity) }
+        ))
+    }
+
+    private func sendMesoNotification<Socket: MapleStorySocket, Database: ModelStorage>(
+        userID: User.ID,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        let storage = await StorageRegistry.shared.storage(userID: userID)
+        
+        try await connection.send(StorageMesoNotification(
+            slots: storage.maxSlots,
+            mesos: storage.mesos
+        ))
+    }
+}
+
+// MARK: - Additional Notifications
+
+/// Notification sent when storage is full
+public struct StorageFullNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+    public static var opcode: ServerOpcode { .storageFull }
+    public init() {}
+}
+
+/// Notification sent when item is stored
+public struct StorageStoredNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+    public static var opcode: ServerOpcode { .storageStored }
+    public let slots: UInt8
+    public let inventoryType: InventoryType
+    public let items: [StorageItemEntry]
+}
+
+/// Notification sent when item is taken out
+public struct StorageTakenOutNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+    public static var opcode: ServerOpcode { .storageTakenOut }
+    public let slots: UInt8
+    public let inventoryType: InventoryType
+    public let items: [StorageItemEntry]
+}
+
+/// Notification sent when mesos are updated
+public struct StorageMesoNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
+    public static var opcode: ServerOpcode { .storageMeso }
+    public let slots: UInt8
+    public let mesos: UInt32
 }

@@ -35,7 +35,7 @@ extension StorageRequest: MapleStoryDecodable {
             self.slot = try container.decode(UInt8.self)
             self.itemID = nil; self.quantity = nil; self.meso = nil
         case 5: // deposit
-            self.slot = try container.decode(UInt8.self)
+            self.slot = UInt8(truncatingIfNeeded: try container.decode(Int16.self))
             self.itemID = try container.decode(UInt32.self)
             self.quantity = try container.decode(Int16.self)
             self.inventoryType = nil; self.meso = nil

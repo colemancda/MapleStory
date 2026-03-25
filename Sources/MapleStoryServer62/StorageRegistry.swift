@@ -26,11 +26,10 @@ public actor StorageRegistry {
         if let existing = storage[userID] {
             return existing
         }
-        // Create new storage
         let newStorage = Storage(
             userID: userID,
             mesos: 0,
-            maxSlots: 4, // Default 4 slots
+            maxSlots: 16,
             items: [:]
         )
         storage[userID] = newStorage
@@ -104,5 +103,50 @@ public actor StorageRegistry {
     ) -> InventoryItem? {
         let stor = storage(userID: userID)
         return stor.items[slot]
+    }
+    
+    /// Convert UI slot to actual storage slot based on inventory type.
+    public func getSlot(
+        inventoryType: InventoryType,
+        uiSlot: Int8,
+        userID: User.ID
+    ) -> Int8? {
+        let stor = storage(userID: userID)
+        
+        // Filter items by inventory type
+        let filteredItems = stor.items.filter { (_, item) in
+            guard let itemType = try? await ItemDataCache.shared.inventoryType(for: item.itemId) else { return false }
+            return itemType == inventoryType
+        }
+        
+        // Sort by slot
+        let sortedItems = filteredItems.sorted { $0.key < $1.key }
+        
+        // Get the item at the UI slot position
+        let index = Int(uiSlot)
+        guard index >= 0 && index < sortedItems.count else {
+            return nil
+        }
+        
+        return sortedItems[index].key
+    }
+    
+    /// Get items filtered by inventory type.
+    public func getItemsByType(
+        inventoryType: InventoryType,
+        userID: User.ID
+    ) -> [InventoryItem] {
+        let stor = storage(userID: userID)
+        
+        return stor.items.filter { (_, item) in
+            guard let itemType = try? await ItemDataCache.shared.inventoryType(for: item.itemId) else { return false }
+            return itemType == inventoryType
+        }.map { $0.value }
+    }
+    
+    /// Close storage (clears any cached data).
+    public func close(userID: User.ID) {
+        // Currently storage is in-memory, so no cleanup needed
+        // In the future, this could persist to database
     }
 }

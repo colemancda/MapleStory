@@ -8,7 +8,6 @@
 import Foundation
 
 /// Buddy list modification request packet.
-/// Based on BuddylistModifyHandler.java
 public enum BuddyListModifyRequest: Equatable, Hashable, Sendable {
     
     /// Add buddy by name

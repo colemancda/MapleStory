@@ -32,7 +32,7 @@ public struct Storage: Codable, Equatable, Hashable, Sendable {
     public init(
         userID: User.ID,
         mesos: UInt32 = 0,
-        maxSlots: UInt8 = 4,
+        maxSlots: UInt8 = 16, // Default 16 slots 
         items: [Int8: InventoryItem] = [:]
     ) {
         self.userID = userID
@@ -44,5 +44,10 @@ public struct Storage: Codable, Equatable, Hashable, Sendable {
     /// Check if storage has space for more items
     public var hasSpace: Bool {
         return items.count < Int(maxSlots)
+    }
+    
+    /// Check if storage is full
+    public var isFull: Bool {
+        return items.count >= Int(maxSlots)
     }
 }

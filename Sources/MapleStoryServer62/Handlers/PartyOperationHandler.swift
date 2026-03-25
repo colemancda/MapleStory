@@ -159,7 +159,6 @@ public struct PartyOperationHandler: PacketHandler {
             ))
 
         case 0x06: // Disband party
-            // Java op 0x06 passes party leadership.
             guard let party = await PartyRegistry.shared.party(for: character.id),
                   party.leaderID == character.id,
                   let newLeader = packet.targetCharacterID else {
