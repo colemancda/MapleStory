@@ -259,16 +259,24 @@ public struct SpecialMoveHandler: PacketHandler {
         }
 
         // Find a free door portal (type 6) in the town
-        let townMapID = mapData.returnMap
+        let townMapID = Map.ID(rawValue: mapData.info.returnMap)
         guard let townMapData = await MapDataCache.shared.map(id: townMapID) else {
             return
         }
 
-        // Find first available door portal (type 6)
+        // Find first available door portal (type 6) in the town
         let doorPortals = townMapData.portals.filter { $0.type == 6 }
-        guard let portal = doorPortals.first else {
+        guard let (portalIndex, portal) = doorPortals.enumerated().first(where: { $0.element.type == 6 }) else {
             try await connection.send(ServerMessageNotification.notice(
                 message: "No door portals available in town."
+            ))
+            return
+        }
+
+        // Get character position
+        guard let charPosition = await PlayerPositionRegistry.shared.position(for: character.id) else {
+            try await connection.send(ServerMessageNotification.notice(
+                message: "Cannot determine your position."
             ))
             return
         }
@@ -276,15 +284,15 @@ public struct SpecialMoveHandler: PacketHandler {
         // Get door duration based on skill level
         // Level 1: 300 seconds (5 minutes), increases with level
         let baseDuration: TimeInterval = 300.0
-        let duration = baseDuration + TimeInterval(skillLevel * 10.0)
+        let duration = baseDuration + TimeInterval(skillLevel) * 10.0
 
         // Create the door
         let door = Door(
             ownerID: character.id,
             townMapID: townMapID,
-            townPortalID: portal.id,
+            townPortalID: UInt8(portalIndex),
             fieldMapID: character.currentMap,
-            fieldPosition: Position(x: character.x, y: character.y),
+            fieldPosition: Position(x: charPosition.x, y: charPosition.y),
             duration: duration
         )
 
