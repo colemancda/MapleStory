@@ -9,45 +9,63 @@ import Foundation
 
 /// Buddy list modification request packet.
 /// Based on BuddylistModifyHandler.java
-public struct BuddyListModifyRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
-
-    public static var opcode: ClientOpcode { .buddylistModify }
-
-    /// Operation mode:
-    /// - 1: Add buddy by name
-    /// - 2: Accept pending buddy request
-    /// - 3: Remove buddy
-    public let mode: Mode
-
-    /// Name to add (mode == 1)
-    public let addName: String?
+public enum BuddyListModifyRequest: Equatable, Hashable, Sendable {
     
-    /// Other character ID (mode == 2 or 3)
-    public let otherCharacterID: UInt32?
+    /// Add buddy by name
+    case add(name: String)
+    
+    /// Accept pending buddy request
+    case accept(characterID: UInt32)
+    
+    /// Remove buddy
+    case remove(characterID: UInt32)
 }
 
-// MARK: - Mode Enum
+// MARK: - MapleStoryPacket
 
-public extension BuddyListModifyRequest {
+extension BuddyListModifyRequest: MapleStoryPacket {
+    
+    public static var opcode: ClientOpcode { .buddylistModify }
+}
 
-    enum Mode: UInt8, CaseIterable, Sendable, Codable {
+// MARK: - Mode
+
+internal extension BuddyListModifyRequest {
+    
+    enum Mode: UInt8, Codable {
         case add = 1
         case accept = 2
         case remove = 3
     }
+    
+    var mode: Mode {
+        switch self {
+        case .add:
+            return .add
+        case .accept:
+            return .accept
+        case .remove:
+            return .remove
+        }
+    }
 }
+
+// MARK: - MapleStoryDecodable
 
 extension BuddyListModifyRequest: MapleStoryDecodable {
 
     public init(from container: MapleStoryDecodingContainer) throws {
-        self.mode = try container.decode(Mode.self)
+        let mode = try container.decode(BuddyListModifyRequest.Mode.self)
         switch mode {
         case .add:
-            self.addName = try container.decode(String.self)
-            self.otherCharacterID = nil
-        case .accept, .remove:
-            self.addName = nil
-            self.otherCharacterID = try container.decode(UInt32.self)
+            let name = try container.decode(String.self)
+            self = .add(name: name)
+        case .accept:
+            let characterID = try container.decode(UInt32.self)
+            self = .accept(characterID: characterID)
+        case .remove:
+            let characterID = try container.decode(UInt32.self)
+            self = .remove(characterID: characterID)
         }
     }
 }
