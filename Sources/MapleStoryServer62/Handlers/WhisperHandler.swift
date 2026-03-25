@@ -11,6 +11,32 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles whisper (private message) communication between players.
+///
+/// Whispers are private messages sent directly from one player to another.
+/// They work across different maps and channels within the same world.
+///
+/// # Whisper Flow
+///
+/// 1. Player types: /w [name] [message] or uses whisper UI
+/// 2. Client sends whisper request with recipient name and message
+/// 3. Server looks up recipient by name
+/// 4. Server validates recipient is online
+/// 5. Server routes message to recipient's connection
+/// 6. Recipient sees whisper in their chat window
+///
+/// # Whisper Features
+///
+/// - Cross-map communication
+/// - Cross-channel communication (same world)
+/// - Private (only sender and recipient see message)
+/// - Sender sees delivery confirmation or error
+///
+/// # Error Responses
+///
+/// - Recipient not found (wrong name)
+/// - Recipient offline
+/// - Recipient has whispers blocked
 public struct WhisperHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.WhisperRequest

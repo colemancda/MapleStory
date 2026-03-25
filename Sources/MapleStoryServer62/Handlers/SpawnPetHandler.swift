@@ -11,6 +11,35 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles pet spawning/despawning from the cash inventory.
+///
+/// Players can spawn pets from their cash inventory to have them follow
+/// the character in-game. This handler toggles pet visibility - spawning
+/// an already-active pet will despawn it instead.
+///
+/// # Pet Spawning Flow
+///
+/// 1. Player double-clicks pet item in cash inventory
+/// 2. Client sends spawn pet request with slot number
+/// 3. Server validates pet item exists in slot
+/// 4. If pet already active → despawn (toggle off)
+/// 5. If pet inactive → spawn at player position (toggle on)
+/// 6. Server broadcasts spawn/despawn to all map players
+///
+/// # Pet Slots
+///
+/// - Characters can have up to 3 active pets (slots 0, 1, 2)
+/// - The "lead" pet is the primary one that follows closest
+/// - Other pets follow at slightly different positions
+///
+/// # Pet Position
+///
+/// Pets spawn slightly above the player's position (y - 12) to
+/// avoid overlapping with the character sprite.
+///
+/// # Broadcasting
+///
+/// Sends `SpawnPetNotification` to all players on the current map.
 public struct SpawnPetHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.SpawnPetRequest

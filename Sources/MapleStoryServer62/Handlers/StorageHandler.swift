@@ -11,6 +11,32 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles account storage (bank) operations.
+///
+/// Account storage is a shared bank that allows players to transfer
+/// items and mesos between their characters on the same world.
+/// Storage is accessed via NPC (e.g., Mr. Lee in Henesys).
+///
+/// # Storage Operations
+///
+/// | Mode | Operation | Description |
+/// |------|-----------|-------------|
+/// | 0 | Open | Open storage UI |
+/// | 1 | Deposit | Store item in storage |
+/// | 2 | Withdraw | Take item from storage |
+/// | 3 | Meso | Deposit/withdraw mesos |
+/// | 4 | Close | Close storage UI |
+///
+/// # Storage Limits
+///
+/// - **Slots**: Default 4 slots, expandable with NX
+/// - **Items**: Up to 1 item per slot
+/// - **Mesos**: Can store unlimited mesos
+///
+/// # Cross-Character Access
+///
+/// All characters on the same account and world share the same storage,
+/// making it useful for transferring items between characters.
 public struct StorageHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.StorageRequest

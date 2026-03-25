@@ -11,6 +11,32 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles summon attack packets (damage from summoned creatures).
+///
+/// Some classes (e.g., Bishop with Bahamut, Ranger with Silver Hawk)
+/// can summon creatures that automatically attack nearby monsters.
+/// This handler processes the damage dealt by those summons.
+///
+/// # Summon Types
+///
+/// - **Bahamut**: Bishop's dragon summon (holy damage)
+/// - **Silver Hawk**: Ranger's bird summon
+/// - **Golden Eagle**: Sniper's bird summon
+/// - **Puppet**: Ranger/Sniper decoy summon
+/// - **Gaviota**: Outlaw's bird summon
+///
+/// # Attack Flow
+///
+/// 1. Summon automatically targets nearby monsters
+/// 2. Summon attacks and deals damage
+/// 3. Client sends summon attack packet
+/// 4. Server validates summon belongs to player
+/// 5. Server applies damage to target monster
+/// 6. Server broadcasts attack animation to map players
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Summon attack damage is not yet implemented.
 public struct SummonAttackHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.SummonAttackRequest
