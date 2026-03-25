@@ -67,11 +67,9 @@ extension NPCActionNotification: MapleStoryEncodable {
     public func encode(to container: MapleStoryEncodingContainer) throws {
         switch self {
         case .talk(let value0, let value1):
-            try container.encode(ServerOpcode.npcAction)
             try container.encode(value0)
             try container.encode(value1)
         case .move(let data):
-            try container.encode(ServerOpcode.npcAction)
             try container.encode(data)
         }
     }
