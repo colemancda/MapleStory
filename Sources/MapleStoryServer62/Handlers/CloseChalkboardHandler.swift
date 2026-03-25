@@ -20,6 +20,11 @@ public struct CloseChalkboardHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Close chalkboard message — not yet implemented.
+        _ = packet
+        guard let character = try await connection.character else { return }
+        try await connection.broadcast(
+            ChalkboardNotification.close(characterID: character.index),
+            map: character.currentMap
+        )
     }
 }
