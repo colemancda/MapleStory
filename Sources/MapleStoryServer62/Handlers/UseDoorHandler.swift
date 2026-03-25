@@ -92,10 +92,25 @@ public struct UseDoorHandler: PacketHandler {
             return // Invalid mode
         }
 
-        // Find the door by owner ID in the current map
-        // Uses O(1) hash lookup via DoorRegistry
+        // Look up the door owner character by their index to get the UUID
+        // The client sends Character.Index (UInt32), but Door stores Character.ID (UUID)
+        let predicates: [Character.Predicate] = [
+            .index(packet.objectID),
+            .world(character.world)
+        ]
+        let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
+        guard let doorOwner = try await connection.database.fetch(Character.self, predicate: predicate, fetchLimit: 1).first else {
+            // Door owner not found - door likely expired
+            try await connection.send(ServerMessageNotification.notice(
+                message: "That door has expired or doesn't exist."
+            ))
+            try await connection.send(UpdateStatsNotification.enableActions)
+            return
+        }
+
+        // Find the door by owner UUID in the current map
         guard let door = await DoorRegistry.shared.find(
-            ownerID: packet.objectID,
+            ownerID: doorOwner.id,
             in: character.currentMap
         ) else {
             // Door doesn't exist in this map
@@ -108,7 +123,7 @@ public struct UseDoorHandler: PacketHandler {
 
         // Check if door has expired
         if door.isExpired {
-            await DoorRegistry.shared.remove(ownerID: packet.objectID)
+            await DoorRegistry.shared.remove(ownerID: doorOwner.id)
             try await connection.send(ServerMessageNotification.notice(
                 message: "That door has expired."
             ))
@@ -117,7 +132,7 @@ public struct UseDoorHandler: PacketHandler {
         }
 
         // Get player's party for access validation
-        let party = try await connection.database.party(for: character.id)
+        let party = await PartyRegistry.shared.party(for: character.id)
 
         // Check if player can use this door (must be owner or in owner's party)
         guard door.canBeUsed(by: character.id, party: party) else {
