@@ -214,6 +214,91 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case rankMove
         case jobRank
         case jobRankMove
+        case skillMacros
+    }
+    
+    public init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(UUID.self, forKey: .id)
+        index = try container.decode(Index.self, forKey: .index)
+        user = try container.decode(User.ID.self, forKey: .user)
+        world = try container.decode(World.ID.self, forKey: .world)
+        session = try container.decodeIfPresent(Session.ID.self, forKey: .session)
+        created = try container.decode(Date.self, forKey: .created)
+        name = try container.decode(CharacterName.self, forKey: .name)
+        gender = try container.decode(Gender.self, forKey: .gender)
+        skinColor = try container.decode(SkinColor.self, forKey: .skinColor)
+        face = try container.decode(UInt32.self, forKey: .face)
+        hair = try container.decode(Hair.self, forKey: .hair)
+        level = try container.decode(UInt16.self, forKey: .level)
+        job = try container.decode(Job.self, forKey: .job)
+        str = try container.decode(UInt16.self, forKey: .str)
+        dex = try container.decode(UInt16.self, forKey: .dex)
+        int = try container.decode(UInt16.self, forKey: .int)
+        luk = try container.decode(UInt16.self, forKey: .luk)
+        hp = try container.decode(UInt16.self, forKey: .hp)
+        maxHp = try container.decode(UInt16.self, forKey: .maxHp)
+        mp = try container.decode(UInt16.self, forKey: .mp)
+        maxMp = try container.decode(UInt16.self, forKey: .maxMp)
+        ap = try container.decode(UInt16.self, forKey: .ap)
+        sp = try container.decode(UInt16.self, forKey: .sp)
+        exp = try container.decode(Experience.self, forKey: .exp)
+        fame = try container.decode(UInt16.self, forKey: .fame)
+        meso = try container.decode(UInt32.self, forKey: .meso)
+        isMarried = try container.decode(Bool.self, forKey: .isMarried)
+        currentMap = try container.decode(Map.ID.self, forKey: .currentMap)
+        spawnPoint = try container.decode(UInt8.self, forKey: .spawnPoint)
+        isMega = try container.decode(Bool.self, forKey: .isMega)
+        cashWeapon = try container.decode(UInt32.self, forKey: .cashWeapon)
+        equipment = try container.decode(Character.Equipment.self, forKey: .equipment)
+        maskedEquipment = try container.decode(Character.Equipment.self, forKey: .maskedEquipment)
+        isRankEnabled = try container.decode(Bool.self, forKey: .isRankEnabled)
+        worldRank = try container.decode(UInt32.self, forKey: .worldRank)
+        rankMove = try container.decode(UInt32.self, forKey: .rankMove)
+        jobRank = try container.decode(UInt32.self, forKey: .jobRank)
+        jobRankMove = try container.decode(UInt32.self, forKey: .jobRankMove)
+    }
+    
+    public func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(index, forKey: .index)
+        try container.encode(user, forKey: .user)
+        try container.encode(world, forKey: .world)
+        try container.encodeIfPresent(session, forKey: .session)
+        try container.encode(created, forKey: .created)
+        try container.encode(name, forKey: .name)
+        try container.encode(gender, forKey: .gender)
+        try container.encode(skinColor, forKey: .skinColor)
+        try container.encode(face, forKey: .face)
+        try container.encode(hair, forKey: .hair)
+        try container.encode(level, forKey: .level)
+        try container.encode(job, forKey: .job)
+        try container.encode(str, forKey: .str)
+        try container.encode(dex, forKey: .dex)
+        try container.encode(int, forKey: .int)
+        try container.encode(luk, forKey: .luk)
+        try container.encode(hp, forKey: .hp)
+        try container.encode(maxHp, forKey: .maxHp)
+        try container.encode(mp, forKey: .mp)
+        try container.encode(maxMp, forKey: .maxMp)
+        try container.encode(ap, forKey: .ap)
+        try container.encode(sp, forKey: .sp)
+        try container.encode(exp, forKey: .exp)
+        try container.encode(fame, forKey: .fame)
+        try container.encode(meso, forKey: .meso)
+        try container.encode(isMarried, forKey: .isMarried)
+        try container.encode(currentMap, forKey: .currentMap)
+        try container.encode(spawnPoint, forKey: .spawnPoint)
+        try container.encode(isMega, forKey: .isMega)
+        try container.encode(cashWeapon, forKey: .cashWeapon)
+        try container.encode(equipment, forKey: .equipment)
+        try container.encode(maskedEquipment, forKey: .maskedEquipment)
+        try container.encode(isRankEnabled, forKey: .isRankEnabled)
+        try container.encode(worldRank, forKey: .worldRank)
+        try container.encode(rankMove, forKey: .rankMove)
+        try container.encode(jobRank, forKey: .jobRank)
+        try container.encode(jobRankMove, forKey: .jobRankMove)
     }
 }
 
@@ -281,6 +366,13 @@ extension Character: Entity {
                 entity: Character.self,
                 destination: Session.self,
                 type: .toOne,
+                inverseRelationship: .character
+            ),
+            .skillMacros: Relationship(
+                id: .skillMacros,
+                entity: Character.self,
+                destination: SkillMacro.self,
+                type: .toMany,
                 inverseRelationship: .character
             )
         ]

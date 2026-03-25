@@ -96,7 +96,7 @@ extension SkillMacro: Entity {
                 entity: SkillMacro.self,
                 destination: Character.self,
                 type: .toOne,
-                inverseRelationship: nil
+                inverseRelationship: .skillMacros
             )
         ]
     }
@@ -106,15 +106,23 @@ extension SkillMacro: Entity {
 
 public extension SkillMacro {
 
-    /// Create from packet macro
-    init(from packetMacro: MapleStory62.SkillMacroRequest.Macro, character: Character.ID, slot: UInt8) {
+    /// Create skill macro from components
+    init(
+        character: Character.ID,
+        slot: UInt8,
+        name: String,
+        shout: UInt8,
+        skill1: UInt32,
+        skill2: UInt32,
+        skill3: UInt32
+    ) {
         self.id = UUID()
         self.character = character
         self.slot = slot
-        self.name = packetMacro.name
-        self.shout = packetMacro.shout
-        self.skill1 = packetMacro.skill1
-        self.skill2 = packetMacro.skill2
-        self.skill3 = packetMacro.skill3
+        self.name = name
+        self.shout = shout
+        self.skill1 = skill1
+        self.skill2 = skill2
+        self.skill3 = skill3
     }
 }

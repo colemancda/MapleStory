@@ -9,8 +9,12 @@ import Foundation
 import CoreModel
 
 /// Character storage inventory
-public struct Storage: Codable, Equatable, Hashable, Sendable {
+public struct Storage: Codable, Equatable, Hashable, Identifiable, Sendable {
 
+    // MARK: - Properties
+    
+    public let id: UUID
+    
     /// User ID that owns this storage
     public let userID: User.ID
 
@@ -27,20 +31,7 @@ public struct Storage: Codable, Equatable, Hashable, Sendable {
 
     /// Items in storage (slot -> item)
     public var items: [Int8: InventoryItem]
-
-    /// Create storage
-    public init(
-        userID: User.ID,
-        mesos: UInt32 = 0,
-        maxSlots: UInt8 = 16, // Default 16 slots 
-        items: [Int8: InventoryItem] = [:]
-    ) {
-        self.userID = userID
-        self.mesos = mesos
-        self.maxSlots = maxSlots
-        self.items = items
-    }
-
+    
     /// Check if storage has space for more items
     public var hasSpace: Bool {
         return items.count < Int(maxSlots)
@@ -49,5 +40,56 @@ public struct Storage: Codable, Equatable, Hashable, Sendable {
     /// Check if storage is full
     public var isFull: Bool {
         return items.count >= Int(maxSlots)
+    }
+
+    // MARK: - Initialization
+    
+    public init(
+        id: UUID = UUID(),
+        userID: User.ID,
+        mesos: UInt32 = 0,
+        maxSlots: UInt8 = 16,
+        items: [Int8: InventoryItem] = [:]
+    ) {
+        self.id = id
+        self.userID = userID
+        self.mesos = mesos
+        self.maxSlots = maxSlots
+        self.items = items
+    }
+    
+    // MARK: - Codable
+    
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
+        case id
+        case userID
+        case mesos
+        case maxSlots
+        case items
+    }
+}
+
+// MARK: - Entity
+
+extension Storage: Entity {
+    
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .mesos: .int64,
+            .maxSlots: .int16,
+            .items: .string
+        ]
+    }
+    
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .userID: Relationship(
+                id: .userID,
+                entity: Storage.self,
+                destination: User.self,
+                type: .toOne,
+                inverseRelationship: nil
+            )
+        ]
     }
 }

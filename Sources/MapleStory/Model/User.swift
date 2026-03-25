@@ -46,6 +46,9 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         
     public var characters: [Character.ID]
     
+    /// Storage ID
+    public var storage: Storage.ID?
+    
     // MARK: - Initialization
     
     public init(
@@ -63,7 +66,8 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         termsAccepted: Bool = false,
         isAdmin: Bool = false,
         isGuest: Bool = false,
-        characters: [Character.ID] = []
+        characters: [Character.ID] = [],
+        storage: Storage.ID? = nil
     ) {
         self.id = id
         self.index = index
@@ -99,6 +103,7 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
         case isAdmin = "admin"
         case isGuest = "guest"
         case characters
+        case storage
     }
 }
 
@@ -132,6 +137,13 @@ extension User: Entity {
                 destination: Character.self,
                 type: .toMany,
                 inverseRelationship: .user
+            ),
+            .storage: Relationship(
+                id: .storage,
+                entity: User.self,
+                destination: Storage.self,
+                type: .toOne,
+                inverseRelationship: .userID
             )
         ]
     }
