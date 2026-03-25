@@ -46,6 +46,27 @@ public struct DamageSummonHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Summon takes damage — not yet implemented.
+        guard let characterID = connection.characterID else {
+            return
+        }
+
+        // Broadcast summon damage to other players on the map
+        let notification = DamageSummonNotification(
+            characterID: characterID,
+            summonSkillID: packet.summonSkillID,
+            damage: packet.damage,
+            monsterIDFrom: packet.monsterIDFrom,
+            direction: packet.direction
+        )
+
+        // Broadcast to all players on the same map
+        // TODO: Implement proper map-based broadcasting when PlayerPositionRegistry is available
+        print("[Summon] Character \(characterID)'s summon took \(packet.damage) damage from monster \(packet.monsterIDFrom)")
+
+        // In a full implementation, we would:
+        // - Track summon HP in SummonRegistry
+        // - Handle summon death (remove from map if HP <= 0)
+        // - Broadcast summon HP changes to map
+        // - Notify owner when summon dies
     }
 }
