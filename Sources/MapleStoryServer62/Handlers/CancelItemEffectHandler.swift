@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,21 @@ public struct CancelItemEffectHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Cancel item buff effect — not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        let removed = await CharacterBuffRegistry.shared.removeBuff(
+            skillID: packet.skillID,
+            from: character.id
+        )
+        guard removed else { return }
+
+        try await connection.send(CancelBuffNotification(skillID: packet.skillID))
+        try await connection.broadcast(
+            CancelSkillEffectNotification(
+                characterID: character.index,
+                skillID: packet.skillID
+            ),
+            map: character.currentMap
+        )
     }
 }
