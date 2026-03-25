@@ -24,7 +24,7 @@ public extension FetchRequest.Predicate {
     init(predicate: Storage.Predicate) {
         switch predicate {
         case .userID(let userID):
-            self = Storage.CodingKeys.userID.stringValue.compare(.equalTo, .attribute(.string(userID.rawValue)))
+            self = Storage.CodingKeys.userID.stringValue.compare(.equalTo, .attribute(.string(userID.uuidString)))
         }
     }
 }
@@ -33,16 +33,16 @@ public extension FetchRequest.Predicate {
 
 public extension Storage {
     
-    static func fetch<Storage: ModelStorage>(
+    static func fetch(
         userID: User.ID,
-        in context: Storage
+        in context: any ModelStorage
     ) async throws -> Storage? {
         try await context.fetch(Storage.self, predicate: .init(predicate: .userID(userID)), fetchLimit: 1).first
     }
     
-    static func fetchOrCreate<Storage: ModelStorage>(
+    static func fetchOrCreate(
         userID: User.ID,
-        in context: Storage
+        in context: any ModelStorage
     ) async throws -> Storage {
         if let existing = try await fetch(userID: userID, in: context) {
             return existing

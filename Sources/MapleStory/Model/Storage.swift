@@ -88,7 +88,7 @@ extension Storage: Entity {
                 entity: Storage.self,
                 destination: User.self,
                 type: .toOne,
-                inverseRelationship: nil
+                inverseRelationship: .storage
             )
         ]
     }

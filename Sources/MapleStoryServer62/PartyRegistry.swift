@@ -8,27 +8,110 @@
 import Foundation
 import CoreModel
 import MapleStory
+import MapleStory62
 
-/// Registry for managing parties
+/// Registry for managing parties with database persistence.
+///
+/// This actor manages party state with persistence to the database.
+/// It maintains an in-memory cache for performance.
 public actor PartyRegistry {
 
     public static let shared = PartyRegistry()
 
-    private var parties: [PartyID: Party] = [:]
-
-    /// Next party ID
-    private var nextPartyID: PartyID = 1000
-
-    private init() {}
-
+    private init() { }
+    
+    // MARK: - Properties
+    
+    /// In-memory party cache indexed by party UUID
+    private var parties: [PartyEntity.ID: PartyEntity] = [:]
+    
+    /// In-memory party member cache indexed by character UUID
+    private var partyMembers: [Character.ID: PartyMemberEntity] = [:]
+    
+    /// In-memory pending party invitations indexed by character UUID
+    private var pendingInvites: [Character.ID: PendingPartyInvite] = [:]
+    
+    /// Next party ID for generating new parties
+    private var nextPartyID: UInt32 = 1000
+    
     // MARK: - Party Management
-
+    
+    /// Load a party from database
+    public func loadParty(_ partyID: PartyEntity.ID, from database: any ModelStorage) async throws -> PartyEntity? {
+        // Check cache first
+        if let cached = parties[partyID] {
+            return cached
+        }
+        
+        // Load from database
+        let predicate = FetchRequest.Predicate.attribute(.init(name: "id", value: partyID))
+        guard let party = try await database.fetch(PartyEntity.self, predicate: predicate, fetchLimit: 1).first else {
+            return nil
+        }
+        
+        // Cache the result
+        parties[partyID] = party
+        
+        return party
+    }
+    
+    /// Load all members for a party from database
+    public func loadPartyMembers(_ partyID: PartyEntity.ID, from database: any ModelStorage) async throws -> [PartyMemberEntity] {
+        // Check cache first
+        var members: [PartyMemberEntity] = []
+        for cachedMember in partyMembers.values where cachedMember.party == partyID {
+            members.append(cachedMember)
+        }
+        if members.isEmpty {
+            // Load from database
+            let predicate = FetchRequest.Predicate.relationship(.init(name: "party", value: partyID))
+            members = try await database.fetch(PartyMemberEntity.self, predicate: predicate)
+        }
+        
+        return members
+    }
+    
+    /// Get party for a character
+    public func party(for characterID: Character.ID, in database: any ModelStorage) async throws -> PartyEntity? {
+        // Check if character is in a party (cached)
+        if let member = partyMembers[characterID] {
+            return try await loadParty(member.party, from: database)
+        }
+        
+        // Not in cache, load from database
+        let predicate = FetchRequest.Predicate.relationship(.init(name: "character", value: characterID))
+        guard let member = try await database.fetch(PartyMemberEntity.self, predicate: predicate, fetchLimit: 1).first else {
+            return nil
+        }
+        
+        // Cache the member
+        partyMembers[characterID] = member
+        
+        return try await loadParty(member.party, from: database)
+    }
+    
     /// Create a new party
-    public func createParty(leaderID: Character.ID, leaderName: CharacterName, leaderJob: Job, leaderLevel: UInt16, channel: UInt8, map: Map.ID) -> Party {
-        let partyID = nextPartyID
+    public func createParty(
+        leaderID: Character.ID,
+        leaderName: CharacterName,
+        leaderJob: Job,
+        leaderLevel: UInt16,
+        channel: UInt8,
+        map: Map.ID,
+        in database: any ModelStorage
+    ) async throws -> PartyEntity {
+        let partyID = PartyEntity.ID()
         nextPartyID += 1
-
-        let member = PartyMember(
+        
+        let party = PartyEntity(
+            id: partyID,
+            leaderID: leaderID,
+            createdAt: Date()
+        )
+        
+        let member = PartyMemberEntity(
+            id: UUID(),
+            party: partyID,
             characterID: leaderID,
             characterName: leaderName,
             job: leaderJob,
@@ -37,32 +120,18 @@ public actor PartyRegistry {
             map: map,
             status: .online
         )
-
-        let party = Party(
-            id: partyID,
-            leaderID: leaderID,
-            members: [leaderID: member]
-        )
-
+        
+        // Save to database
+        try await database.insert(party)
+        try await database.insert(member)
+        
+        // Update cache
         parties[partyID] = party
+        partyMembers[leaderID] = member
+        
         return party
     }
-
-    /// Get party by ID
-    public func party(_ partyID: PartyID) -> Party? {
-        return parties[partyID]
-    }
-
-    /// Get party for a character
-    public func party(for characterID: Character.ID) -> Party? {
-        for party in parties.values {
-            if party.members[characterID] != nil {
-                return party
-            }
-        }
-        return nil
-    }
-
+    
     /// Add member to party
     public func addMember(
         _ characterID: Character.ID,
@@ -71,12 +140,15 @@ public actor PartyRegistry {
         level: UInt16,
         channel: UInt8,
         map: Map.ID,
-        to partyID: PartyID
-    ) -> Bool {
-        guard var party = parties[partyID] else { return false }
-        guard party.memberCount < 6 else { return false }
-
-        let member = PartyMember(
+        to partyID: PartyEntity.ID,
+        in database: any ModelStorage
+    ) async throws -> Bool {
+        guard var party = try await loadParty(partyID, from: database) else { return false }
+        guard party.members.count < 6 else { return false }
+        
+        let member = PartyMemberEntity(
+            id: UUID(),
+            party: partyID,
             characterID: characterID,
             characterName: name,
             job: job,
@@ -85,81 +157,141 @@ public actor PartyRegistry {
             map: map,
             status: .online
         )
-
-        party.members[characterID] = member
-        parties[partyID] = party
+        
+        // Save to database
+        try await database.insert(member)
+        
+        // Update cache
+        partyMembers[characterID] = member
+        
         return true
     }
-
+    
     /// Remove member from party
     @discardableResult
-    public func removeMember(_ characterID: Character.ID, from partyID: PartyID) -> Bool {
-        guard var party = parties[partyID] else { return false }
-        guard party.members[characterID] != nil else { return false }
-
-        party.members.removeValue(forKey: characterID)
-
-        // Check if party should be disbanded (only leader left)
-        if party.members.count == 0 {
+    public func removeMember(_ characterID: Character.ID, from partyID: PartyEntity.ID, in database: any ModelStorage) async throws -> Bool {
+        guard let member = partyMembers[characterID] else { return false }
+        guard member.party == partyID else { return false }
+        
+        // Delete from database
+        try await database.delete(PartyMemberEntity.self, for: member.id)
+        
+        // Remove from cache
+        partyMembers.removeValue(forKey: characterID)
+        
+        // Check if party should be disbanded
+        let members = try await loadPartyMembers(partyID, from: database)
+        if members.isEmpty {
+            // Disband party
+            try await database.delete(PartyEntity.self, for: partyID)
             parties.removeValue(forKey: partyID)
-        } else if party.leaderID == characterID {
+        } else if var party = parties[partyID], party.leaderID == characterID {
             // Transfer leadership to next member
-            if let newLeader = party.members.keys.first {
-                party.leaderID = newLeader
+            if let newLeader = members.first {
+                var updatedParty = party
+                updatedParty.leaderID = newLeader.characterID
+                try await database.insert(updatedParty)
+                parties[partyID] = updatedParty
             }
-            parties[partyID] = party
-        } else {
-            parties[partyID] = party
         }
-
+        
         return true
     }
-
+    
     /// Update member status (online/offline)
-    public func updateMemberStatus(_ characterID: Character.ID, status: PartyMemberStatus) {
-        guard let partyID = party(for: characterID)?.id else { return }
-        guard var party = parties[partyID],
-              var member = party.members[characterID] else { return }
-
+    public func updateMemberStatus(_ characterID: Character.ID, status: PartyMemberStatus, in database: any ModelStorage) async throws {
+        guard var member = partyMembers[characterID] else { return }
+        
         member.status = status
-        party.members[characterID] = member
-        parties[partyID] = party
+        
+        // Save to database
+        try await database.insert(member)
+        
+        // Update cache
+        partyMembers[characterID] = member
     }
-
+    
     /// Update member location
-    public func updateMemberLocation(_ characterID: Character.ID, channel: UInt8, map: Map.ID) {
-        guard let partyID = party(for: characterID)?.id else { return }
-        guard var party = parties[partyID],
-              var member = party.members[characterID] else { return }
-
+    public func updateMemberLocation(_ characterID: Character.ID, channel: UInt8, map: Map.ID, in database: any ModelStorage) async throws {
+        guard var member = partyMembers[characterID] else { return }
+        
         member.channel = channel
         member.map = map
-        party.members[characterID] = member
-        parties[partyID] = party
+        
+        // Save to database
+        try await database.insert(member)
+        
+        // Update cache
+        partyMembers[characterID] = member
     }
-
+    
     /// Disband party
-    public func disbandParty(_ partyID: PartyID) {
+    public func disbandParty(_ partyID: PartyEntity.ID, in database: any ModelStorage) async throws {
+        // Delete all members from database
+        let members = try await loadPartyMembers(partyID, from: database)
+        for member in members {
+            try await database.delete(PartyMemberEntity.self, for: member.id)
+            partyMembers.removeValue(forKey: member.characterID)
+        }
+        
+        // Delete party from database
+        try await database.delete(PartyEntity.self, for: partyID)
+        
+        // Remove from cache
         parties.removeValue(forKey: partyID)
     }
-
-    /// Transfer party leadership.
+    
+    /// Transfer party leadership
     @discardableResult
-    public func transferLeadership(_ partyID: PartyID, to characterID: Character.ID) -> Bool {
+    public func transferLeadership(_ partyID: PartyEntity.ID, to characterID: Character.ID, in database: any ModelStorage) async throws -> Bool {
         guard var party = parties[partyID] else { return false }
-        guard party.members[characterID] != nil else { return false }
-        party.leaderID = characterID
-        parties[partyID] = party
+        guard partyMembers[characterID] != nil else { return false }
+        guard partyMembers[characterID]?.party == partyID else { return false }
+        
+        var updatedParty = party
+        updatedParty.leaderID = characterID
+        
+        // Save to database
+        try await database.insert(updatedParty)
+        
+        // Update cache
+        parties[partyID] = updatedParty
+        
         return true
     }
-
-    /// Load parties from database
-    public func loadParties(from database: some ModelStorage) async throws {
-        // TODO: Implement database loading
+    
+    /// Clear cache for a character (call when character logs out)
+    public func clearCache(for characterID: Character.ID) {
+        partyMembers.removeValue(forKey: characterID)
     }
+}
 
-    /// Save parties to database
-    public func saveParties(to database: some ModelStorage) async throws {
-        // TODO: Implement database saving
+// MARK: - Pending Party Invite (In-Memory Only)
+
+/// Represents a pending party invitation (in-memory only)
+public struct PendingPartyInvite: Codable, Equatable, Hashable, Sendable {
+    
+    /// The party ID
+    public let partyID: PartyEntity.ID
+    
+    /// The character who sent the invitation
+    public let fromCharacterID: Character.ID
+    
+    /// The character who sent the invitation (name)
+    public let fromCharacterName: CharacterName
+    
+    /// When the invitation was created
+    public let createdAt: Date
+    
+    public init(
+        partyID: PartyEntity.ID,
+        fromCharacterID: Character.ID,
+        fromCharacterName: CharacterName,
+        createdAt: Date = Date()
+    ) {
+        self.partyID = partyID
+        self.fromCharacterID = fromCharacterID
+        self.fromCharacterName = fromCharacterName
+        self.createdAt = createdAt
     }
 }
