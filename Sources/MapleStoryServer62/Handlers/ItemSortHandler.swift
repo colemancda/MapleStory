@@ -39,9 +39,7 @@ public struct ItemSortHandler: PacketHandler {
 
         // Sort specified inventory
         // inventoryType: 1 = equip, 2 = use, 3 = setup, 4 = etc, 5 = cash
-        guard let inventoryType = InventoryType(rawValue: Int8(packet.inventoryType)) else {
-            return
-        }
+        let inventoryType = packet.inventoryType
 
         var sorted = false
         let manipulator = InventoryManipulator()
@@ -79,8 +77,10 @@ public struct ItemSortHandler: PacketHandler {
             // Move item to free slot
             if let item = inventory[inventoryType][itemSlotValue] {
                 // Send notification for the move
+                var movedItem = item
+                movedItem.slot = freeSlotValue
                 try await connection.send(ModifyInventoryItemNotification.move(
-                    item: item,
+                    item: movedItem,
                     fromSlot: itemSlotValue,
                     toSlot: freeSlotValue,
                     inventoryType: inventoryType
@@ -88,8 +88,6 @@ public struct ItemSortHandler: PacketHandler {
 
                 // Update inventory
                 inventory[inventoryType][itemSlotValue] = nil
-                var movedItem = item
-                movedItem.slot = freeSlotValue
                 inventory[inventoryType][freeSlotValue] = movedItem
             }
         }
