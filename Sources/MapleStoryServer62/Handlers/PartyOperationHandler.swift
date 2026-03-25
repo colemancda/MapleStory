@@ -55,22 +55,23 @@ public struct PartyOperationHandler: PacketHandler {
 
         switch packet.operation {
         case 0x01: // Create party
-            if await PartyRegistry.shared.party(for: character.id) != nil {
+            if try await PartyRegistry.shared.party(for: character.id, in: connection.database) != nil {
                 try await connection.send(ServerMessageNotification.notice(message: "You are already in a party."))
                 return
             }
 
             let channelValue: UInt8 = UInt8((await connection.channelIndex ?? 0) + 1)
-            let party = await PartyRegistry.shared.createParty(
+            let party = try await PartyRegistry.shared.createParty(
                 leaderID: character.id,
                 leaderName: character.name,
                 leaderJob: character.job,
                 leaderLevel: character.level,
                 channel: channelValue,
-                map: character.currentMap
+                map: character.currentMap,
+                in: connection.database
             )
 
-            let members = party.members.values.map { $0 }
+            let members = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
             try await connection.send(PartyOperationNotification(
                 operation: .create,
                 partyID: party.id,
@@ -78,13 +79,13 @@ public struct PartyOperationHandler: PacketHandler {
             ))
 
         case 0x02: // Leave party
-            guard let party = await PartyRegistry.shared.party(for: character.id) else {
+            guard let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database) else {
                 return // Not in a party
             }
 
             let wasLeader = party.leaderID == character.id
-            await PartyRegistry.shared.removeMember(character.id, from: party.id)
-            let updatedParty = await PartyRegistry.shared.party(party.id)
+            _ = try await PartyRegistry.shared.removeMember(character.id, from: party.id, in: connection.database)
+            let updatedParty = try await PartyRegistry.shared.loadParty(party.id, from: connection.database)
 
             // Notify remaining members or that party was disbanded
             if wasLeader || updatedParty == nil {
@@ -94,7 +95,7 @@ public struct PartyOperationHandler: PacketHandler {
                     members: []
                 ))
             } else {
-                let members = updatedParty?.members.values.map { $0 } ?? []
+                let members = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
                 try await connection.send(PartyOperationNotification(
                     operation: .leave,
                     partyID: party.id,
@@ -103,31 +104,33 @@ public struct PartyOperationHandler: PacketHandler {
             }
 
         case 0x03: // Accept invite
-            guard await PartyRegistry.shared.party(for: character.id) == nil else {
+            guard try await PartyRegistry.shared.party(for: character.id, in: connection.database) == nil else {
                 try await connection.send(ServerMessageNotification.notice(message: "You are already in a party."))
                 return
             }
             guard let partyID = packet.partyID,
-                  let party = await PartyRegistry.shared.party(partyID) else {
+                  let party = try await PartyRegistry.shared.loadParty(partyID, from: connection.database) else {
                 try await connection.send(ServerMessageNotification.notice(message: "The party you are trying to join does not exist."))
                 return
             }
-            guard party.memberCount < 6 else {
+            let existingMembers = try await PartyRegistry.shared.loadPartyMembers(partyID, from: connection.database)
+            guard existingMembers.count < 6 else {
                 try await connection.send(ServerMessageNotification.notice(message: "The party is already full."))
                 return
             }
 
             let channelValue: UInt8 = UInt8((await connection.channelIndex ?? 0) + 1)
-            _ = await PartyRegistry.shared.addMember(
+            _ = try await PartyRegistry.shared.addMember(
                 character.id,
                 name: character.name,
                 job: character.job,
                 level: character.level,
                 channel: channelValue,
                 map: character.currentMap,
-                to: partyID
+                to: partyID,
+                in: connection.database
             )
-            let members = (await PartyRegistry.shared.party(partyID))?.members.values.map { $0 } ?? []
+            let members = try await PartyRegistry.shared.loadPartyMembers(partyID, from: connection.database)
             try await connection.send(PartyOperationNotification(
                 operation: .accept,
                 partyID: partyID,
@@ -135,7 +138,7 @@ public struct PartyOperationHandler: PacketHandler {
             ))
 
         case 0x04: // Invite
-            guard await PartyRegistry.shared.party(for: character.id) != nil else {
+            guard try await PartyRegistry.shared.party(for: character.id, in: connection.database) != nil else {
                 return
             }
             guard let invitedName = packet.invitedName, invitedName.isEmpty == false else {
@@ -145,29 +148,29 @@ public struct PartyOperationHandler: PacketHandler {
             try await connection.send(ServerMessageNotification.notice(message: "Party invite sent to \(invitedName)."))
 
         case 0x05: // Expel member
-            guard let party = await PartyRegistry.shared.party(for: character.id),
+            guard let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database),
                   party.leaderID == character.id,
                   let targetCharacterID = packet.targetCharacterID else {
                 return
             }
-            _ = await PartyRegistry.shared.removeMember(targetCharacterID, from: party.id)
-            let members = (await PartyRegistry.shared.party(party.id))?.members.values.map { $0 } ?? []
+            _ = try await PartyRegistry.shared.removeMember(targetCharacterID, from: party.id, in: connection.database)
+            let members = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
             try await connection.send(PartyOperationNotification(
                 operation: .expel,
                 partyID: party.id,
                 members: members
             ))
 
-        case 0x06: // Disband party
-            guard let party = await PartyRegistry.shared.party(for: character.id),
+        case 0x06: // Pass leadership
+            guard let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database),
                   party.leaderID == character.id,
                   let newLeader = packet.targetCharacterID else {
                 return
             }
-            guard await PartyRegistry.shared.transferLeadership(party.id, to: newLeader) else {
+            guard try await PartyRegistry.shared.transferLeadership(party.id, to: newLeader, in: connection.database) else {
                 return
             }
-            let members = (await PartyRegistry.shared.party(party.id))?.members.values.map { $0 } ?? []
+            let members = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
             try await connection.send(PartyOperationNotification(
                 operation: .passLeader,
                 partyID: party.id,
@@ -175,11 +178,11 @@ public struct PartyOperationHandler: PacketHandler {
             ))
 
         case 0x07: // Disband party
-            guard let party = await PartyRegistry.shared.party(for: character.id),
+            guard let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database),
                   party.leaderID == character.id else {
                 return
             }
-            await PartyRegistry.shared.disbandParty(party.id)
+            try await PartyRegistry.shared.disbandParty(party.id, in: connection.database)
             try await connection.send(PartyOperationNotification(
                 operation: .disband,
                 partyID: nil,
