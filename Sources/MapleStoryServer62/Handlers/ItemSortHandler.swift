@@ -48,7 +48,7 @@ public struct ItemSortHandler: PacketHandler {
         while !sorted {
             // Find first free slot
             var freeSlot: Int8?
-            for slot in 1...100 {
+            for slot in Int8(1)...100 {
                 if inventory[inventoryType][slot] == nil {
                     freeSlot = slot
                     break
@@ -99,7 +99,7 @@ public struct ItemSortHandler: PacketHandler {
         try await connection.database.insert(character)
 
         // Enable actions
-        try await connection.send(EnableActionsNotification())
+        try await connection.send(UpdateStatsNotification.enableActions)
     }
 
     // MARK: - Private Helpers
