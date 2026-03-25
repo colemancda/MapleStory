@@ -11,6 +11,56 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles quest start, forfeit, and completion actions.
+///
+/// Quests are a core part of MapleStory progression. Players accept quests
+/// from NPCs, complete objectives, and turn them in for rewards (EXP, mesos, items).
+///
+/// # Quest Actions
+///
+/// | Action | Description |
+/// |--------|-------------|
+/// | Start | Begin a new quest |
+/// | Forfeit | Abandon an in-progress quest |
+/// | Complete | Turn in a completed quest for rewards |
+/// | ScriptStart | Start a script-driven quest |
+/// | ScriptEnd | Complete a script-driven quest |
+///
+/// # Quest Flow
+///
+/// 1. Player talks to NPC or clicks quest marker
+/// 2. NPC starts quest via NPCTalkHandler script
+/// 3. Script calls quest.start() → QuestActionHandler receives start
+/// 4. Player completes objectives (kill monsters, collect items, etc.)
+/// 5. Player returns to NPC and turns in quest
+/// 6. QuestActionHandler receives complete action
+/// 7. Server validates completion requirements
+/// 8. Server gives rewards (EXP, mesos, items)
+/// 9. Quest marked as completed in database
+///
+/// # Quest Requirements
+///
+/// For completion, the server checks:
+/// - Level requirements (min/max level)
+/// - Job requirements
+/// - Required items in inventory
+/// - Required killed monster counts
+/// - Quest prerequisite completion
+///
+/// # Quest Rewards
+///
+/// Possible rewards include:
+/// - **EXP**: Experience points
+/// - **Mesos**: Currency
+/// - **Items**: Specific items added to inventory
+/// - **Fame**: Reputation increase
+/// - **Skills**: Unlocked skill (for job advancement quests)
+///
+/// # Quest State
+///
+/// Quests are tracked in:
+/// - **QuestStateRegistry**: In-memory quest progress for active sessions
+/// - **Database**: Persistent quest state stored per character
 public struct QuestActionHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.QuestActionRequest

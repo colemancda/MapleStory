@@ -11,6 +11,31 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles character selection from the all-servers character list.
+///
+/// When a player is viewing their characters across all worlds (all-servers mode),
+/// they can select a character to log in with. This handler processes that selection
+/// and initiates the login process for the chosen character.
+///
+/// # All-Servers Mode
+///
+/// Some MapleStory regions support an "all servers" view where a player
+/// can see characters from all their worlds in a single list. This handler
+/// processes character selection from that view.
+///
+/// # Selection Flow
+///
+/// 1. Player views all-servers character list
+/// 2. Player selects a character
+/// 3. Client sends select character request
+/// 4. Server validates the character belongs to the account
+/// 5. Server initiates channel connection
+/// 6. Client transitions to the channel server
+///
+/// # Response
+///
+/// Sends `SelectCharacterResponse` directing the client to connect
+/// to the appropriate channel server IP and port.
 public struct SelectAllCharactersHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.AllCharactersSelectRequest

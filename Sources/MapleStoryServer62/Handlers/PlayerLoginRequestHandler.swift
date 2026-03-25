@@ -11,6 +11,43 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles the player login request when entering a channel after character selection.
+///
+/// This handler is called when a player has selected their character and is
+/// transitioning from the login/character-select server to a channel server.
+/// It sets up all the necessary state for the player to begin gameplay.
+///
+/// # Login Flow
+///
+/// 1. Player selects character on character select screen
+/// 2. Client connects to channel server
+/// 3. Client sends `PlayerLoginRequest` with character ID
+/// 4. Server calls `playerLogin()` to authenticate and load character data
+/// 5. Server loads character skills, quests, keymap from database
+/// 6. Server sends `WarpToMapNotification` with full character info
+/// 7. Server sends current map mob spawns
+/// 8. Player appears in game world
+///
+/// # Data Loaded on Login
+///
+/// - **Character**: Stats, equipment, inventory, mesos
+/// - **Skills**: Active skills and levels from `CharacterSkillRegistry`
+/// - **Quests**: Completed/in-progress quests from database
+/// - **Keymap**: Key bindings from `KeymapRegistry`
+///
+/// # WarpToMapNotification
+///
+/// The initial `WarpToMapNotification` contains comprehensive character info:
+/// - Character stats (HP, MP, STR, DEX, INT, LUK, etc.)
+/// - Current map and spawn point
+/// - Inventory slot counts
+/// - Buddy list size
+/// - Random values for client-side state
+///
+/// # Channel Association
+///
+/// The handler stores the channel ID it's associated with so it can
+/// properly register the player in that specific channel.
 public struct PlayerLoginRequestHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.PlayerLoginRequest

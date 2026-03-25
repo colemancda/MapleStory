@@ -11,6 +11,50 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles player shop and trade operations (player-run shops and direct trades).
+///
+/// Players can set up their own shops to sell items to other players,
+/// or initiate direct trades. This handler manages all shop and trade lifecycle events.
+///
+/// # Player Shop Operations
+///
+/// | Operation | Description |
+/// |-----------|-------------|
+/// | createTrade | Start a direct trade with another player |
+/// | createShop | Open a player-run shop on the map |
+/// | createOmok | Create an Omok (Go) mini-game table |
+/// | createMatchCard | Create a Match Card mini-game |
+/// | invite | Invite another player to trade |
+/// | decline | Decline a trade invitation |
+/// | visit | Enter a player shop or accept a trade |
+/// | chat | Send a message in the shop/trade |
+/// | buy | Purchase item from a player shop |
+/// | sell | Add item to your shop for sale |
+/// | trade | Add item/mesos to a direct trade |
+/// | cancel | Cancel shop/trade |
+/// | exitShop | Leave a player shop you're visiting |
+///
+/// # Player Shop vs Trade
+///
+/// | Feature | Player Shop | Direct Trade |
+/// |---------|-------------|--------------|
+/// | Participants | 1 seller + many buyers | 2 players |
+/// | Items visible | Yes (all can see) | No (private) |
+/// | Requires permit | Yes (NX or mesos) | No |
+/// | Cross-channel | No (same map) | No (same map) |
+/// | Prices fixed | Yes | Negotiated |
+///
+/// # Shop Permits
+///
+/// To open a player shop, a player needs either:
+/// - **Hired Merchant** (NX): Sets up a shop that persists when offline
+/// - **Mini Game** (free): Allows a mini-game table (no items)
+///
+/// # Trade Rules
+///
+/// - Both players must confirm before trade completes
+/// - Either player can add/remove items before confirmation
+/// - Mesos can be added to either side of the trade
 public struct PlayerShopHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.PlayerShopRequest

@@ -10,6 +10,20 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles initiating a search for parties to join.
+///
+/// Players looking for a party can search the party listing to find
+/// parties that match their level and preferences.
+///
+/// # Search Criteria
+///
+/// - **Level range**: Only show parties appropriate for player's level
+/// - **Map/area**: Find parties in specific areas
+/// - **Class**: Some parties prefer certain classes
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Party search functionality is not yet implemented.
 public struct PartySearchStartHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.PartySearchStartRequest

@@ -11,6 +11,36 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles party management operations (create, invite, leave, kick, transfer leadership).
+///
+/// # Party Operations
+///
+/// | Code | Operation | Description |
+/// |------|-----------|-------------|
+/// | 1 | Create | Create a new party |
+/// | 2 | Leave | Leave current party |
+/// | 3 | Invite | Invite a player to the party |
+/// | 4 | Expel | Kick a member (leader only) |
+/// | 5 | Pass Leader | Transfer party leadership |
+/// | 6 | Accept | Accept a party invitation |
+///
+/// # Party Rules
+///
+/// - Maximum 6 members per party
+/// - Only leader can kick members and pass leadership
+/// - Any member can invite new members
+/// - Party leader gets extra EXP bonuses
+/// - Party share EXP with nearby members
+///
+/// # Cross-Channel Parties
+///
+/// Party members can be on different channels in the same world.
+/// Messages and operations are routed across channels.
+///
+/// # Response
+///
+/// Sends `PartyOperationNotification` to all party members indicating
+/// the operation result and updated party composition.
 public struct PartyOperationHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.PartyOperationRequest

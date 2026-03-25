@@ -10,6 +10,28 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles gender selection for new accounts.
+///
+/// When a new account is created, players may be prompted to select their
+/// gender. The gender affects the default character appearance options
+/// available during character creation.
+///
+/// # Gender Selection
+///
+/// - **Male (0)**: Different hair, face, and clothing options
+/// - **Female (1)**: Different hair, face, and clothing options
+///
+/// # When Gender is Set
+///
+/// Gender selection occurs:
+/// - During new account creation flow
+/// - After accepting the game license
+/// - Before reaching the character selection screen
+///
+/// # Response
+///
+/// Sends `SetGenderResponse` confirming the gender was set.
+/// The client then proceeds to the character selection screen.
 public struct SetGenderHandler: PacketHandler {
     
     public typealias Packet = MapleStory62.SetGenderRequest
