@@ -11,6 +11,68 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles Mystic Door usage requests.
+///
+/// # Mystic Door System
+///
+/// The Mystic Door is a 4th job Priest skill (ID: 2311002) that creates a two-way portal
+/// between a field map and the nearest town. Party members can freely use the door to
+/// travel between the two locations.
+///
+/// # Packet Structure
+///
+/// ## UseDoorRequest (Client → Server)
+/// - `objectID: UInt32` - Character ID of the door owner
+/// - `mode: UInt8` - Direction: 0 = field → town, 1 = town → field
+///
+/// # Implementation Flow
+///
+/// ## Door Creation (SpecialMoveHandler)
+/// When Priest casts Mystic Door:
+/// 1. Validate skill (MP, cooldown)
+/// 2. Find free door portal (type 6) in town
+/// 3. Create Door object with:
+///    - Owner ID
+///    - Town map ID and portal ID
+///    - Field map ID and position
+///    - Duration (300s + level * 10s)
+/// 4. Register in DoorRegistry
+///
+/// ## Door Usage (This Handler)
+/// When player clicks door:
+/// 1. Find door by owner ID in current map
+/// 2. Validate door exists and not expired
+/// 3. Validate access (owner or party member)
+/// 4. Warp player:
+///    - mode 0: Field → Town
+///    - mode 1: Town → Field
+///
+/// # Access Control
+///
+/// A door can be used by:
+/// - ✅ The door owner
+/// - ✅ Members of the owner's party
+/// - ❌ Random players (access denied)
+///
+/// # Door Expiration
+///
+/// Doors automatically expire after:
+/// - Level 1: 300 seconds (5 minutes)
+/// - Level 10: 400 seconds
+/// - Level 20: 500 seconds
+/// - Level 30: 600 seconds (10 minutes)
+///
+/// Expired doors are automatically removed from the registry.
+///
+/// # Error Handling
+///
+/// | Error | Message | Action |
+/// |-------|---------|--------|
+/// | Door not found | "That door has expired or doesn't exist." | Send enableActions |
+/// | Door expired | "That door has expired." | Remove door, send enableActions |
+/// | Access denied | "You cannot use this door." | Send enableActions |
+/// | Invalid mode | - | Silently ignore |
+///
 public struct UseDoorHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseDoorRequest
@@ -25,11 +87,13 @@ public struct UseDoorHandler: PacketHandler {
             return
         }
 
+        // Validate mode
         guard packet.mode == 0 || packet.mode == 1 else {
             return // Invalid mode
         }
 
         // Find the door by owner ID in the current map
+        // Uses O(1) hash lookup via DoorRegistry
         guard let door = await DoorRegistry.shared.find(
             ownerID: packet.objectID,
             in: character.currentMap
@@ -70,12 +134,12 @@ public struct UseDoorHandler: PacketHandler {
         let toTown = packet.mode == 0
 
         if toTown {
-            // Warp to town
+            // Warp to town at the door portal
             try await connection.warp(to: door.townMapID, spawn: door.townPortalID)
         } else {
-            // Warp to field at door position
-            // Note: We need to warp to the field and set position
-            // For now, use spawn 0 (could be improved to set exact position)
+            // Warp to field map
+            // Note: Using spawn point 0 instead of exact door position
+            // TODO: Set exact position after warping
             try await connection.warp(to: door.fieldMapID, spawn: 0)
         }
 
