@@ -77,6 +77,18 @@ public struct UpdateStatsNotification: MapleStoryPacket, Equatable, Hashable, Se
 
 public extension UpdateStatsNotification {
 
+    /// Enable actions (empty stat update).
+    static var enableActions: UpdateStatsNotification {
+        UpdateStatsNotification(
+            announce: true,
+            stats: [],
+            skin: nil, face: nil, hair: nil, level: nil, job: nil,
+            str: nil, dex: nil, int: nil, luk: nil,
+            hp: nil, maxHp: nil, mp: nil, maxMp: nil,
+            ap: nil, sp: nil, exp: nil, fame: nil, meso: nil
+        )
+    }
+
     /// Update only HP (e.g. after taking damage).
     static func hp(_ hp: UInt16) -> UpdateStatsNotification {
         UpdateStatsNotification(
