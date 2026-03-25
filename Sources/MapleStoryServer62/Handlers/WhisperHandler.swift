@@ -25,15 +25,15 @@ public struct WhisperHandler: PacketHandler {
 
         switch packet.mode {
         case 5: // Find player
-            // TODO: Implement player search by name
-            // Would need to query database for character by name
-            // For now, just ignore
+            try await connection.send(ServerMessageNotification.notice(
+                message: "\(packet.target) is not online (player lookup not wired yet)."
+            ))
             return
 
         case 6: // Send whisper
             guard let message = packet.message else { return }
 
-            // Send whisper packet
+            // Cross-session target dispatch is not wired yet, so mirror to sender.
             try await connection.send(WhisperNotification(
                 sender: character.name.rawValue,
                 message: message
