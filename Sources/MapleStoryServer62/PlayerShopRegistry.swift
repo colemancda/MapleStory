@@ -15,12 +15,14 @@ public struct PlayerShopItem: Equatable, Hashable, Sendable {
     public let itemID: UInt32
     public let slot: Int8
     public var bundles: UInt16
+    public let quantityPerBundle: UInt16
     public let pricePerBundle: UInt32
 
-    public init(itemID: UInt32, slot: Int8, bundles: UInt16, pricePerBundle: UInt32) {
+    public init(itemID: UInt32, slot: Int8, bundles: UInt16, quantityPerBundle: UInt16, pricePerBundle: UInt32) {
         self.itemID = itemID
         self.slot = slot
         self.bundles = bundles
+        self.quantityPerBundle = quantityPerBundle
         self.pricePerBundle = pricePerBundle
     }
 }
@@ -49,11 +51,13 @@ public struct TradeItem: Equatable, Hashable, Sendable {
     public let itemID: UInt32
     public let quantity: UInt16
     public let slot: UInt8
+    public let targetSlot: UInt8
 
-    public init(itemID: UInt32, quantity: UInt16, slot: UInt8) {
+    public init(itemID: UInt32, quantity: UInt16, slot: UInt8, targetSlot: UInt8) {
         self.itemID = itemID
         self.quantity = quantity
         self.slot = slot
+        self.targetSlot = targetSlot
     }
 }
 
@@ -109,6 +113,10 @@ public actor PlayerShopRegistry {
         shops[ownerID]
     }
 
+    public func shop(forObjectID objectID: UInt32) -> PlayerShop? {
+        shops.values.first { $0.id == objectID }
+    }
+
     public func shopVisiting(visitorID: Character.ID) -> PlayerShop? {
         shops.values.first { $0.visitorIDs.contains(visitorID) }
     }
@@ -131,10 +139,9 @@ public actor PlayerShopRegistry {
     public func buyItem(slot: Int, quantity: UInt16, from ownerID: Character.ID) -> (item: PlayerShopItem, totalPrice: UInt32)? {
         guard var shop = shops[ownerID], slot < shop.items.count else { return nil }
         var item = shop.items[slot]
-        let bundlesNeeded = UInt16((Int(quantity) + Int(item.bundles) - 1) / max(1, Int(item.bundles)))
-        guard bundlesNeeded <= item.bundles else { return nil }
-        let totalPrice = item.pricePerBundle * UInt32(bundlesNeeded)
-        item.bundles -= bundlesNeeded
+        guard quantity > 0, quantity <= item.bundles else { return nil }
+        let totalPrice = item.pricePerBundle * UInt32(quantity)
+        item.bundles -= quantity
         if item.bundles == 0 {
             shop.items.remove(at: slot)
         } else {
@@ -176,6 +183,10 @@ public actor PlayerShopRegistry {
         trades[characterID] ?? trades.values.first { $0.partnerID == characterID }
     }
 
+    public func trade(sessionID: UInt32) -> TradeSession? {
+        trades.values.first { $0.id == sessionID }
+    }
+
     public func acceptTrade(partnerID: Character.ID, initiatorID: Character.ID) -> Bool {
         guard var session = trades[initiatorID] else { return false }
         session.partnerID = partnerID
@@ -187,6 +198,22 @@ public actor PlayerShopRegistry {
     public func setMeso(_ meso: UInt32, for characterID: Character.ID) {
         updateTrade(for: characterID) { session, isInitiator in
             if isInitiator { session.initiatorMeso = meso } else { session.partnerMeso = meso }
+            session.initiatorConfirmed = false
+            session.partnerConfirmed = false
+        }
+    }
+
+    public func setTradeItem(_ item: TradeItem, for characterID: Character.ID) {
+        updateTrade(for: characterID) { session, isInitiator in
+            if isInitiator {
+                session.initiatorItems.removeAll { $0.targetSlot == item.targetSlot }
+                session.initiatorItems.append(item)
+            } else {
+                session.partnerItems.removeAll { $0.targetSlot == item.targetSlot }
+                session.partnerItems.append(item)
+            }
+            session.initiatorConfirmed = false
+            session.partnerConfirmed = false
         }
     }
 
