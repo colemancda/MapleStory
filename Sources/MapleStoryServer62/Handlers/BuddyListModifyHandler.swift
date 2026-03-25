@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,70 @@ public struct BuddyListModifyHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Buddy list add / accept / remove — not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        switch packet.mode {
+        case 1: // Add by name
+            guard let rawName = packet.addName,
+                  let name = CharacterName(rawValue: rawName) else {
+                return
+            }
+            let predicates: [Character.Predicate] = [
+                .name(name),
+                .world(character.world)
+            ]
+            let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
+            guard let otherCharacter = try await connection.database.fetch(Character.self, predicate: predicate, fetchLimit: 1).first,
+                  otherCharacter.id != character.id else {
+                try await connection.send(ServerMessageNotification.notice(message: "Character not found."))
+                return
+            }
+            let added = await BuddyListRegistry.shared.add(
+                BuddyListNotification.Buddy(
+                    id: otherCharacter.index,
+                    name: otherCharacter.name,
+                    value0: 0,
+                    channel: -1
+                ),
+                to: character.id
+            )
+            if added == false {
+                try await connection.send(ServerMessageNotification.notice(message: "\(otherCharacter.name.rawValue) is already in your buddy list."))
+                return
+            }
+            let list = await BuddyListRegistry.shared.list(for: character.id)
+            try await connection.send(BuddyListNotification.update(list))
+
+        case 2: // Accept by character id
+            guard let otherCharacterID = packet.otherCharacterID else { return }
+            guard let otherCharacter = try await Character.fetch(
+                otherCharacterID,
+                world: character.world,
+                in: connection.database
+            ),
+                  otherCharacter.id != character.id else {
+                return
+            }
+            _ = await BuddyListRegistry.shared.add(
+                BuddyListNotification.Buddy(
+                    id: otherCharacter.index,
+                    name: otherCharacter.name,
+                    value0: 0,
+                    channel: -1
+                ),
+                to: character.id
+            )
+            let list = await BuddyListRegistry.shared.list(for: character.id)
+            try await connection.send(BuddyListNotification.update(list))
+
+        case 3: // Remove by character id
+            guard let otherCharacterID = packet.otherCharacterID else { return }
+            _ = await BuddyListRegistry.shared.remove(buddyID: otherCharacterID, from: character.id)
+            let list = await BuddyListRegistry.shared.list(for: character.id)
+            try await connection.send(BuddyListNotification.update(list))
+
+        default:
+            return
+        }
     }
 }
