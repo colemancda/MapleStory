@@ -52,12 +52,15 @@ public struct PartyChatHandler: PacketHandler {
         guard let character = try await connection.character else { return }
 
         // Get sender's party
-        guard let party = await PartyRegistry.shared.party(for: character.id) else {
+        guard let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database) else {
             return // Not in a party
         }
 
+        // Load party members
+        let members = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
+
         // Broadcast to all party members on same channel
-        for member in party.members.values where member.status == .online {
+        for member in members where member.status == .online {
             // For now, just send to the sender
             // In a full implementation, we would:
             // 1. Check which members are on this channel
