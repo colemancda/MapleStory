@@ -88,7 +88,7 @@ public struct SpawnPetHandler: PacketHandler {
             )
         }
 
-        // Position slightly above player origin, matching Java's y-12 spawn behavior.
+        // Position slightly above player origin
         let playerPosition = await PlayerPositionRegistry.shared.position(for: character.id)
         let petPosition = PetPosition(
             x: playerPosition?.x ?? 0,

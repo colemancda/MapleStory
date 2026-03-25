@@ -46,7 +46,7 @@ extension SpawnMistNotification: MapleStoryEncodable {
 
     public func encode(to container: MapleStoryEncodingContainer) throws {
         try container.encode(objectID, isLittleEndian: true)
-        try container.encode(objectID, isLittleEndian: true) // Java writes object id twice.
+        try container.encode(objectID, isLittleEndian: true) // writes object id twice?
         try container.encode(ownerCharacterID, isLittleEndian: true)
         try container.encode(skillID, isLittleEndian: true)
         try container.encode(level)

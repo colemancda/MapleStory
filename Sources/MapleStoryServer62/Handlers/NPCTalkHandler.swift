@@ -41,7 +41,6 @@ import MongoDBModel
 /// # NPC Scripts
 ///
 /// NPC behavior is defined in scripts:
-/// - Written in JavaScript (in original MapleStory)
 /// - Compiled/embedded in server code
 /// - Registered in NPCScriptRegistry
 /// - Script has access to:
