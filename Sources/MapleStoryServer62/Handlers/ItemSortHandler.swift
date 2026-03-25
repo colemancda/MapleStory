@@ -11,6 +11,27 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles inventory sorting requests.
+///
+/// Players can sort/organize their inventory to consolidate stacks and
+/// arrange items in a cleaner order. This is typically triggered via the
+/// "Sort" button in the inventory UI.
+///
+/// # Sorting Behavior
+///
+/// - Combines partial stacks of the same item type
+/// - Removes empty slots between items
+/// - Orders items by item ID or category
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Inventory sorting is not yet implemented.
+///
+/// # TODO
+///
+/// - Implement stack consolidation
+/// - Implement item reordering
+/// - Send inventory update notification after sort
 public struct ItemSortHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.ItemSortRequest

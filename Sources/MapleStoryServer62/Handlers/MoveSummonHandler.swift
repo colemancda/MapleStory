@@ -10,6 +10,20 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles summon movement synchronization across players in a map.
+///
+/// When a player's summon (e.g., Bahamut, Silver Hawk) moves, the client
+/// sends this packet so the server can broadcast movement to other players.
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Summon movement broadcasting is not yet implemented.
+///
+/// # TODO
+///
+/// - Look up summon in SummonRegistry
+/// - Update summon position
+/// - Broadcast movement to all players on the map
 public struct MoveSummonHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.MoveSummonRequest

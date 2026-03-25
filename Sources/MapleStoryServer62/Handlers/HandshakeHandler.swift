@@ -10,6 +10,35 @@ import MapleStory62
 import MapleStoryServer
 import CoreModel
 
+/// Handles the initial connection handshake with newly connected clients.
+///
+/// When a client connects, the server must send a `HelloPacket` containing
+/// the cryptographic nonces used to encrypt the connection. This is the
+/// first packet sent after a TCP connection is established.
+///
+/// # Handshake Flow
+///
+/// 1. Client establishes TCP connection
+/// 2. Server sends HelloPacket with send/receive nonces and region
+/// 3. Client and server both initialize their AES encryption using the nonces
+/// 4. All subsequent packets are encrypted
+///
+/// # HelloPacket Contents
+///
+/// - **recvNonce**: Nonce used to decrypt packets from client
+/// - **sendNonce**: Nonce used to encrypt packets to client
+/// - **region**: Server region (affects some gameplay behaviors)
+///
+/// # Disconnection Handling
+///
+/// When a client disconnects, the handler looks up their session by IP
+/// address and channel, then closes the session to clean up server state.
+///
+/// # Channel Association
+///
+/// The `channel` property identifies which channel this connection is for.
+/// Login server connections have `channel = nil`.
+/// Channel server connections have a specific channel ID.
 public struct HandshakeHandler <Socket: MapleStorySocket, Database: ModelStorage>: ServerHandler {
     
     public let channel: Channel.ID?

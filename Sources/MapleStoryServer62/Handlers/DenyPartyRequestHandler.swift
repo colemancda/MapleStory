@@ -11,6 +11,31 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles party invitation rejections.
+///
+/// When a player receives a party invitation and declines it, this packet
+/// is sent to the server. The server notifies the party leader that the
+/// invitation was rejected.
+///
+/// # Party Invitation Flow
+///
+/// 1. Party leader invites a player
+/// 2. Target player receives invitation popup
+/// 3. Target player clicks "Decline"
+/// 4. Client sends DenyPartyRequest
+/// 5. Server (TODO) notifies party leader of rejection
+/// 6. Pending invitation is removed
+///
+/// # Implementation Status
+///
+/// Currently silently rejects without notifying the inviter.
+///
+/// # TODO
+///
+/// - Look up the pending party invitation
+/// - Find the party leader's connection
+/// - Send rejection notification to party leader
+/// - Remove the pending invitation from PartyRegistry
 public struct DenyPartyRequestHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.DenyPartyRequest

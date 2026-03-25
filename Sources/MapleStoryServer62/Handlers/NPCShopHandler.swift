@@ -11,6 +11,51 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles NPC shop transactions (buy, sell, recharge).
+///
+/// When a player interacts with a shop NPC, they can buy items, sell items,
+/// or recharge consumable items (e.g., restock arrows/stars/bullets to max).
+///
+/// # Shop Operations
+///
+/// | Mode | Operation | Description |
+/// |------|-----------|-------------|
+/// | 0 | Buy | Purchase item from NPC shop |
+/// | 1 | Sell | Sell item to NPC for mesos |
+/// | 2 | Recharge | Refill stackable use items to max |
+///
+/// # Buy Flow
+///
+/// 1. Player opens NPC shop (via NPCTalkHandler)
+/// 2. Player selects item and quantity
+/// 3. Client sends buy request
+/// 4. Server validates player has enough mesos
+/// 5. Server deducts mesos and adds item to inventory
+/// 6. Server sends inventory update
+///
+/// # Sell Flow
+///
+/// 1. Player right-clicks item in inventory
+/// 2. Player selects sell amount
+/// 3. Client sends sell request
+/// 4. Server removes item from inventory
+/// 5. Server adds mesos (sell price) to character
+/// 6. Server sends inventory and meso update
+///
+/// # Recharge Flow
+///
+/// 1. Player right-clicks rechargeble item (arrows, stars)
+/// 2. Client sends recharge request
+/// 3. Server refills item to max quantity
+/// 4. Server deducts mesos for the recharge cost
+/// 5. Server sends inventory update
+///
+/// # Validation
+///
+/// - Player must be in active NPC shop conversation
+/// - Player must have enough mesos to buy/recharge
+/// - Item must exist in the shop's inventory
+/// - Item must be in player's inventory to sell/recharge
 public struct NPCShopHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.NPCShopRequest

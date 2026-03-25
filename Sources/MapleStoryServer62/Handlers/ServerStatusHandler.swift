@@ -10,6 +10,27 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles requests for server/channel status information.
+///
+/// The client queries server status to determine if a channel is available,
+/// at normal load, or full. This is displayed in the channel selection screen.
+///
+/// # Server Status Values
+///
+/// - **Normal** (0): Server has available capacity
+/// - **HighLoad** (1): Server is experiencing high player counts
+/// - **Full** (2): Server is at capacity, new logins may be blocked
+///
+/// # Flow
+///
+/// 1. Client sends status request for a specific world/channel
+/// 2. Server looks up current player count vs. capacity
+/// 3. Server returns appropriate status code
+/// 4. Client displays the status in the UI
+///
+/// # Response
+///
+/// Returns `ServerStatusResponse` with the channel's current load status.
 public struct ServerStatusHandler: PacketHandler {
     
     public typealias Packet = MapleStory62.ServerStatusRequest

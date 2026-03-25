@@ -11,6 +11,32 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles pet movement synchronization across players in a map.
+///
+/// When a player's pet moves, the client sends this packet so the server
+/// can broadcast the pet's new position to other players on the same map.
+/// This ensures all players see pets moving in sync.
+///
+/// # Pet Movement Flow
+///
+/// 1. Player's pet follows character movement
+/// 2. Client sends move pet request with new position
+/// 3. Server validates pet ownership
+/// 4. Server updates pet position in PetRegistry
+/// 5. Server broadcasts pet movement to all map players
+///
+/// # Pet Slots
+///
+/// Characters can have up to 3 active pets simultaneously (slots 0-2).
+/// The slot determines display order and which pet is shown first.
+///
+/// # Broadcasting
+///
+/// Sends `MovePetNotification` to all players on the current map with:
+/// - **characterID**: Owner's character ID
+/// - **slot**: Pet slot (0, 1, or 2)
+/// - **petID**: Unique pet identifier
+/// - **movementData**: Movement path data
 public struct MovePetHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.MovePetRequest

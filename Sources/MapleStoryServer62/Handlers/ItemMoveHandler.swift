@@ -11,6 +11,34 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles inventory item move/equip/unequip/drop operations.
+///
+/// # Item Move Operations
+///
+/// Players can manipulate items in their inventory:
+/// - **Move**: Drag item from one slot to another within same inventory tab
+/// - **Equip**: Drag item from inventory to equipment slot (source > 0, dest < 0)
+/// - **Unequip**: Drag item from equipment back to inventory (source < 0, dest > 0)
+/// - **Drop**: Move to slot 0 drops the item on the ground
+/// - **Throw**: Remove item from inventory permanently
+///
+/// # Slot Conventions
+///
+/// - **Positive slots**: Inventory slots (1-96 depending on inventory type)
+/// - **Negative slots**: Equipment slots (body, helmet, weapon, etc.)
+/// - **Slot 0**: Drop/throw destination
+///
+/// # Inventory Types
+///
+/// - **1 - Equip**: Weapons, armor, accessories
+/// - **2 - Use**: Potions, scrolls, consumables
+/// - **3 - Setup**: Chairs, crafting items, decorations
+/// - **4 - ETC**: Quest items, misc items
+/// - **5 - Cash**: NX/cash shop items
+///
+/// # Response
+///
+/// Sends inventory manipulation notification with updated item positions.
 public struct ItemMoveHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.ItemMoveRequest

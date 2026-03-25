@@ -11,6 +11,27 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles guild management operations (create, leave, expel, rank change, disband).
+///
+/// # Guild Operations
+///
+/// | Code | Operation | Description |
+/// |------|-----------|-------------|
+/// | 0x02 | Create | Create a new guild |
+/// | 0x07 | Leave | Leave current guild |
+/// | 0x08 | Expel | Remove a member (master/jr. master only) |
+/// | 0x0E | Rank | Change a member's rank (master/jr. master only) |
+/// | 0x10 | Disband | Disband the guild (master only) |
+///
+/// # Guild Ranks
+///
+/// - **1 - Master**: Guild leader, full permissions
+/// - **2 - Jr. Master**: Second in command, can manage members
+/// - **3-5 - Members**: Regular members with no management rights
+///
+/// # Response
+///
+/// Sends `GuildOperationNotification` indicating the result of the operation.
 public struct GuildOperationHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.GuildOperationRequest

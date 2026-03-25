@@ -10,6 +10,32 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles guest login requests (login without an account).
+///
+/// Guest login allows players to try the game without registering an account.
+/// Guest accounts have limited functionality compared to full accounts.
+///
+/// # Guest Login Flow
+///
+/// 1. Player clicks "Guest Login" on the login screen
+/// 2. Client sends guest login request
+/// 3. Server creates a temporary guest session
+/// 4. Server returns login success response
+/// 5. Player can play with limited access
+///
+/// # Guest Limitations
+///
+/// Guest accounts typically cannot:
+/// - Save progress between sessions
+/// - Use the buddy list
+/// - Join guilds
+/// - Use the auction house/trading system
+///
+/// # Response
+///
+/// Sends `LoginResponse` with:
+/// - Success: Contains username for the guest session
+/// - Failure: Contains the login error reason
 public struct GuestLoginHandler: PacketHandler {
     
     public typealias Packet = MapleStory62.GuestLoginRequest

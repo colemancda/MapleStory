@@ -10,6 +10,14 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles Maple Trading System (MTS) buy/sell/search operations.
+///
+/// The MTS was a real-money player-to-player trading system in older MapleStory versions.
+/// Players could list items for sale using NX currency.
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — MTS operations are not implemented in this server.
 public struct MTSOperationHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.MTSOperationRequest

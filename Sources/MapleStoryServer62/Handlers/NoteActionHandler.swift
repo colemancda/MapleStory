@@ -10,6 +10,34 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles in-game note (mail) actions between players.
+///
+/// Players can send notes (short messages) to other players, even when
+/// they are offline. Notes are stored and delivered when the recipient
+/// next logs in.
+///
+/// # Note Actions
+///
+/// - **Send**: Write and send a note to another player by name
+/// - **Delete**: Delete received notes
+/// - **Read**: Mark note as read
+///
+/// # Note System
+///
+/// - Notes are delivered next time recipient logs in
+/// - Up to 5 notes can be stored per player (older ones deleted)
+/// - Notes can contain text messages only (no items)
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — In-game notes system is not yet implemented.
+///
+/// # TODO
+///
+/// - Implement note storage in database
+/// - Deliver notes on login
+/// - Handle note deletion
+/// - Notify player when they have unread notes
 public struct NoteActionHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.NoteActionRequest

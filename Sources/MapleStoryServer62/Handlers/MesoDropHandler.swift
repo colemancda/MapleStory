@@ -11,6 +11,37 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles meso dropping on the ground.
+///
+/// Players can drop mesos (in-game currency) on the ground for other players
+/// to pick up. This is useful for trading and sharing mesos with party members.
+///
+/// # Meso Drop Flow
+///
+/// 1. Player selects "Drop Mesos" from inventory or uses a shortcut
+/// 2. Player enters amount to drop
+/// 3. Client sends meso drop request
+/// 4. Server validates player has enough mesos
+/// 5. Server deducts mesos from player
+/// 6. Server spawns meso item on the map
+/// 7. Server broadcasts item spawn to all map players
+///
+/// # Validation
+///
+/// - Player must have at least the requested meso amount
+/// - Amount must be positive (cannot drop 0 or negative)
+/// - Player must be in a valid map position
+///
+/// # Meso Ownership
+///
+/// Dropped mesos may be:
+/// - **Loot protected**: Only the dropper can pick them up initially
+/// - **Open to all**: After a timeout, anyone can pick them up
+///
+/// # Response
+///
+/// Sends item drop notification to all players on the map showing
+/// the meso bag appearing on the ground.
 public struct MesoDropHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.MesoDropRequest

@@ -10,6 +10,32 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles damage taken by player summons.
+///
+/// When a player has an active summon (e.g., Bahamut for Bishop, Silver Hawk
+/// for Ranger), monsters can attack and damage the summon. This packet is sent
+/// by the client to report damage taken by the summon.
+///
+/// # Summon System
+///
+/// Summons are temporary creatures summoned by certain skills:
+/// - **Bahamut** (Bishop): Holy dragon that attacks nearby enemies
+/// - **Silver Hawk** (Ranger): Bird that attacks nearby enemies
+/// - **Ifrit/Elquines** (Ice/Lightning Mage): Elemental summons
+/// - **Beholder** (Dark Knight): Passive buff/heal summon
+///
+/// Each summon has HP and can be killed by monsters.
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Summon damage tracking is not yet implemented.
+///
+/// # TODO
+///
+/// - Track summon HP in SummonRegistry
+/// - Handle summon death (remove from map)
+/// - Broadcast summon HP changes to map
+/// - Notify owner when summon dies
 public struct DamageSummonHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.DamageSummonRequest

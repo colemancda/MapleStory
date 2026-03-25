@@ -10,6 +10,24 @@ import CoreModel
 import MapleStory62
 import MapleStoryServer
 
+/// Handles world selection in the "all characters" view.
+///
+/// When a player selects a specific world from the all-characters list,
+/// the server responds with character counts and character data for that world.
+/// This is used when the client is in "all servers" mode showing characters
+/// across all worlds.
+///
+/// # Response
+///
+/// Sends one or more `AllCharactersResponse` packets:
+/// 1. A count packet indicating total characters across worlds
+/// 2. One character list packet per world with characters
+///
+/// If the account has no characters, returns a single count packet with 0 characters.
+///
+/// # Character Limit
+///
+/// Up to 60 characters are returned per world (first 60 if more exist).
 public struct AllCharactersWorldSelectedHandler: PacketHandler {
     
     public typealias Packet = MapleStory62.AllCharactersWorldSelectedRequest
