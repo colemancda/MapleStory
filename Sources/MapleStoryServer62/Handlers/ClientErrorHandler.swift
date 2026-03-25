@@ -20,7 +20,7 @@ public struct ClientErrorHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // TODO: Store in database
-        NSLog("Client error\n\(packet.error)")
+        let address = connection.address.address
+        NSLog("Client start error [\(address)]: \(packet.error)")
     }
 }
