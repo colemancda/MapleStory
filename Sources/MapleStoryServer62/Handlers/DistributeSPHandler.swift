@@ -11,6 +11,134 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles SP (Skill Point) distribution to skills.
+///
+/// # Skill Points (SP)
+///
+/// - Players earn SP when leveling up
+/// - SP can be allocated to job-appropriate skills
+/// - Each skill level costs 1 SP
+/// - SP persists until used
+/// - Can be reallocated using SP resets (NX cash item)
+///
+/// # SP Gains
+///
+/// SP earned per level:
+/// - **Levels 1-10**: 3 SP per level (beginner)
+/// - **Levels 11+**: 3 SP per level (1st job onwards)
+/// - Total SP at level 200: ~600 SP
+///
+/// Some quests also grant SP as rewards.
+///
+/// # Skill Distribution Rules
+///
+/// ## Job Restrictions
+///
+/// Players can only learn skills for their job:
+/// - **Beginner** (ID prefix 1000): Only beginner skills
+/// - **Warrior** (ID prefix 11xx-13xx): Warrior skills
+/// - **Magician** (ID prefix 20xx-23xx): Mage skills
+/// - **Bowman** (ID prefix 30xx-32xx): Bowman skills
+/// - **Thief** (ID prefix 40xx-42xx): Thief skills
+/// - **Pirate** (ID prefix 50xx-52xx): Pirate skills
+///
+** Cannot cross-train (e.g., warrior can't learn magic)
+///
+/// ## Skill Level Limits
+///
+/// Each skill has max level:
+/// - **1st job skills**: Max level 20
+/// - **2nd job skills**: Max level 30
+/// - **3rd job skills**: Max level 20
+/// - **4th job skills**: Max level 30
+/// - **Beginner skills**: Max level 3
+///
+/// Mastery level can be increased with:
+/// - **Skill books**: From boss runs or quests
+/// - **Mastery guides**: Consumable items
+///
+** Max level 10 → Max level 20 → Max level 30
+///
+/// ## Skill Prerequisites
+///
+** Some skills require other skills:
+/// - Must have level 3 in skill A to learn skill B
+/// - Example: Warrior must have level 3 Improving MAXHP to learn Iron Will
+/// - Server validates prerequisites before allowing allocation
+///
+/// # Skill Allocation Process
+///
+/// 1. Player opens skill window (press K)
+/// 2. Player clicks "+" button next to skill
+/// 3. Client sends SP distribution request
+/// 4. Server validates:
+///    - Player has at least 1 SP
+///    - Skill exists for player's job
+///    - Current level < max level
+/// 5. Server increments skill level
+/// 6. Server decrements SP count
+/// 7. Server saves character and skills
+/// 8. Server sends stat update notification
+///
+** Client shows skill level increase animation
+///
+/// # Skill Tree Structure
+///
+/// Skills are organized by job advancement:
+///
+** 1st Job (Level 10):
+/// - Choose one of 5 paths (Warrior, Magician, Bowman, Thief, Pirate)
+/// - Learn basic job skills
+/// - Spend ~20 SP to max all skills
+///
+** 2nd Job (Level 30):
+/// - Specialize further (e.g., Fighter vs Page vs Spearman)
+/// - Learn stronger skills
+/// - Spend ~60 SP to max all skills
+///
+** 3rd Job (Level 70):
+/// - Advanced specialization
+/// - Learn powerful skills
+/// - Spend ~80 SP to max all skills
+///
+** 4th Job (Level 120):
+/// - Master class skills
+/// - Learn ultimate skills
+/// - Spend ~150 SP to max all skills
+///
+/// # Skill Mastery
+///
+/// Early levels of skills deal unstable damage:
+/// - **Level 1**: Damage varies 10%-90% of listed damage
+/// - **Max level**: Damage varies 60%-140% of listed damage
+/// - **Mastery affects consistency**: Higher mastery = more stable damage
+///
+/// # Anti-Cheat
+///
+/// - **SP validation**: Can't spend SP you don't have
+/// - **Job validation**: Can't learn wrong job skills
+/// - **Level cap**: Can't exceed max skill level
+/// - **Server authoritative**: Server tracks actual SP and skills
+/// - **Prevents skill hacking**: Client can't fake skills
+///
+/// # Skill Book System
+///
+/// High-level skills require skill books:
+/// - **Mastery books**: Increase max level from 10 → 20 → 30
+/// - **Skill books**: Unlock the skill (for some 4th job skills)
+/// - **Drop from bosses**: Zakum, Horntail, Pink Bean, etc.
+/// - **Tradeable**: Some books can be bought/sold
+/// - **Success rate**: Books have chance to fail when used
+///
+** Failure wastes the book but doesn't consume SP
+///
+/// # SP Reset
+///
+** NX cash shop item:
+/// - Removes all SP from a skill
+/// - Returns SP to pool
+/// - Can reallocate to different skills
+/// - Useful for fixing build mistakes
 public struct DistributeSPHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.DistributeSPRequest

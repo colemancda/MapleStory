@@ -11,6 +11,96 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles consumable item usage (potions, food, etc.).
+///
+/// # Consumable Items
+///
+/// This handler processes items from the USE inventory (type 2) that:
+/// - Restore HP/MP (potions, food)
+/// - Grant temporary buffs
+/// - Teleport player
+/// - Grant experience
+/// - Remove debuffs
+///
+/// # HP/MP Recovery Formula
+///
+/// ## Flat Recovery
+/// - Potion heals fixed amount (e.g., 50 HP)
+/// - Simple addition to current HP/MP
+/// - Cannot exceed max HP/MP
+///
+/// ## Percentage Recovery
+/// - Heals percentage of max HP/MP (e.g., 50%)
+/// - Formula: `gain = (maxHP * percent / 100) + flatAmount`
+/// - Used for items like "Ginger Ale" (50% HP/MP)
+///
+/// ## Combined Recovery
+/// - Many items have both flat and percentage components
+/// - Example: 100 HP + 50% = 100 + (maxHP * 0.5)
+/// - Both components stack
+///
+/// # Item Consumption
+///
+/// - **Quantity > 1**: Decrease quantity by 1
+/// - **Quantity == 1**: Remove item from inventory
+/// - Inventory slot becomes empty after last use
+///
+/// # Item Validation
+///
+/// - Item must exist in USE inventory at specified slot
+/// - Item must be consumable (defined in WZ data)
+/// - Player must be alive (usually enforced elsewhere)
+///
+/// # Stat Updates
+///
+/// Only stats that changed are sent to client:
+/// - If HP changed: Send HP update
+/// - If MP changed: Send MP update
+/// - If both changed: Send both
+/// - `announce: false` prevents popup for potion use
+///
+/// # Future Features (TODO)
+///
+/// ## Buff Items
+/// - Items with `time > 0` grant temporary stat boosts
+/// - Examples: Warrior Pill, Wizard Elixir
+/// - Should apply buff through `CharacterBuffRegistry`
+///
+/// ## Teleport Items
+/// - Items with `moveTo != -1` teleport player
+/// - Examples: Teleport rocks, VIP rocks
+/// - Should warp player to saved location
+///
+/// ## EXP Items
+/// - Items with `exp > 0` grant experience
+/// - Examples: EXP cards, event items
+/// - Should add EXP and handle EXP caps
+///
+/// # Anti-Cheat Considerations
+///
+/// - Server validates item existence (no hacking items)
+/// - Server validates item type (only consumables)
+/// - Server applies effects (client can't fake values)
+/// - Position registry ensures player is where they say
+///
+/// # Common Consumables
+///
+/// ## HP Potions
+/// - Red Potion (50 HP), Orange Potion (150 HP), White Potion (300 HP)
+/// - Ginger Ale (50% HP/MP), Elixir (50% HP/MP)
+///
+/// ## MP Potions
+/// - Blue Potion (100 MP), Mana Elixir (50% MP), Mana Elixir (50% MP)
+///
+/// ## Food
+/// - Hot Dog (300 HP), Taco (500 HP), Cheeseburger (600 HP)
+/// - Hot Dog Supreme (1000 HP)
+///
+/// # Inventory Slots
+///
+/// - USE inventory type 2
+/// - Slots are 0-based (0-24 for 25 slots)
+/// - Client sends slot number of item to use
 public struct UseItemHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseItemRequest

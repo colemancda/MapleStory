@@ -11,6 +11,80 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles map changes via portals and death respawns.
+///
+/// # Map Change Types
+///
+/// ## Regular Portal Use (type 2)
+/// - Player enters a portal on the current map
+/// - Server looks up portal by name
+/// - Server finds target map and spawn point
+/// - Player warps to target map at specified spawn point
+///
+/// ## Death Return (type 1)
+/// - Player died and pressed "OK" to respawn
+/// - Player returns to current map's spawn point
+/// - No portal lookup needed
+/// - Saves current map as respawn point
+///
+/// # Portal System
+///
+/// ## Portal Properties
+/// - **name**: Unique portal identifier in map
+/// - **targetMap**: Map ID to warp to
+/// - **targetName**: Spawn point/portal name in target map
+/// - **type**: Portal type (normal, scripted, etc.)
+///
+/// ## Special Values
+/// - **targetMap == 0x3B9AC9FF**: Don't move (stay on current map)
+/// - Used for certain portals that trigger events instead of warping
+///
+/// # Spawn Points
+///
+/// Each map has numbered spawn points:
+/// - Spawn point 0: Default spawn location
+/// - Additional spawns: For multiple entry points
+/// - Server finds spawn point by matching portal name
+///
+/// # Map Change Process
+///
+/// 1. Client sends portal name and target map
+/// 2. Server validates portal exists in current map
+/// 3. Server resolves target spawn point
+/// 4. Server warps player:
+///    - Updates character's map ID and spawn point
+///    - Sends warp packet with character stats
+///    - Loads map data (mobs, NPCs, etc.)
+/// 5. Character is saved to database
+///
+/// # Death Mechanics
+///
+/// When a player dies:
+/// - Client shows "You died" message
+/// - Player clicks OK to respawn
+/// - Type 1 packet is sent (death return)
+/// - Player respawns at current map's spawn point
+/// - No EXP loss (handled elsewhere)
+///
+/// # Loading Screens
+///
+/// - Between map changes, player sees loading screen
+/// - Loading screen matches target map theme
+/// - Loading time depends on map size/content
+///
+/// # Anti-Cheat
+///
+/// - Server validates portal exists (can't warp to invalid portals)
+/// - Server validates target map (can't warp to maps that don't exist)
+/// - Position is reset to spawn point (can't keep position from old map)
+///
+/// # Common Portal Types
+///
+/// - **Normal portals**: Between maps in same region
+/// - **Town portals**: Enter/exit towns
+/// - **Dungeon portals**: Enter dungeon instances
+/// - **Event portals**: Trigger events or quests
+/// - **Scripted portals**: Custom behavior via scripts
 public struct ChangeMapHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.ChangeMapRequest
