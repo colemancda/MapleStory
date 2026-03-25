@@ -91,6 +91,9 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
     
     public var jobRankMove: UInt32
     
+    /// Maximum number of buddies allowed in buddy list (default: 25)
+    public var buddyCapacity: UInt8
+    
     // MARK: - Initialization
     
     public init(
@@ -131,7 +134,8 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         worldRank: UInt32 = 0,
         rankMove: UInt32 = 0,
         jobRank: UInt32 = 0,
-        jobRankMove: UInt32 = 0
+        jobRankMove: UInt32 = 0,
+        buddyCapacity: UInt8 = 25
     ) {
         self.id = id
         self.index = index
@@ -171,6 +175,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         self.rankMove = rankMove
         self.jobRank = jobRank
         self.jobRankMove = jobRankMove
+        self.buddyCapacity = buddyCapacity
     }
     
     // MARK: - Codable
@@ -215,6 +220,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case jobRank
         case jobRankMove
         case skillMacros
+        case buddyCapacity
     }
     
     public init(from decoder: Decoder) throws {
@@ -257,6 +263,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         rankMove = try container.decode(UInt32.self, forKey: .rankMove)
         jobRank = try container.decode(UInt32.self, forKey: .jobRank)
         jobRankMove = try container.decode(UInt32.self, forKey: .jobRankMove)
+        buddyCapacity = try container.decodeIfPresent(UInt8.self, forKey: .buddyCapacity) ?? 25
     }
     
     public func encode(to encoder: Encoder) throws {
@@ -299,6 +306,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         try container.encode(rankMove, forKey: .rankMove)
         try container.encode(jobRank, forKey: .jobRank)
         try container.encode(jobRankMove, forKey: .jobRankMove)
+        try container.encode(buddyCapacity, forKey: .buddyCapacity)
     }
 }
 
@@ -341,7 +349,8 @@ extension Character: Entity {
             .worldRank: .int64,
             .rankMove: .int64,
             .jobRank: .int64,
-            .jobRankMove: .int64
+            .jobRankMove: .int64,
+            .buddyCapacity: .int16
         ]
     }
     
