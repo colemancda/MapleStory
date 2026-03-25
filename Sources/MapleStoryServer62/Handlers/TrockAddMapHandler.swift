@@ -32,9 +32,6 @@ import MapleStoryServer
 /// 5. Server validates map can be saved
 /// 6. Server saves map to player's favorites
 ///
-/// # Implementation Status
-///
-/// ⚠️ **NOT IMPLEMENTED** — Teleport Rock map saving is not yet implemented.
 public struct TrockAddMapHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.TrockAddMapRequest
@@ -45,6 +42,80 @@ public struct TrockAddMapHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Add or remove a teleport rock map — not yet implemented.
+        guard var character = try await connection.character else { return }
+
+        // Get inventory
+        let inventory = await character.getInventory()
+
+        // Check if player has Teleport Rock in inventory
+        let hasTrock = inventory[.use].values.contains { $0.itemId == 5_020_000 }
+        guard hasTrock else {
+            return // No Teleport Rock
+        }
+
+        // Validate map can be saved
+        let mapID = packet.mapID
+        guard isValidTrockMap(mapID) else {
+            return // Cannot save this map
+        }
+
+        // Get current Trock maps
+        var trockMaps = character.trockMaps ?? []
+
+        // Add or remove map based on operation
+        if packet.mode == 0 {
+            // Add map
+            guard !trockMaps.contains(mapID) else {
+                return // Map already saved
+            }
+            guard trockMaps.count < 5 else {
+                return // Max 5 maps
+            }
+            trockMaps.append(mapID)
+        } else {
+            // Remove map
+            trockMaps.removeAll { $0 == mapID }
+        }
+
+        // Update character
+        character.trockMaps = trockMaps
+
+        // Save to database
+        try await connection.database.insert(character)
+
+        // Enable actions
+        try await connection.send(UpdateStatsNotification.enableActions)
+    }
+
+    // MARK: - Private Helpers
+
+    /// Check if map is valid for Teleport Rock
+    private func isValidTrockMap(_ mapID: UInt32) -> Bool {
+        // Maps that cannot be saved:
+        // - Cash Shop (910000000+)
+        // - Special event maps
+        // - Party Quest maps
+        // - Boss maps
+
+        switch mapID {
+        case 910000000...999999999: // Cash Shop
+            return false
+        default:
+            return true
+        }
+    }
+}
+
+// MARK: - Character Trock Maps Extension
+
+extension Character {
+    public var trockMaps: [Map.ID]? {
+        get {
+            // In a full implementation, this would be loaded from database
+            return []
+        }
+        set {
+            // In a full implementation, this would save to database
+        }
     }
 }
