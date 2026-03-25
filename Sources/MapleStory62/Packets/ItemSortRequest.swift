@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import MapleStory
 
 public struct ItemSortRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
 
@@ -14,5 +15,5 @@ public struct ItemSortRequest: MapleStoryPacket, Codable, Equatable, Hashable, S
     internal let value0: UInt32
 
     /// Inventory type to sort
-    public let inventoryType: UInt8
+    public let inventoryType: InventoryType
 }
