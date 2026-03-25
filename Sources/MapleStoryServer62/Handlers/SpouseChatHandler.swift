@@ -22,16 +22,41 @@ public struct SpouseChatHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         guard let character = try await connection.character else { return }
+        let offlineMessage = "You are not married or your spouse is currently offline."
 
         guard character.isMarried else {
-            try await connection.send(ServerMessageNotification.notice(message: "You are not married."))
+            try await connection.send(ServerMessageNotification.lightBlueText(message: offlineMessage))
+            return
+        }
+        guard let recipientName = CharacterName(rawValue: packet.recipient) else {
+            try await connection.send(ServerMessageNotification.lightBlueText(message: offlineMessage))
             return
         }
 
-        // Spouse routing is not wired yet; mirror locally so the sender gets immediate feedback.
-        try await connection.send(WhisperNotification(
-            sender: "[Spouse->\(packet.recipient)] \(character.name.rawValue)",
+        let predicates: [Character.Predicate] = [
+            .name(recipientName),
+            .world(character.world)
+        ]
+        let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
+        guard let recipient = try await connection.database.fetch(
+            Character.self,
+            predicate: predicate,
+            fetchLimit: 1
+        ).first,
+        recipient.isMarried else {
+            try await connection.send(ServerMessageNotification.lightBlueText(message: offlineMessage))
+            return
+        }
+
+        let spousePacket = SpousechatNotification(
+            sender: character.name.rawValue,
             message: packet.message
-        ))
+        )
+        do {
+            try await connection.send(spousePacket, toCharacter: recipient.id)
+            try await connection.send(spousePacket) // echo back to sender
+        } catch {
+            try await connection.send(ServerMessageNotification.lightBlueText(message: offlineMessage))
+        }
     }
 }
