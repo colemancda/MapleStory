@@ -20,6 +20,10 @@ public struct FaceExpressionHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Broadcast emote to other players on the same map — not yet implemented.
+        guard let character = try await connection.character else { return }
+        try await connection.broadcast(FacialExpressionNotification(
+            characterID: character.index,
+            expression: packet.emote
+        ), map: character.currentMap)
     }
 }
