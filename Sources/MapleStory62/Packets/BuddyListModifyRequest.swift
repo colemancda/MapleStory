@@ -7,34 +7,47 @@
 
 import Foundation
 
-public struct BuddyListModifyRequest: MapleStoryPacket, Equatable, Hashable, Sendable {
+/// Buddy list modification request packet.
+/// Based on BuddylistModifyHandler.java
+public struct BuddyListModifyRequest: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
 
     public static var opcode: ClientOpcode { .buddylistModify }
 
-    /// 1 = add, 2 = accept, 3 = remove
-    public let mode: UInt8
+    /// Operation mode:
+    /// - 1: Add buddy by name
+    /// - 2: Accept pending buddy request
+    /// - 3: Remove buddy
+    public let mode: Mode
 
     /// Name to add (mode == 1)
     public let addName: String?
-
+    
     /// Other character ID (mode == 2 or 3)
     public let otherCharacterID: UInt32?
+}
+
+// MARK: - Mode Enum
+
+public extension BuddyListModifyRequest {
+
+    enum Mode: UInt8, CaseIterable, Sendable, Codable {
+        case add = 1
+        case accept = 2
+        case remove = 3
+    }
 }
 
 extension BuddyListModifyRequest: MapleStoryDecodable {
 
     public init(from container: MapleStoryDecodingContainer) throws {
-        self.mode = try container.decode(UInt8.self)
+        self.mode = try container.decode(Mode.self)
         switch mode {
-        case 1:
+        case .add:
             self.addName = try container.decode(String.self)
             self.otherCharacterID = nil
-        case 2, 3:
+        case .accept, .remove:
             self.addName = nil
             self.otherCharacterID = try container.decode(UInt32.self)
-        default:
-            self.addName = nil
-            self.otherCharacterID = nil
         }
     }
 }
