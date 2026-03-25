@@ -99,6 +99,20 @@ public actor MapleStoryServer <Socket: MapleStorySocket, Database: CoreModel.Mod
         try await connection.send(packet)
     }
 
+    public func send<T>(
+        _ packet: T,
+        toCharacter characterID: Character.ID
+    ) async throws where T: MapleStoryPacket, T: Encodable, T: Sendable, T.Opcode == ServerOpcode {
+        let connections = await storage.connections.values
+        for connection in connections {
+            if await connection.state.character == characterID {
+                try await connection.send(packet)
+                return
+            }
+        }
+        throw MapleStoryError.invalidRequest
+    }
+
     public func broadcast<T>(
         _ packet: T,
         channel: Channel.ID,
@@ -434,6 +448,13 @@ public extension MapleStoryServer.Connection {
 
     func setChannel(_ channel: Channel.ID) {
         state.channel = channel
+    }
+
+    func send<T>(
+        _ packet: T,
+        toCharacter characterID: Character.ID
+    ) async throws where T: MapleStoryPacket, T: Encodable, T.Opcode == ServerOpcode {
+        try await server.send(packet, toCharacter: characterID)
     }
 
     /// Broadcast a packet to all connections in the same channel and map, optionally excluding this connection.
