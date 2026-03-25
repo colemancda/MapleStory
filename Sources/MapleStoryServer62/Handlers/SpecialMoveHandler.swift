@@ -56,7 +56,15 @@ public struct SpecialMoveHandler: PacketHandler {
         // Check if this is a buff skill
         let isBuff = skillLevel.time > 0
 
-        if isBuff {
+        // Special handling for Mystic Door (2311002)
+        if packet.skillID == 2311002 {
+            // Mystic Door skill - create a door
+            try await createMysticDoor(
+                for: character,
+                skillLevel: Int(packet.skillLevel),
+                connection: connection
+            )
+        } else if isBuff {
             // Apply buff
             let duration = TimeInterval(skillLevel.time)
             let buff = BuffState(
@@ -109,5 +117,62 @@ public struct SpecialMoveHandler: PacketHandler {
         // For now, return a basic mask
 
         return buffStats
+    }
+
+    /// Create a Mystic Door for the character
+    private func createMysticDoor<Socket: MapleStorySocket, Database: ModelStorage>(
+        for character: MapleStory.Character,
+        skillLevel: Int,
+        connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
+    ) async throws {
+        // Get current map data to find return map (town)
+        guard let mapData = await MapDataCache.shared.map(id: character.currentMap) else {
+            try await connection.send(ServerMessageNotification.notice(
+                message: "Cannot create door here."
+            ))
+            return
+        }
+
+        // Find a free door portal (type 6) in the town
+        let townMapID = mapData.returnMap
+        guard let townMapData = await MapDataCache.shared.map(id: townMapID) else {
+            return
+        }
+
+        // Find first available door portal (type 6)
+        let doorPortals = townMapData.portals.filter { $0.type == 6 }
+        guard let portal = doorPortals.first else {
+            try await connection.send(ServerMessageNotification.notice(
+                message: "No door portals available in town."
+            ))
+            return
+        }
+
+        // Get door duration based on skill level
+        // Level 1: 300 seconds (5 minutes), increases with level
+        let baseDuration: TimeInterval = 300.0
+        let duration = baseDuration + TimeInterval(skillLevel * 10.0)
+
+        // Create the door
+        let door = Door(
+            ownerID: character.id,
+            townMapID: townMapID,
+            townPortalID: portal.id,
+            fieldMapID: character.currentMap,
+            fieldPosition: Position(x: character.x, y: character.y),
+            duration: duration
+        )
+
+        // Register the door
+        await DoorRegistry.shared.register(door)
+
+        // Log for debugging
+        print("[Door] Created door for character \(character.name) " +
+              "from \(door.fieldMapID) to \(door.townMapID), " +
+              "duration: \(duration)s")
+
+        // Note: Client would need to receive door spawn packets
+        // This would require sending SpawnDoorNotification or similar packets
+        // to party members showing the door location
     }
 }
