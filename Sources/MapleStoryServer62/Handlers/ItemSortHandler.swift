@@ -39,24 +39,59 @@ public struct ItemSortHandler: PacketHandler {
 
         // Sort specified inventory
         // inventoryType: 1 = equip, 2 = use, 3 = setup, 4 = etc, 5 = cash
-        switch packet.inventoryType {
-        case 1: // Equip
-            inventory.equip = sortItems(inventory.equip)
-
-        case 2: // Use
-            inventory.use = sortItems(inventory.use)
-
-        case 3: // Setup
-            inventory.setup = sortItems(inventory.setup)
-
-        case 4: // Etc
-            inventory.etc = sortItems(inventory.etc)
-
-        case 5: // Cash
-            inventory.cash = sortItems(inventory.cash)
-
-        default:
+        guard let inventoryType = InventoryType(rawValue: Int8(packet.inventoryType)) else {
             return
+        }
+
+        var sorted = false
+        let manipulator = InventoryManipulator()
+
+        // Sort by consolidating gaps 
+        while !sorted {
+            // Find first free slot
+            var freeSlot: Int8?
+            for slot in 1...100 {
+                if inventory[inventoryType][slot] == nil {
+                    freeSlot = slot
+                    break
+                }
+            }
+
+            guard let freeSlotValue = freeSlot else {
+                sorted = true // No free slots, inventory is full/compact
+                break
+            }
+
+            // Find next occupied slot after free slot
+            var itemSlot: Int8?
+            for slot in (freeSlotValue + 1)...100 {
+                if inventory[inventoryType][slot] != nil {
+                    itemSlot = slot
+                    break
+                }
+            }
+
+            guard let itemSlotValue = itemSlot else {
+                sorted = true // No items to move
+                break
+            }
+
+            // Move item to free slot
+            if let item = inventory[inventoryType][itemSlotValue] {
+                // Send notification for the move
+                try await connection.send(ModifyInventoryItemNotification.move(
+                    item: item,
+                    fromSlot: itemSlotValue,
+                    toSlot: freeSlotValue,
+                    inventoryType: inventoryType
+                ))
+
+                // Update inventory
+                inventory[inventoryType][itemSlotValue] = nil
+                var movedItem = item
+                movedItem.slot = freeSlotValue
+                inventory[inventoryType][freeSlotValue] = movedItem
+            }
         }
 
         // Save updated inventory
