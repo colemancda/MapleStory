@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,12 @@ public struct UseInnerPortalHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Inner-map portal use — not yet implemented.
+        _ = packet
+        guard let _ = try await connection.character else { return }
+
+        // Inner portal pathing requires per-map scripted portal tables.
+        try await connection.send(ServerMessageNotification.notice(
+            message: "This inner portal is not available yet."
+        ))
     }
 }
