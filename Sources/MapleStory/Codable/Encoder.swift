@@ -457,6 +457,10 @@ public struct MapleStoryEncodingContainer {
         try setValue(data, data: data)
     }
     
+    public func encode<T: FixedLengthString>(_ fixedLength: T) throws {
+        try encode(fixedLength.rawValue, fixedLength: UInt(T.length))
+    }
+    
     public func encode(_ string: String, fixedLength: UInt) throws {
         let length = Int(fixedLength)
         var data = Data()
@@ -468,6 +472,10 @@ public struct MapleStoryEncodingContainer {
             data += [UInt8](repeating: 0x00, count: padding)
         }
         try setValue(string, data: data)
+    }
+    
+    public func encode(_ string: String) throws {
+        try encodeMapleAsciiString(string)
     }
 
     /// Encodes a MapleStory length-prefixed ASCII string (`UInt16` length + ASCII bytes).
