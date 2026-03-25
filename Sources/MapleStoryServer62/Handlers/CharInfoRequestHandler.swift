@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,19 @@ public struct CharInfoRequestHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Character info panel request — response not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        guard let target = try await Character.fetch(
+            packet.characterID,
+            world: character.world,
+            in: connection.database
+        ) else {
+            try await connection.send(ServerMessageNotification.notice(message: "Character not found."))
+            return
+        }
+
+        try await connection.send(ServerMessageNotification.notice(
+            message: "\(target.name.rawValue) Lv.\(target.level) \(target.job)"
+        ))
     }
 }
