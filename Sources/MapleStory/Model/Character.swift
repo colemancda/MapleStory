@@ -221,6 +221,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case jobRankMove
         case skillMacros
         case buddyCapacity
+        case buddies
     }
     
     public init(from decoder: Decoder) throws {
