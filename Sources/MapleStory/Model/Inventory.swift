@@ -7,7 +7,6 @@
 
 import Foundation
 import CoreModel
-import MapleStory
 
 /// Player inventory containing all 5 inventory bags.
 public struct Inventory: Codable, Equatable, Hashable, Sendable {

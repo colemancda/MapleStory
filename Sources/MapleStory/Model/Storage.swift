@@ -7,7 +7,6 @@
 
 import Foundation
 import CoreModel
-import MapleStory
 
 /// Character storage inventory
 public struct Storage: Codable, Equatable, Hashable, Sendable {
