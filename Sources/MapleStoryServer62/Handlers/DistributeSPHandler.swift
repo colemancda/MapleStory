@@ -42,7 +42,7 @@ import MapleStoryServer
 /// - **Thief** (ID prefix 40xx-42xx): Thief skills
 /// - **Pirate** (ID prefix 50xx-52xx): Pirate skills
 ///
-** Cannot cross-train (e.g., warrior can't learn magic)
+/// Cannot cross-train (e.g., warrior can't learn magic)
 ///
 /// ## Skill Level Limits
 ///
@@ -57,11 +57,11 @@ import MapleStoryServer
 /// - **Skill books**: From boss runs or quests
 /// - **Mastery guides**: Consumable items
 ///
-** Max level 10 → Max level 20 → Max level 30
+/// Max level 10 → Max level 20 → Max level 30
 ///
 /// ## Skill Prerequisites
 ///
-** Some skills require other skills:
+/// Some skills require other skills:
 /// - Must have level 3 in skill A to learn skill B
 /// - Example: Warrior must have level 3 Improving MAXHP to learn Iron Will
 /// - Server validates prerequisites before allowing allocation
@@ -80,28 +80,28 @@ import MapleStoryServer
 /// 7. Server saves character and skills
 /// 8. Server sends stat update notification
 ///
-** Client shows skill level increase animation
+/// Client shows skill level increase animation
 ///
 /// # Skill Tree Structure
 ///
 /// Skills are organized by job advancement:
 ///
-** 1st Job (Level 10):
+/// 1st Job (Level 10):
 /// - Choose one of 5 paths (Warrior, Magician, Bowman, Thief, Pirate)
 /// - Learn basic job skills
 /// - Spend ~20 SP to max all skills
 ///
-** 2nd Job (Level 30):
+/// 2nd Job (Level 30):
 /// - Specialize further (e.g., Fighter vs Page vs Spearman)
 /// - Learn stronger skills
 /// - Spend ~60 SP to max all skills
 ///
-** 3rd Job (Level 70):
+/// 3rd Job (Level 70):
 /// - Advanced specialization
 /// - Learn powerful skills
 /// - Spend ~80 SP to max all skills
 ///
-** 4th Job (Level 120):
+/// 4th Job (Level 120):
 /// - Master class skills
 /// - Learn ultimate skills
 /// - Spend ~150 SP to max all skills
@@ -130,15 +130,22 @@ import MapleStoryServer
 /// - **Tradeable**: Some books can be bought/sold
 /// - **Success rate**: Books have chance to fail when used
 ///
-** Failure wastes the book but doesn't consume SP
+/// Failure wastes the book but doesn't consume SP
 ///
 /// # SP Reset
 ///
-** NX cash shop item:
+/// NX cash shop item:
 /// - Removes all SP from a skill
 /// - Returns SP to pool
 /// - Can reallocate to different skills
 /// - Useful for fixing build mistakes
+///
+/// # Side Effects
+///
+/// - **Database**: Saves character (SP decremented)
+/// - **Database**: Saves skills (via CharacterSkillRegistry)
+/// - **Sends**: UpdateStatsNotification to client (with popup)
+/// - **Registry**: Updates skill in CharacterSkillRegistry
 public struct DistributeSPHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.DistributeSPRequest

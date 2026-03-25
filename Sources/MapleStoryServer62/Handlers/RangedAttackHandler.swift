@@ -122,6 +122,12 @@ import MapleStoryServer
 /// - Arrows and stars should be consumed
 /// - Soul Arrow/Shadow Claw should prevent consumption
 /// - This will be implemented in future updates
+///
+/// # Side Effects
+///
+/// - **Database**: Saves character (MP deducted)
+/// - **Broadcasts**: Damage notifications to map (via processAttack)
+/// - **Ammo**: Should consume ammunition but currently does not
 public struct RangedAttackHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.RangedAttackRequest

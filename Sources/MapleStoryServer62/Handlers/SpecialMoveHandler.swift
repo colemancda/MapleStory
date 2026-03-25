@@ -60,7 +60,7 @@ import MapleStoryServer
 ///
 /// # Mystic Door
 ///
-** Special portal skill (Priest 4th job):
+/// Special portal skill (Priest 4th job):
 /// - Creates two-way portal to nearest town
 /// - **Town end**: Appears at door portal (type 6)
 /// - **Field end**: Appears at casting location
@@ -77,7 +77,7 @@ import MapleStoryServer
 ///
 /// # Summon Skills
 ///
-** Summons create allied creatures:
+/// Summons create allied creatures:
 /// - **Summon Dragon** (Mage): Attacks enemies
 /// - **Bahamut** (Bishop): Strong dragon attacks
 /// - **Ranger/Puppet**: Decoy that attracts mobs
@@ -96,7 +96,7 @@ import MapleStoryServer
 ///
 /// # Buff Stat Calculation
 ///
-** Buff effects encoded as bitflags:
+/// Buff effects encoded as bitflags:
 /// - Bit 0: Speed boost
 /// - Bit 1: Jump boost
 /// - Bit 2: Weapon attack boost
@@ -128,6 +128,14 @@ import MapleStoryServer
 /// - **Cooldown enforcement**: Can't spam cooldown skills
 /// - **Effect validation**: Server calculates actual buff effects
 /// - **Speed prevention**: Can't use skills faster than allowed
+///
+/// # Side Effects
+///
+/// - **Database**: Saves character (MP/HP deducted)
+/// - **Registry**: Registers buff in CharacterBuffRegistry (for buffs)
+/// - **Registry**: Registers door in DoorRegistry (for Mystic Door)
+/// - **Sends**: GiveBuffNotification to client (for buffs)
+/// - **Sends**: ServerMessageNotification on errors
 public struct SpecialMoveHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.SpecialMoveRequest

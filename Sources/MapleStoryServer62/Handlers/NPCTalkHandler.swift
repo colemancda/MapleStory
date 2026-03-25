@@ -110,7 +110,7 @@ import MongoDBModel
 ///
 /// # Service NPCs
 ///
-/// ** NPCs provide services:
+/// /// NPCs provide services:
 /// - **Storage Fredrick**: Item storage (costs mesos)
 /// - **Hair Salon**: Change hair style/color
 /// - **Plastic Surgery**: Change face
@@ -142,6 +142,14 @@ import MongoDBModel
 /// - Player can restart conversation
 /// - Error logged for debugging
 /// - No crash or data corruption
+///
+/// # Side Effects
+///
+/// - **Registry**: Stores conversation in NPCConversationRegistry
+/// - **Cancels**: Any existing conversation for this player
+/// - **Async**: Runs NPC script in background task
+/// - **Packets**: Script sends dialog packets directly to client
+/// - **No database**: Conversations are transient
 public struct NPCTalkHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.NPCTalkRequest

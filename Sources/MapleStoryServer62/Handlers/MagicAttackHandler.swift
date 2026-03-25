@@ -136,6 +136,12 @@ import MapleStoryServer
 /// - Teleport is instant movement
 /// - Can chain spells quickly
 /// - Higher Teleport level = less MP
+///
+/// # Side Effects
+///
+/// - **Database**: Saves character (MP deducted)
+/// - **Broadcasts**: Damage notifications to map (via processAttack)
+/// - **No response**: Silent failure if validation fails
 public struct MagicAttackHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.MagicAttackRequest

@@ -80,7 +80,7 @@ import MapleStoryServer
 ///    ↓
 /// Server warps to spawn point
 ///    ↓
-**Player respawns with 10% HP
+/// **Player respawns with 10% HP**
 /// ```
 ///
 /// # Anti-Cheat Measures

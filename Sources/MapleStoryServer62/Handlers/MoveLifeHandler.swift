@@ -82,6 +82,12 @@ import MapleStoryServer
 /// - Broadcast to 20 players = 1000 packets
 /// - Optimized by only sending to players in range
 /// - Controller system prevents desync
+///
+/// # Side Effects
+///
+/// - **Broadcasts**: MoveMonsterNotification to all players on map
+/// - **Responds**: MoveMonsterResponse to controller (mob owner)
+/// - **No database**: Movement is transient, not persisted
 public struct MoveLifeHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.MoveLifeRequest

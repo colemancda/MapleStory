@@ -15,7 +15,7 @@ import MapleStoryServer
 ///
 /// # Natural Regeneration
 ///
-** Players regenerate HP/MP automatically:
+/// Players regenerate HP/MP automatically:
 /// - **Triggers**: Every ~10 seconds while standing/sitting
 /// - **HP regen**: +8-30 HP per tick (based on MAXHP)
 /// - **MP regen**: +3-10 MP per tick (based on MAXMP)
@@ -41,7 +41,7 @@ import MapleStoryServer
 /// - **Max validation**: Can't heal above MAXHP/MAXMP
 /// - **No negative**: HP/MP can't decrease from regen
 ///
-** Prevents hacks that would:
+/// Prevents hacks that would:
 /// - Fake massive HP regen packets
 /// - Instantly heal to full HP
 /// - Bypass potion limitations
@@ -56,7 +56,7 @@ import MapleStoryServer
 ///
 /// # Regeneration Stops
 ///
-** Regeneration is interrupted by:
+/// Regeneration is interrupted by:
 /// - **Taking damage**: Reset regen timer
 /// - **Attacking**: Pause regen
 /// - **Using skill**: Pause regen
@@ -65,7 +65,7 @@ import MapleStoryServer
 ///
 /// # Recovery Items
 ///
-** Other HP/MP recovery methods:
+/// Other HP/MP recovery methods:
 /// - **Potions**: Instant HP/MP restore
 /// - **Food**: Gradual HP/MP restore over time
 /// - **Heal skill**: Cleric/Priest healing spell
@@ -74,7 +74,7 @@ import MapleStoryServer
 ///
 /// # Chair System
 ///
-** Chairs provide bonus regen:
+/// Chairs provide bonus regen:
 /// - **Regular chairs**: 1.5x regen rate
 /// - **Recovery chairs**: 2x regen rate
 /// - **Must be sitting**: Can't move or attack
@@ -83,7 +83,7 @@ import MapleStoryServer
 ///
 /// # Skill Effects
 ///
-** Some skills affect regen:
+/// Some skills affect regen:
 /// - **Recovery** (Beginner): Passive HP regen boost
 /// - **Improving MP Recovery** (Mage): Passive MP regen boost
 /// - **Heal** (Cleric): Active heal spell
@@ -91,15 +91,21 @@ import MapleStoryServer
 ///
 /// # Database Persistence
 ///
-** Character HP/MP saved immediately:
+/// Character HP/MP saved immediately:
 /// - Prevents rollback on server crash
 /// - Ensures regen isn't lost
 /// - Player sees updated HP/MP bar
 ///
-** Not announced (no popup):
+/// Not announced (no popup):
 /// - `announce: false` in stat update
 /// - Quiet update to HP/MP bar only
 /// - Unlike potion pickup (which shows popup)
+///
+/// # Side Effects
+///
+/// - **Database**: Saves character (HP/MP updated)
+/// - **Sends**: UpdateStatsNotification to client (quiet, no popup)
+/// - **No broadcast**: Regen only affects requesting player
 public struct HealOverTimeHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.HealOverTimeRequest
