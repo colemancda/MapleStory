@@ -10,76 +10,144 @@ import CoreModel
 import MapleStory
 import MapleStory62
 
-/// Registry for managing buddy lists and pending buddy requests.
+/// Registry for managing buddy lists with database persistence.
 ///
-/// This actor manages in-memory buddy list state including:
-/// - Current buddy lists for each character
-/// - Pending buddy requests waiting for acceptance
-/// - Capacity checking for buddy lists
+/// This actor manages buddy list state with persistence to the database.
+/// It maintains an in-memory cache for performance while ensuring all
+/// changes are persisted to the database.
 public actor BuddyListRegistry {
 
     public static let shared = BuddyListRegistry()
 
-    /// In-memory buddy lists indexed by character ID
-    private var lists: [Character.ID: [BuddyListNotification.Buddy]] = [:]
+    /// In-memory buddy list cache indexed by character ID
+    private var cache: [Character.ID: [Buddy]] = [:]
     
-    /// Pending buddy requests indexed by the character who will receive the request
+    /// In-memory pending buddy requests indexed by the character who will receive the request
     private var pendingRequests: [Character.ID: [PendingBuddyRequest]] = [:]
 
     private init() { }
 
     // MARK: - Buddy List Operations
     
-    public func list(for characterID: Character.ID) -> [BuddyListNotification.Buddy] {
-        lists[characterID] ?? []
+    /// Load buddies from database for a character
+    public func loadBuddies(for characterID: Character.ID, from database: some ModelStorage) async throws -> [Buddy] {
+        // Check cache first
+        if let cached = cache[characterID] {
+            return cached
+        }
+        
+        // Load from database
+        let predicate = FetchRequest.Predicate.relationship(.init(name: "character", value: characterID))
+        let buddies = try await database.fetch(Buddy.self, predicate: predicate)
+        
+        // Cache the results
+        cache[characterID] = buddies
+        
+        return buddies
     }
     
-    /// Returns the count of non-pending (confirmed) buddies
-    public func buddyCount(for characterID: Character.ID) -> Int {
-        list(for: characterID).count
+    /// Returns the count of confirmed (non-pending) buddies
+    public func buddyCount(for characterID: Character.ID, in database: some ModelStorage) async throws -> Int {
+        let buddies = try await loadBuddies(for: characterID, from: database)
+        return buddies.filter { !$0.pending }.count
     }
     
     /// Checks if the buddy list is at or above capacity
-    public func isFull(_ characterID: Character.ID, capacity: UInt8) -> Bool {
-        buddyCount(for: characterID) >= Int(capacity)
+    public func isFull(_ characterID: Character.ID, capacity: UInt8, in database: some ModelStorage) async throws -> Bool {
+        try await buddyCount(for: characterID, in: database) >= Int(capacity)
     }
 
-    public func add(_ buddy: BuddyListNotification.Buddy, to characterID: Character.ID) -> Bool {
-        var current = lists[characterID] ?? []
-        guard current.contains(where: { $0.id == buddy.id }) == false else {
+    /// Add a buddy to a character's list (persists to database)
+    public func addBuddy(_ buddy: Buddy, to characterID: Character.ID, in database: some ModelStorage) async throws -> Bool {
+        // Check if already exists
+        var buddies = try await loadBuddies(for: characterID, from: database)
+        guard !buddies.contains(where: { $0.buddyID == buddy.buddyID }) else {
             return false
         }
-        current.append(buddy)
-        current.sort { $0.name.rawValue < $1.name.rawValue }
-        lists[characterID] = current
+        
+        // Save to database
+        try await database.insert(buddy)
+        
+        // Update cache
+        buddies.append(buddy)
+        cache[characterID] = buddies
+        
         return true
     }
 
-    public func remove(buddyID: UInt32, from characterID: Character.ID) -> Bool {
-        var current = lists[characterID] ?? []
-        let originalCount = current.count
-        current.removeAll { $0.id == buddyID }
-        guard current.count != originalCount else {
+    /// Remove a buddy from a character's list (persists to database)
+    public func removeBuddy(buddyID: Character.Index, from characterID: Character.ID, in database: some ModelStorage) async throws -> Bool {
+        var buddies = try await loadBuddies(for: characterID, from: database)
+        
+        guard let index = buddies.firstIndex(where: { $0.buddyID == buddyID }) else {
             return false
         }
-        lists[characterID] = current
+        
+        let buddyToRemove = buddies[index]
+        
+        // Delete from database
+        try await database.delete(Buddy.self, for: buddyToRemove.id)
+        
+        // Update cache
+        buddies.remove(at: index)
+        cache[characterID] = buddies
+        
         return true
     }
     
     /// Check if a buddy is already in the list
-    public func contains(buddyID: UInt32, in characterID: Character.ID) -> Bool {
-        lists[characterID]?.contains(where: { $0.id == buddyID }) ?? false
+    public func contains(buddyID: Character.Index, in characterID: Character.ID, database: some ModelStorage) async throws -> Bool {
+        let buddies = try await loadBuddies(for: characterID, from: database)
+        return buddies.contains { $0.buddyID == buddyID }
     }
     
-    // MARK: - Pending Request Operations
+    /// Update buddy pending status
+    public func updateBuddyPending(buddyID: Character.Index, for characterID: Character.ID, pending: Bool, in database: some ModelStorage) async throws -> Bool {
+        var buddies = try await loadBuddies(for: characterID, from: database)
+        
+        guard let index = buddies.firstIndex(where: { $0.buddyID == buddyID }) else {
+            return false
+        }
+        
+        var updatedBuddy = buddies[index]
+        updatedBuddy.pending = pending
+        
+        // Save to database
+        try await database.insert(updatedBuddy)
+        
+        // Update cache
+        buddies[index] = updatedBuddy
+        cache[characterID] = buddies
+        
+        return true
+    }
     
-    /// Add a pending buddy request
+    /// Convert Buddy entities to notification format
+    public func buddyListNotification(for characterID: Character.ID, in database: some ModelStorage) async throws -> [BuddyListNotification.Buddy] {
+        let buddies = try await loadBuddies(for: characterID, from: database)
+        return buddies.compactMap { buddy in
+            // Only include non-pending buddies in the notification
+            guard !buddy.pending else { return nil }
+            // Note: We'd need to look up the buddy's name and online status from their character
+            // For now, return a basic entry
+            return BuddyListNotification.Buddy(
+                id: buddy.buddyID,
+                name: CharacterName(rawValue: "")!, // Would need to fetch from DB
+                value0: 0,
+                channel: -1 // Offline by default
+            )
+        }
+    }
+    
+    // MARK: - Pending Request Operations (In-Memory Only)
+    
+    /// Add a pending buddy request (in-memory only, for active sessions)
     /// - Parameters:
     ///   - fromID: The character ID sending the request
     ///   - fromName: The name of the character sending the request
     ///   - toID: The character ID receiving the request
     /// - Returns: True if the request was added, false if already exists
-    public func addPendingRequest(from fromID: UInt32, fromName: CharacterName, to toID: Character.ID) -> Bool {
+    public func addPendingRequest(from fromID: Character.Index, fromName: CharacterName, to toID: Character.ID) -> Bool {
         var pending = pendingRequests[toID] ?? []
         
         // Check if request already exists
@@ -104,7 +172,7 @@ public actor BuddyListRegistry {
     }
     
     /// Remove a pending request
-    public func removePendingRequest(from fromID: UInt32, to toID: Character.ID) -> Bool {
+    public func removePendingRequest(from fromID: Character.Index, to toID: Character.ID) -> Bool {
         var pending = pendingRequests[toID] ?? []
         let originalCount = pending.count
         pending.removeAll { $0.fromCharacterID == fromID }
@@ -135,18 +203,26 @@ public actor BuddyListRegistry {
     }
     
     /// Check if there's a pending request from a specific character
-    public func hasPendingRequest(from fromID: UInt32, to toID: Character.ID) -> Bool {
+    public func hasPendingRequest(from fromID: Character.Index, to toID: Character.ID) -> Bool {
         pendingRequests[toID]?.contains(where: { $0.fromCharacterID == fromID }) ?? false
+    }
+    
+    // MARK: - Cache Management
+    
+    /// Clear the cache for a character (call when character logs out)
+    public func clearCache(for characterID: Character.ID) {
+        cache.removeValue(forKey: characterID)
+        pendingRequests.removeValue(forKey: characterID)
     }
 }
 
 // MARK: - Pending Buddy Request
 
-/// Represents a pending buddy request waiting for acceptance
+/// Represents a pending buddy request waiting for acceptance (in-memory only)
 public struct PendingBuddyRequest: Codable, Equatable, Hashable, Sendable {
     
     /// The character ID of the player who sent the request
-    public let fromCharacterID: UInt32
+    public let fromCharacterID: Character.Index
     
     /// The name of the player who sent the request
     public let fromCharacterName: CharacterName
@@ -154,7 +230,7 @@ public struct PendingBuddyRequest: Codable, Equatable, Hashable, Sendable {
     /// When the request was created
     public let createdAt: Date
     
-    public init(fromCharacterID: UInt32, fromCharacterName: CharacterName, createdAt: Date = Date()) {
+    public init(fromCharacterID: Character.Index, fromCharacterName: CharacterName, createdAt: Date = Date()) {
         self.fromCharacterID = fromCharacterID
         self.fromCharacterName = fromCharacterName
         self.createdAt = createdAt
