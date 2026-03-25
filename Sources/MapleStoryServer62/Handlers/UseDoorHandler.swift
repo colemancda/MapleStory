@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,12 @@ public struct UseDoorHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Use mystic door — not yet implemented.
+        guard let _ = try await connection.character else { return }
+        guard packet.mode == 0 || packet.mode == 1 else { return }
+
+        let direction = packet.mode == 0 ? "town -> field" : "field -> town"
+        try await connection.send(ServerMessageNotification.notice(
+            message: "Mystic door (\(direction)) is not available yet (oid \(packet.objectID))."
+        ))
     }
 }
