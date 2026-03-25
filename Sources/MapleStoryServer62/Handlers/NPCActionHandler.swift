@@ -24,9 +24,10 @@ import MapleStoryServer
 /// 4. NPCActionHandler handles NPC animations/movements during conversation
 /// 5. Conversation ends when player clicks OK/Cancel or exhausts dialog
 ///
-/// # Implementation Status
+/// # Implementation
 ///
-/// ⚠️ **NOT IMPLEMENTED** — NPC action/movement handling is not yet implemented.
+/// This handler echoes the NPC action back to the client, allowing
+/// the client to display the NPC animation/movement during conversation.
 public struct NPCActionHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.NPCActionRequest
@@ -37,6 +38,41 @@ public struct NPCActionHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // NPC talk reply / movement — script continuation not yet implemented.
+        // Echo NPC action back to client
+        // This allows the client to display NPC animations/movements during conversations
+        switch packet {
+        case .talk(let value0, let value1):
+            try await connection.send(NPCActionNotification.talk(value0, value1))
+        case .move(let data):
+            try await connection.send(NPCActionNotification.move(data))
+        }
+    }
+}
+
+// MARK: - NPC Action Notification
+
+public enum NPCActionNotification: MapleStoryPacket, Equatable, Hashable, Sendable {
+
+    public static var opcode: ServerOpcode { .npcAction }
+
+    /// Talk action
+    case talk(UInt32, UInt16)
+
+    /// Move action
+    case move(Data)
+}
+
+extension NPCActionNotification: MapleStoryEncodable {
+
+    public func encode(to container: MapleStoryEncodingContainer) throws {
+        switch self {
+        case .talk(let value0, let value1):
+            try container.encode(ServerOpcode.npcAction)
+            try container.encode(value0)
+            try container.encode(value1)
+        case .move(let data):
+            try container.encode(ServerOpcode.npcAction)
+            try container.encode(data)
+        }
     }
 }
