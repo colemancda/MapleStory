@@ -73,6 +73,29 @@ import MapleStoryServer
 /// | Access denied | "You cannot use this door." | Send enableActions |
 /// | Invalid mode | - | Silently ignore |
 ///
+/// Handles door/portal usage for entering/exiting maps and buildings.
+///
+/// Doors are special portals that connect maps or allow players to move
+/// between areas. This handler processes door entry requests.
+///
+/// # Door Types
+///
+/// - **Regular doors**: Standard map transitions
+/// - **Party doors**: Only party members can enter
+/// - **Instance doors**: Personal dungeon entrances
+/// - **Mystic doors**: Mystic Door skill portals
+///
+/// # Flow
+///
+/// 1. Player presses UP at a door
+/// 2. Client sends use door request with door object ID
+/// 3. Server validates door exists on current map
+/// 4. Server looks up destination map/portal
+/// 5. Server warps player to destination
+///
+/// # Response
+///
+/// Sends `WarpToMapNotification` to transition the player to the new map.
 public struct UseDoorHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseDoorRequest

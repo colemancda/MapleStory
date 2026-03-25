@@ -11,6 +11,28 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles return scroll usage (teleporting to saved locations).
+///
+/// Return scrolls are consumable items that teleport the player to a
+/// previously saved location. Each scroll can only be used once.
+///
+/// # Return Scroll Types
+///
+/// - **Nearest Town**: Teleport to nearest town
+/// - **Specific Map**: Teleport to specific saved map
+/// - **Dungeon Exit**: Escape from dungeon
+///
+/// # Flow
+///
+/// 1. Player uses return scroll item
+/// 2. Server validates item exists
+/// 3. Server consumes item from inventory
+/// 4. Server looks up destination for scroll type
+/// 5. Server warps player to destination
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Return scrolls are not yet implemented.
 public struct UseReturnScrollHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseReturnScrollRequest

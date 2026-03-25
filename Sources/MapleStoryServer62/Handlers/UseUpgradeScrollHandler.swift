@@ -11,6 +11,41 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles upgrade scroll usage (enhancing equipment with scrolls).
+///
+/// Upgrade scrolls are consumable items that can add stats to equipment
+/// or change an item's properties. Each scroll has a success rate.
+///
+/// # Scroll Types
+///
+/// | Scroll Type | Effect | Success Rate |
+/// |--------------|--------|-------------|
+/// | 100% scrolls | Stat boost | 100% |
+/// | 60% scrolls | Stat boost | 60% |
+/// | 10% scrolls | Stat boost | 10% |
+/// | Dark scrolls | Add dark stat | Varies |
+/// | Chaos scrolls | Random stat | Varies |
+///
+/// # Flow
+///
+/// 1. Player opens upgrade UI
+/// 2. Player selects item and scroll to use
+/// 3. Client sends upgrade scroll request
+/// 4. Server calculates success based on scroll type
+/// 5. If success, apply stat boost to item
+/// 6. If fail, show failure animation
+/// 7. Server sends result notification
+///
+/// # Stat Boosts
+///
+/// - **STR**: Physical strength (warriors)
+/// - **DEX**: Dexterity (bowmen, thieves)
+/// - **INT**: Intelligence (magicians)
+/// - **LUK**: Luck (thieves, beginners)
+/// - **WDEF**: Weapon defense
+/// - **MDEF**: Magic defense
+/// - **ACC**: Accuracy
+/// - **AVOID**: Avoidability
 public struct UseUpgradeScrollHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseUpgradeScrollRequest

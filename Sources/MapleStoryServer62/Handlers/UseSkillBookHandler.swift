@@ -11,6 +11,31 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles skill book usage (learning new skills from books).
+///
+/// Skill books are consumable items that teach characters new skills.
+/// When used, the skill is permanently added to the character's skill list.
+///
+/// # Skill Book Types
+///
+/// - **Mastery books**: Teach 4th job skills
+/// - **Special books**: Teach unique skills
+/// - **Quest books**: Teach quest-related skills
+///
+/// # Flow
+///
+/// 1. Player double-clicks skill book in inventory
+/// 2. Client sends use skill book request
+/// 3. Server validates character can learn the skill
+/// 4. Server checks job requirements
+/// 5. If valid, skill is added to character
+/// 6. Item is consumed
+///
+/// # Requirements
+///
+/// - Character must meet level requirement
+/// - Character must have correct job
+/// - Character must not already know the skill
 public struct UseSkillBookHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseSkillBookRequest

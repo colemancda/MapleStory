@@ -11,6 +11,30 @@ import MapleStory
 import MapleStory62
 import MapleStoryServer
 
+/// Handles inner portal usage (teleporting within the same map).
+///
+/// Inner portals are special teleport points within a map that
+/// allow quick travel between different areas. Unlike regular doors,
+/// inner portals don't require a door object ID - just client just
+/// sends the target position directly.
+///
+/// # Inner Portal Types
+///
+/// - **Flash jumps**: Quick teleport to platform
+/// - **Rope lifts**: Zip line travel
+/// - **Teleporters**: Sci-fi teleport pads
+///
+/// # Flow
+///
+/// 1. Player steps on inner portal
+/// 2. Client sends inner portal request with target position
+/// 3. Server validates position is within the same map
+/// 4. Server updates player position
+/// 5. Server broadcasts position update to other players
+///
+/// # Implementation Status
+///
+/// ⚠️ **NOT IMPLEMENTED** — Inner portals are not yet implemented.
 public struct UseInnerPortalHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseInnerPortalRequest
