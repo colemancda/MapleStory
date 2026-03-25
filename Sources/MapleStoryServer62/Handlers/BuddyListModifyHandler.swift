@@ -16,7 +16,7 @@ import MapleStoryServer
 /// # Buddy List System
 ///
 /// The buddy list allows players to add friends and see when they're online.
-/// Buddy list changes are stored in the BuddyListRegistry and updated in real-time.
+/// Buddy relationships are persisted in the database using the `Buddy` entity.
 ///
 /// # Operations
 ///
@@ -31,28 +31,13 @@ import MapleStoryServer
 ///
 /// ## Accept Buddy Request
 /// - Accepts a pending buddy request
-/// - Adds the requesting player to buddy list
+/// - Adds the requesting player to buddy list (persisted to DB)
 /// - Both players become mutual buddies
 ///
 /// ## Remove Buddy
 /// - Removes a character from buddy list
-/// - Takes effect immediately
+/// - Deleted from database immediately
 /// - Buddy list is updated and sent to client
-///
-/// # Buddy List Limitations
-///
-/// - Buddy list has a maximum capacity (default: 25)
-/// - Cannot add yourself as a buddy
-/// - Can only add characters in the same world
-/// - Character must exist to be added
-///
-/// # Response
-///
-/// After any modification, sends `BuddyListNotification.update` with:
-/// - Complete updated buddy list
-/// - Online status of each buddy
-/// - Channel of each online buddy
-/// - -1 if buddy is offline
 ///
 /// # Error Codes (BuddyListMessageNotification)
 ///
@@ -100,7 +85,11 @@ public struct BuddyListModifyHandler: PacketHandler {
         }
         
         // Check if player's buddy list is full (error 11)
-        let isFull = await BuddyListRegistry.shared.isFull(character.id, capacity: character.buddyCapacity)
+        let isFull = try await BuddyListRegistry.shared.isFull(
+            character.id,
+            capacity: character.buddyCapacity,
+            in: connection.database
+        )
         if isFull {
             try await connection.send(BuddyListMessageNotification.buddyListFull)
             return
@@ -121,36 +110,63 @@ public struct BuddyListModifyHandler: PacketHandler {
         }
         
         // Check if already in buddy list (error 13 - hidden)
-        let alreadyInList = await BuddyListRegistry.shared.contains(buddyID: otherCharacter.index, in: character.id)
+        let alreadyInList = try await BuddyListRegistry.shared.contains(
+            buddyID: otherCharacter.index,
+            in: character.id,
+            database: connection.database
+        )
         if alreadyInList {
             try await connection.send(BuddyListMessageNotification.alreadyOnList)
             return
         }
         
         // Check if target's buddy list is full (error 12)
-        let targetIsFull = await BuddyListRegistry.shared.isFull(otherCharacter.id, capacity: otherCharacter.buddyCapacity)
+        let targetIsFull = try await BuddyListRegistry.shared.isFull(
+            otherCharacter.id,
+            capacity: otherCharacter.buddyCapacity,
+            in: connection.database
+        )
         if targetIsFull {
             try await connection.send(BuddyListMessageNotification.otherBuddyListFull)
             return
         }
         
-        // Add pending request for the target
+        // Add pending buddy entry for sender (pending = true)
+        let senderBuddy = Buddy(
+            character: character.id,
+            buddyID: otherCharacter.index,
+            pending: true
+        )
+        _ = try await BuddyListRegistry.shared.addBuddy(
+            senderBuddy,
+            to: character.id,
+            in: connection.database
+        )
+        
+        // Add pending buddy entry for target (pending = true)
+        let targetBuddy = Buddy(
+            character: otherCharacter.id,
+            buddyID: character.index,
+            pending: true
+        )
+        _ = try await BuddyListRegistry.shared.addBuddy(
+            targetBuddy,
+            to: otherCharacter.id,
+            in: connection.database
+        )
+        
+        // Add in-memory pending request notification for target
         _ = await BuddyListRegistry.shared.addPendingRequest(
             from: character.index,
             fromName: character.name,
             to: otherCharacter.id
         )
         
-        // Send buddy request notification to the target character
-        // Note: In a full implementation, this would be sent to the target's active connection
-        // via cross-channel messaging. For now, we just queue the pending request.
-        
-        // Also add to sender's buddy list (as pending/invisible until accepted)
-        // In Java implementation, this is done differently - the sender sees the buddy
-        // but with a "pending" status. For simplicity, we'll just notify the sender.
-        
         // Send updated buddy list to the player
-        let list = await BuddyListRegistry.shared.list(for: character.id)
+        let list = try await BuddyListRegistry.shared.buddyListNotification(
+            for: character.id,
+            in: connection.database
+        )
         try await connection.send(BuddyListNotification.update(list))
     }
     
@@ -162,7 +178,11 @@ public struct BuddyListModifyHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         // Check if player's buddy list is full
-        let isFull = await BuddyListRegistry.shared.isFull(character.id, capacity: character.buddyCapacity)
+        let isFull = try await BuddyListRegistry.shared.isFull(
+            character.id,
+            capacity: character.buddyCapacity,
+            in: connection.database
+        )
         if isFull {
             try await connection.send(BuddyListMessageNotification.buddyListFull)
             return
@@ -178,47 +198,38 @@ public struct BuddyListModifyHandler: PacketHandler {
             return
         }
         
-        // Check if there's a pending request from this character
-        let hasPendingRequest = await BuddyListRegistry.shared.hasPendingRequest(
+        // Update accepter's buddy entry to non-pending
+        let updated = try await BuddyListRegistry.shared.updateBuddyPending(
+            buddyID: characterID,
+            for: character.id,
+            pending: false,
+            in: connection.database
+        )
+        
+        guard updated else {
+            // Not in list or error
+            return
+        }
+        
+        // Update requester's buddy entry to non-pending (mutual)
+        _ = try await BuddyListRegistry.shared.updateBuddyPending(
+            buddyID: character.index,
+            for: otherCharacter.id,
+            pending: false,
+            in: connection.database
+        )
+        
+        // Remove the in-memory pending request
+        _ = await BuddyListRegistry.shared.removePendingRequest(
             from: characterID,
             to: character.id
         )
         
-        // Add to accepter's buddy list
-        let added = await BuddyListRegistry.shared.add(
-            BuddyListNotification.Buddy(
-                id: otherCharacter.index,
-                name: otherCharacter.name,
-                value0: 0,
-                channel: -1
-            ),
-            to: character.id
-        )
-        
-        guard added else {
-            // Already in list
-            try await connection.send(BuddyListMessageNotification.alreadyOnList)
-            return
-        }
-        
-        // Remove the pending request if it existed
-        if hasPendingRequest {
-            _ = await BuddyListRegistry.shared.removePendingRequest(from: characterID, to: character.id)
-        }
-        
-        // Also add accepter to requester's buddy list (mutual buddies)
-        _ = await BuddyListRegistry.shared.add(
-            BuddyListNotification.Buddy(
-                id: character.index,
-                name: character.name,
-                value0: 0,
-                channel: -1
-            ),
-            to: otherCharacter.id
-        )
-        
         // Send updated buddy list to the player
-        let list = await BuddyListRegistry.shared.list(for: character.id)
+        let list = try await BuddyListRegistry.shared.buddyListNotification(
+            for: character.id,
+            in: connection.database
+        )
         try await connection.send(BuddyListNotification.update(list))
     }
     
@@ -229,8 +240,12 @@ public struct BuddyListModifyHandler: PacketHandler {
         character: Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Remove from player's buddy list
-        let removed = await BuddyListRegistry.shared.remove(buddyID: characterID, from: character.id)
+        // Remove from player's buddy list (from database)
+        let removed = try await BuddyListRegistry.shared.removeBuddy(
+            buddyID: characterID,
+            from: character.id,
+            in: connection.database
+        )
         
         guard removed else {
             // Not in list, nothing to do
@@ -244,11 +259,18 @@ public struct BuddyListModifyHandler: PacketHandler {
             world: character.world,
             in: connection.database
         ) {
-            _ = await BuddyListRegistry.shared.remove(buddyID: character.index, from: otherCharacter.id)
+            _ = try await BuddyListRegistry.shared.removeBuddy(
+                buddyID: character.index,
+                from: otherCharacter.id,
+                in: connection.database
+            )
         }
         
         // Send updated buddy list to the player
-        let list = await BuddyListRegistry.shared.list(for: character.id)
+        let list = try await BuddyListRegistry.shared.buddyListNotification(
+            for: character.id,
+            in: connection.database
+        )
         try await connection.send(BuddyListNotification.update(list))
     }
 }
