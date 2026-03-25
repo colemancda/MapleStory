@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,17 @@ public struct SpouseChatHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Spouse whisper — not yet implemented.
+        guard let character = try await connection.character else { return }
+
+        guard character.isMarried else {
+            try await connection.send(ServerMessageNotification.notice(message: "You are not married."))
+            return
+        }
+
+        // Spouse routing is not wired yet; mirror locally so the sender gets immediate feedback.
+        try await connection.send(WhisperNotification(
+            sender: "[Spouse->\(packet.recipient)] \(character.name.rawValue)",
+            message: packet.message
+        ))
     }
 }
