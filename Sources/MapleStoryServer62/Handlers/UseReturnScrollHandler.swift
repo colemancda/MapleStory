@@ -30,9 +30,6 @@ import MapleStoryServer
 /// 4. Server looks up destination for scroll type
 /// 5. Server warps player to destination
 ///
-/// # Implementation Status
-///
-/// ⚠️ **NOT IMPLEMENTED** — Return scrolls are not yet implemented.
 public struct UseReturnScrollHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.UseReturnScrollRequest
@@ -43,11 +40,49 @@ public struct UseReturnScrollHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let character = try await connection.character else { return }
+        guard var character = try await connection.character else { return }
+
+        // Get inventory
+        let inventory = await character.getInventory()
+
+        // Get return scroll from USE inventory
+        guard let scrollItem = inventory[.use][Int8(packet.slot)] else {
+            return // Item doesn't exist
+        }
+
+        // Validate it's the correct item
+        guard scrollItem.itemId == packet.itemID else {
+            return // Item mismatch
+        }
+
+        // Validate it's a return scroll (item ID 2030xxx)
+        guard isReturnScroll(packet.itemID) else {
+            return // Not a return scroll
+        }
 
         // Determine return destination based on current map
-        let returnMap = getReturnTown(for: character.currentMap)
+        let returnMap = getReturnTown(for: character.map)
+
+        // Consume the scroll
+        let manipulator = InventoryManipulator()
+        _ = try await manipulator.removeById(packet.itemID, quantity: 1, from: character)
+
+        // Save character
+        try await connection.database.insert(character)
+
+        // Warp to return town
         try await connection.warp(to: returnMap, spawn: 0)
+
+        // Enable actions
+        try await connection.send(UpdateStatsNotification.enableActions)
+    }
+
+    // MARK: - Private Helpers
+
+    /// Check if item is a return scroll
+    private func isReturnScroll(_ itemID: UInt32) -> Bool {
+        // Return scrolls are in the 2030xxx range
+        return itemID >= 2_030_000 && itemID < 2_040_000
     }
 
     // MARK: - Private Helpers
