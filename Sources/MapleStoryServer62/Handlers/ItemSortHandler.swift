@@ -22,16 +22,6 @@ import MapleStoryServer
 /// - Combines partial stacks of the same item type
 /// - Removes empty slots between items
 /// - Orders items by item ID or category
-///
-/// # Implementation Status
-///
-/// ⚠️ **NOT IMPLEMENTED** — Inventory sorting is not yet implemented.
-///
-/// # TODO
-///
-/// - Implement stack consolidation
-/// - Implement item reordering
-/// - Send inventory update notification after sort
 public struct ItemSortHandler: PacketHandler {
 
     public typealias Packet = MapleStory62.ItemSortRequest
@@ -42,12 +32,12 @@ public struct ItemSortHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let character = try await connection.character else { return }
+        guard var character = try await connection.character else { return }
 
         // Get current inventory
         var inventory = await character.getInventory()
 
-        // Sort the specified inventory
+        // Sort specified inventory
         // inventoryType: 1 = equip, 2 = use, 3 = setup, 4 = etc, 5 = cash
         switch packet.inventoryType {
         case 1: // Equip
@@ -72,8 +62,11 @@ public struct ItemSortHandler: PacketHandler {
         // Save updated inventory
         await character.setInventory(inventory)
 
-        // TODO: Send inventory update notification to client
-        // In a full implementation, we would send a ModifyInventoryItemNotification
+        // Save character to database
+        try await connection.database.insert(character)
+
+        // Enable actions
+        try await connection.send(EnableActionsNotification())
     }
 
     // MARK: - Private Helpers
