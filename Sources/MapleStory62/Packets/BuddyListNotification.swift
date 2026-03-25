@@ -41,5 +41,12 @@ public extension BuddyListNotification {
         internal let value0: UInt8
         
         public let channel: Int32
+
+        public init(id: UInt32, name: CharacterName, value0: UInt8, channel: Int32) {
+            self.id = id
+            self.name = name
+            self.value0 = value0
+            self.channel = channel
+        }
     }
 }
