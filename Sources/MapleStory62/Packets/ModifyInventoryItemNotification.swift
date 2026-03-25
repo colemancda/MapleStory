@@ -6,96 +6,21 @@
 import Foundation
 import MapleStory
 
-public struct ModifyInventoryItemNotification: MapleStoryPacket, Equatable, Hashable, Sendable {
+public enum ModifyInventoryItemNotification: MapleStoryPacket, Equatable, Hashable, Sendable {
 
     public static var opcode: ServerOpcode { .modifyInventoryItem }
 
-    public enum Mode: UInt8, Sendable {
-        case add = 0
-        case update = 1
-        case move = 2
-        case remove = 3
-    }
-
-    public let mode: Mode
-    public let inventoryType: InventoryType
-    public let slot: Int8
-    public let fromSlot: Int8?
-    public let item: InventoryItem?
-    public let quantity: UInt16?
-
-    public init(mode: Mode, inventoryType: InventoryType, slot: Int8, fromSlot: Int8? = nil, item: InventoryItem? = nil, quantity: UInt16? = nil) {
-        self.mode = mode
-        self.inventoryType = inventoryType
-        self.slot = slot
-        self.fromSlot = fromSlot
-        self.item = item
-        self.quantity = quantity
-    }
-
-    /// Create a move notification (item moved from one slot to another)
-    public static func move(
-        item: InventoryItem,
-        fromSlot: Int8,
-        toSlot: Int8,
-        inventoryType: InventoryType
-    ) -> ModifyInventoryItemNotification {
-        var movedItem = item
-        movedItem.slot = toSlot
-        return ModifyInventoryItemNotification(
-            mode: .move,
-            inventoryType: inventoryType,
-            slot: toSlot,
-            fromSlot: fromSlot,
-            item: movedItem,
-            quantity: nil
-        )
-    }
-
-    /// Create an add notification (new item added)
-    public static func add(
-        item: InventoryItem,
-        inventoryType: InventoryType
-    ) -> ModifyInventoryItemNotification {
-        return ModifyInventoryItemNotification(
-            mode: .add,
-            inventoryType: inventoryType,
-            slot: item.slot,
-            item: item,
-            quantity: item.quantity
-        )
-    }
-
-    /// Create an update notification (quantity changed)
-    public static func update(
-        item: InventoryItem,
-        inventoryType: InventoryType,
-        quantity: UInt16
-    ) -> ModifyInventoryItemNotification {
-        return ModifyInventoryItemNotification(
-            mode: .update,
-            inventoryType: inventoryType,
-            slot: item.slot,
-            item: item,
-            quantity: quantity
-        )
-    }
-
-    /// Create a remove notification (item removed)
-    public static func remove(
-        inventoryType: InventoryType,
-        slot: Int8,
-        itemId: UInt32
-    ) -> ModifyInventoryItemNotification {
-        let item = InventoryItem(id: UUID(), itemId: itemId, slot: slot, quantity: 0)
-        return ModifyInventoryItemNotification(
-            mode: .remove,
-            inventoryType: inventoryType,
-            slot: slot,
-            item: item,
-            quantity: nil
-        )
-    }
+    /// Add a new item to inventory
+    case add(item: InventoryItem, inventoryType: InventoryType)
+    
+    /// Update an existing item's quantity
+    case update(item: InventoryItem, inventoryType: InventoryType, quantity: UInt16)
+    
+    /// Move an item from one slot to another
+    case move(item: InventoryItem, fromSlot: Int8, toSlot: Int8, inventoryType: InventoryType)
+    
+    /// Remove an item from inventory
+    case remove(inventoryType: InventoryType, slot: Int8, itemId: UInt32)
 }
 
 extension ModifyInventoryItemNotification: MapleStoryEncodable {
@@ -109,7 +34,7 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
     }
     
     public func encode(to container: MapleStoryEncodingContainer) throws {
-        switch mode {
+        switch self {
         case .add:
             try encodeAdd(to: container)
         case .update:
@@ -120,7 +45,7 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
             try encodeRemove(to: container)
         }
     }
-    
+
     /// Encode add mode: fromDrop + 0x01 0x00 + inventoryType + slot + itemInfo
     private func encodeAdd(to container: MapleStoryEncodingContainer) throws {
         // fromDrop (assume false for now)
@@ -128,17 +53,17 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
         // operation mode bytes: 0x01 0x00
         try container.encode(UInt8(1))
         try container.encode(UInt8(0))
+        
+        // Extract item and inventory type
+        guard case let .add(item, inventoryType) = self else {
+            fatalError("Invalid state: encodeAdd called on non-add case")
+        }
+        
         // inventory type
         try container.encode(inventoryType.rawValue)
         // slot
-        try container.encode(slot)
+        try container.encode(item.slot)
         // item info
-        guard let item = item else {
-            throw EncodingError.invalidValue(
-                self,
-                .init(codingPath: container.codingPath, debugDescription: "Add mode requires item")
-            )
-        }
         try encodeItemInfo(item, to: container)
     }
     
@@ -149,19 +74,19 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
         // operation mode bytes: 0x01 0x01
         try container.encode(UInt8(1))
         try container.encode(UInt8(1))
+        
+        // Extract item, inventory type, and quantity
+        guard case let .update(item, inventoryType, quantity) = self else {
+            fatalError("Invalid state: encodeUpdate called on non-update case")
+        }
+        
         // inventory type
         try container.encode(inventoryType.rawValue)
         // slot
-        try container.encode(slot)
+        try container.encode(item.slot)
         // unknown byte
         try container.encode(UInt8(0))
         // quantity
-        guard let quantity = quantity else {
-            throw EncodingError.invalidValue(
-                self,
-                .init(codingPath: container.codingPath, debugDescription: "Update mode requires quantity")
-            )
-        }
         try container.encode(quantity)
     }
     
@@ -171,18 +96,18 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
         try container.encode(UInt8(1))
         try container.encode(UInt8(1))
         try container.encode(UInt8(2))
+        
+        // Extract item, fromSlot, toSlot, and inventory type
+        guard case let .move(_, fromSlot, toSlot, inventoryType) = self else {
+            fatalError("Invalid state: encodeMove called on non-move case")
+        }
+        
         // inventory type
         try container.encode(inventoryType.rawValue)
         // source slot (as short)
-        guard let fromSlot = fromSlot else {
-            throw EncodingError.invalidValue(
-                self,
-                .init(codingPath: container.codingPath, debugDescription: "Move mode requires fromSlot")
-            )
-        }
         try container.encode(Int16(fromSlot))
         // destination slot (as short)
-        try container.encode(Int16(slot))
+        try container.encode(Int16(toSlot))
     }
     
     /// Encode remove mode: fromDrop + 0x01 0x03 + inventoryType + slot(short)
@@ -192,6 +117,12 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
         // operation mode bytes: 0x01 0x03
         try container.encode(UInt8(1))
         try container.encode(UInt8(3))
+        
+        // Extract inventory type and slot
+        guard case let .remove(inventoryType, slot, _) = self else {
+            fatalError("Invalid state: encodeRemove called on non-remove case")
+        }
+        
         // inventory type
         try container.encode(inventoryType.rawValue)
         // slot (as short)
@@ -208,8 +139,15 @@ extension ModifyInventoryItemNotification: MapleStoryEncodable {
         if item.equip != nil {
             itemType = 1
         } else {
-            // Simple assumption based on inventory type
-            itemType = inventoryType.rawValue
+            // Get inventory type from the current enum case
+            switch self {
+            case let .add(_, inventoryType):
+                itemType = inventoryType.rawValue
+            case let .update(_, inventoryType, _):
+                itemType = inventoryType.rawValue
+            default:
+                itemType = 2 // Default to use
+            }
         }
         try container.encode(itemType)
         
