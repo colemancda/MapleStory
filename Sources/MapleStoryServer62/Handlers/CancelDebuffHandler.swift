@@ -20,6 +20,10 @@ public struct CancelDebuffHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Cancel active debuff — not yet implemented.
+        _ = packet
+        guard let character = try await connection.character else { return }
+
+        // Debuff state is not tracked separately yet; at minimum keep buff registry clean.
+        await CharacterBuffRegistry.shared.cleanupExpired(for: character.id)
     }
 }
