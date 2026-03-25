@@ -35,8 +35,6 @@ import MapleStoryServer
 /// - **Use Items**: AP/SP resets, skill books, etc.
 /// - **Setup Items**: Store permits, player shops
 /// - **ETC Items**: Wedding invitations, name changes
-///
-## Cash Shop Currency
 /// - **NX**: Primary currency (purchased with real money)
 /// - **Maple Points**: Event currency (not implemented)
 /// - **Prepaid NX**: Bought with gift cards
