@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreModel
+import MapleStory
 import MapleStory62
 import MapleStoryServer
 
@@ -20,6 +21,10 @@ public struct PetTalkHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Pet talk trigger — not yet implemented.
+        _ = packet
+        guard let _ = try await connection.character else { return }
+        try await connection.send(ServerMessageNotification.notice(
+            message: "Pet talk is not available yet."
+        ))
     }
 }
