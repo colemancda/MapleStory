@@ -42,35 +42,9 @@ public struct NPCActionHandler: PacketHandler {
         // This allows the client to display NPC animations/movements during conversations
         switch packet {
         case .talk(let value0, let value1):
-            try await connection.send(NPCActionNotification.talk(value0, value1))
+            try await connection.send(NPCActionResponse.talk(value0, value1))
         case .move(let data):
-            try await connection.send(NPCActionNotification.move(data))
-        }
-    }
-}
-
-// MARK: - NPC Action Notification
-
-public enum NPCActionNotification: MapleStoryPacket, Equatable, Hashable, Sendable {
-
-    public static var opcode: ServerOpcode { .npcAction }
-
-    /// Talk action
-    case talk(UInt32, UInt16)
-
-    /// Move action
-    case move(Data)
-}
-
-extension NPCActionNotification: MapleStoryEncodable {
-
-    public func encode(to container: MapleStoryEncodingContainer) throws {
-        switch self {
-        case .talk(let value0, let value1):
-            try container.encode(value0)
-            try container.encode(value1)
-        case .move(let data):
-            try container.encode(data)
+            try await connection.send(NPCActionResponse.move(data))
         }
     }
 }
