@@ -110,38 +110,41 @@ public actor StorageRegistry {
         inventoryType: InventoryType,
         uiSlot: Int8,
         userID: User.ID
-    ) -> Int8? {
+    ) async -> Int8? {
         let stor = storage(userID: userID)
-        
-        // Filter items by inventory type
-        let filteredItems = stor.items.filter { (_, item) in
-            guard let itemType = try? await ItemDataCache.shared.inventoryType(for: item.itemId) else { return false }
-            return itemType == inventoryType
+
+        // Collect items matching inventory type, sorted by slot
+        var matchingSlots: [Int8] = []
+        for (slot, item) in stor.items.sorted(by: { $0.key < $1.key }) {
+            guard let itemType = await ItemDataCache.shared.inventoryType(for: item.itemId) else { continue }
+            if itemType == inventoryType {
+                matchingSlots.append(slot)
+            }
         }
-        
-        // Sort by slot
-        let sortedItems = filteredItems.sorted { $0.key < $1.key }
-        
-        // Get the item at the UI slot position
+
         let index = Int(uiSlot)
-        guard index >= 0 && index < sortedItems.count else {
+        guard index >= 0 && index < matchingSlots.count else {
             return nil
         }
-        
-        return sortedItems[index].key
+
+        return matchingSlots[index]
     }
-    
+
     /// Get items filtered by inventory type.
     public func getItemsByType(
         inventoryType: InventoryType,
         userID: User.ID
-    ) -> [InventoryItem] {
+    ) async -> [InventoryItem] {
         let stor = storage(userID: userID)
-        
-        return stor.items.filter { (_, item) in
-            guard let itemType = try? await ItemDataCache.shared.inventoryType(for: item.itemId) else { return false }
-            return itemType == inventoryType
-        }.map { $0.value }
+
+        var result: [InventoryItem] = []
+        for (_, item) in stor.items {
+            guard let itemType = await ItemDataCache.shared.inventoryType(for: item.itemId) else { continue }
+            if itemType == inventoryType {
+                result.append(item)
+            }
+        }
+        return result
     }
     
     /// Close storage (clears any cached data).

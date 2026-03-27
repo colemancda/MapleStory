@@ -15,7 +15,10 @@ public struct GuildEntity: Codable, Equatable, Hashable, Identifiable, Sendable 
     public typealias ID = UUID
     
     public let id: ID
-    
+
+    /// The UInt32 guild ID used for protocol communication
+    public let guildID: GuildID
+
     /// Guild name
     public let name: String
     
@@ -45,6 +48,7 @@ public struct GuildEntity: Codable, Equatable, Hashable, Identifiable, Sendable 
     
     public init(
         id: ID = UUID(),
+        guildID: GuildID,
         name: String,
         leaderID: Character.ID,
         capacity: Int = 30,
@@ -56,6 +60,7 @@ public struct GuildEntity: Codable, Equatable, Hashable, Identifiable, Sendable 
         notice: String? = nil
     ) {
         self.id = id
+        self.guildID = guildID
         self.name = name
         self.leaderID = leaderID
         self.capacity = capacity
@@ -65,5 +70,54 @@ public struct GuildEntity: Codable, Equatable, Hashable, Identifiable, Sendable 
         self.logo = logo
         self.logoColor = logoColor
         self.notice = notice
+    }
+
+    // MARK: - Codable
+
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
+        case id
+        case guildID
+        case name
+        case leaderID
+        case capacity
+        case points
+        case logoBackground
+        case logoBackgroundColor
+        case logo
+        case logoColor
+        case notice
+    }
+}
+
+// MARK: - Entity
+
+extension GuildEntity: Entity {
+
+    public static var entityName: EntityName { "Guild" }
+
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .guildID: .int64,
+            .name: .string,
+            .capacity: .int64,
+            .points: .int64,
+            .logoBackground: .int16,
+            .logoBackgroundColor: .int16,
+            .logo: .int16,
+            .logoColor: .int16,
+            .notice: .string
+        ]
+    }
+
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .leaderID: Relationship(
+                id: .leaderID,
+                entity: GuildEntity.self,
+                destination: Character.self,
+                type: .toOne,
+                inverseRelationship: .id
+            )
+        ]
     }
 }

@@ -146,7 +146,7 @@ public struct StorageHandler: PacketHandler {
             // Return item to storage
             _ = await StorageRegistry.shared.depositItem(item, to: userID)
             // Send "inventory full" notice
-            try await connection.send(ServerMessageNotification.alert("Your inventory is full"))
+            try await connection.send(ServerMessageNotification.popup(message: "Your inventory is full"))
             return
         }
 
@@ -188,7 +188,7 @@ public struct StorageHandler: PacketHandler {
         
         // Check if player has enough mesos for deposit fee
         guard character.meso >= Self.depositFee else {
-            try await connection.send(ServerMessageNotification.alert("You don't have enough mesos to store the item"))
+            try await connection.send(ServerMessageNotification.popup(message: "You don't have enough mesos to store the item"))
             return
         }
         
@@ -330,7 +330,7 @@ public struct StorageHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let storage = await StorageRegistry.shared.storage(userID: userID)
-        let items = await StorageRegistry.shared.getItemsByType(inventoryType, userID: userID)
+        let items = await StorageRegistry.shared.getItemsByType(inventoryType: inventoryType, userID: userID)
         
         try await connection.send(StorageStoredNotification(
             slots: storage.maxSlots,
@@ -345,7 +345,7 @@ public struct StorageHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         let storage = await StorageRegistry.shared.storage(userID: userID)
-        let items = await StorageRegistry.shared.getItemsByType(inventoryType, userID: userID)
+        let items = await StorageRegistry.shared.getItemsByType(inventoryType: inventoryType, userID: userID)
         
         try await connection.send(StorageTakenOutNotification(
             slots: storage.maxSlots,
@@ -371,13 +371,13 @@ public struct StorageHandler: PacketHandler {
 
 /// Notification sent when storage is full
 public struct StorageFullNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
-    public static var opcode: ServerOpcode { .storageFull }
+    public static var opcode: ServerOpcode { .openStorage }
     public init() {}
 }
 
 /// Notification sent when item is stored
 public struct StorageStoredNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
-    public static var opcode: ServerOpcode { .storageStored }
+    public static var opcode: ServerOpcode { .openStorage }
     public let slots: UInt8
     public let inventoryType: InventoryType
     public let items: [StorageItemEntry]
@@ -385,7 +385,7 @@ public struct StorageStoredNotification: MapleStoryPacket, Codable, Equatable, H
 
 /// Notification sent when item is taken out
 public struct StorageTakenOutNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
-    public static var opcode: ServerOpcode { .storageTakenOut }
+    public static var opcode: ServerOpcode { .openStorage }
     public let slots: UInt8
     public let inventoryType: InventoryType
     public let items: [StorageItemEntry]
@@ -393,7 +393,7 @@ public struct StorageTakenOutNotification: MapleStoryPacket, Codable, Equatable,
 
 /// Notification sent when mesos are updated
 public struct StorageMesoNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
-    public static var opcode: ServerOpcode { .storageMeso }
+    public static var opcode: ServerOpcode { .openStorage }
     public let slots: UInt8
     public let mesos: UInt32
 }

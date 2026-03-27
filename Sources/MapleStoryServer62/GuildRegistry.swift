@@ -46,7 +46,7 @@ public actor GuildRegistry {
         }
         
         // Load from database
-        let predicate = FetchRequest.Predicate.attribute(.init(name: "id", value: guildID))
+        let predicate = GuildEntity.CodingKeys.id.stringValue.compare(.equalTo, .attribute(.string(guildID.description)))
         guard let guild = try await database.fetch(GuildEntity.self, predicate: predicate, fetchLimit: 1).first else {
             return nil
         }
@@ -66,7 +66,7 @@ public actor GuildRegistry {
         }
         if members.isEmpty {
             // Load from database
-            let predicate = FetchRequest.Predicate.relationship(.init(name: "guild", value: guildID))
+            let predicate = GuildMemberEntity.CodingKeys.guild.stringValue.compare(.equalTo, .relationship(.toOne(.init(guildID))))
             members = try await database.fetch(GuildMemberEntity.self, predicate: predicate)
         }
         
@@ -81,7 +81,7 @@ public actor GuildRegistry {
         }
         
         // Not in cache, load from database
-        let predicate = FetchRequest.Predicate.relationship(.init(name: "character", value: characterID))
+        let predicate = GuildMemberEntity.CodingKeys.characterID.stringValue.compare(.equalTo, .relationship(.toOne(.init(characterID))))
         guard let member = try await database.fetch(GuildMemberEntity.self, predicate: predicate, fetchLimit: 1).first else {
             return nil
         }
@@ -104,6 +104,7 @@ public actor GuildRegistry {
         
         let guild = GuildEntity(
             id: guildID,
+            guildID: nextGuildID - 1,
             name: name,
             leaderID: leaderID,
             capacity: 30,
@@ -142,8 +143,8 @@ public actor GuildRegistry {
         to guildID: GuildEntity.ID,
         in database: any ModelStorage
     ) async throws -> Bool {
-        guard var guild = try await loadGuild(guildID, from: database) else { return false }
-        
+        guard let guild = try await loadGuild(guildID, from: database) else { return false }
+
         // Count members from database
         let members = try await loadGuildMembers(guildID, from: database)
         guard members.count >= guild.capacity else { return false }
@@ -234,7 +235,7 @@ public actor GuildRegistry {
     /// Change guild leader
     @discardableResult
     public func changeLeader(_ guildID: GuildEntity.ID, to characterID: Character.ID, in database: any ModelStorage) async throws -> Bool {
-        guard var guild = guilds[guildID] else { return false }
+        guard let guild = guilds[guildID] else { return false }
         guard guildMembers[characterID] != nil else { return false }
         guard guildMembers[characterID]?.guild == guildID else { return false }
         

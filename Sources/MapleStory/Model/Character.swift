@@ -222,6 +222,7 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
         case skillMacros
         case buddyCapacity
         case buddies
+        case party
     }
     
     public init(from decoder: Decoder) throws {
@@ -384,6 +385,13 @@ extension Character: Entity {
                 destination: SkillMacro.self,
                 type: .toMany,
                 inverseRelationship: .character
+            ),
+            .party: Relationship(
+                id: .party,
+                entity: Character.self,
+                destination: PartyEntity.self,
+                type: .toOne,
+                inverseRelationship: .leaderID
             )
         ]
     }

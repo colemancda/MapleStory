@@ -120,6 +120,6 @@ extension Character {
 public struct MountData: Sendable {
     public let level: Int
     public let exp: Int
-    public let closeness: Int
+    public var closeness: Int
     public let fatigue: Int
 }

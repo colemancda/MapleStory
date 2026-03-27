@@ -7,7 +7,6 @@
 
 import Foundation
 import CoreModel
-import MapleStory
 
 /// Party entity (persisted in database)
 public struct PartyEntity: Codable, Equatable, Hashable, Identifiable, Sendable {

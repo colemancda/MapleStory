@@ -40,7 +40,7 @@ public struct UseReturnScrollHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard var character = try await connection.character else { return }
+        guard let character = try await connection.character else { return }
 
         // Get inventory
         let inventory = await character.getInventory()
@@ -61,7 +61,7 @@ public struct UseReturnScrollHandler: PacketHandler {
         }
 
         // Determine return destination based on current map
-        let returnMap = getReturnTown(for: character.map)
+        let returnMap = getReturnTown(for: character.currentMap)
 
         // Consume the scroll
         let manipulator = InventoryManipulator()

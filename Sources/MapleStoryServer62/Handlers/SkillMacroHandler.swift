@@ -39,8 +39,10 @@ public struct SkillMacroHandler: PacketHandler {
         guard let character = try await connection.character else { return }
 
         // Convert packet macros to SkillMacro model
-        let macros = packet.macros.map { macro -> SkillMacro in
+        let macros = packet.macros.enumerated().map { (index, macro) -> SkillMacro in
             SkillMacro(
+                character: character.id,
+                slot: UInt8(index),
                 name: macro.name,
                 shout: macro.shout,
                 skill1: macro.skill1,

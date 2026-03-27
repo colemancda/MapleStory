@@ -154,11 +154,16 @@ public struct UseDoorHandler: PacketHandler {
             return
         }
 
-        // Get player's party for access validation
-        let party = await PartyRegistry.shared.party(for: character.id)
+        // Get player's party members for access validation
+        let partyMembers: [PartyMemberEntity]
+        if let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database) {
+            partyMembers = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
+        } else {
+            partyMembers = []
+        }
 
         // Check if player can use this door (must be owner or in owner's party)
-        guard door.canBeUsed(by: character.id, party: party) else {
+        guard door.canBeUsed(by: character.id, partyMembers: partyMembers) else {
             try await connection.send(ServerMessageNotification.notice(
                 message: "You cannot use this door."
             ))

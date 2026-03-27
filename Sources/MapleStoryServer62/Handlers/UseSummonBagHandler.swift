@@ -43,7 +43,7 @@ public struct UseSummonBagHandler: PacketHandler {
 
         // Validate player is alive
         let positionRegistry = PlayerPositionRegistry.shared
-        let playerPosition = await positionRegistry.position(characterID: character.index)
+        let playerPosition = await positionRegistry.position(for: character.id)
         guard playerPosition != nil else { return }
 
         // Get inventory
@@ -75,7 +75,7 @@ public struct UseSummonBagHandler: PacketHandler {
 
         // Spawn mobs based on probability
         let mobRegistry = MapMobRegistry.shared
-        let mapID = character.map
+        let mapID = character.currentMap
 
         for summon in summonData.mobs {
             let roll = Int.random(in: 1...100)
@@ -100,7 +100,7 @@ public struct UseSummonBagHandler: PacketHandler {
                     foothold: 0,
                     rx0: Int16(mobPosition.x - 100),
                     rx1: Int16(mobPosition.x + 100),
-                    facing: mobPosition.facing,
+                    facing: 0,
                     mobTime: 0 // Summoned mobs don't respawn
                 )
 
@@ -118,7 +118,7 @@ public struct UseSummonBagHandler: PacketHandler {
                 }
 
                 // Send notification to all players on map
-                await connection.broadcast(SpawnMonsterNotification(mob: instance.toSpawnData()))
+                try await connection.broadcast(SpawnMonsterNotification(mob: instance.toSpawnData()), map: mapID)
             }
         }
 
@@ -126,7 +126,7 @@ public struct UseSummonBagHandler: PacketHandler {
         try await connection.database.insert(character)
 
         // Enable actions
-        try await connection.send(EnableActionsNotification())
+        try await connection.send(UpdateStatsNotification.enableActions)
     }
 
     // MARK: - Private Helpers
@@ -195,9 +195,7 @@ public struct SummonEntry: Sendable {
 extension MapMobRegistry {
 
     public func nextObjectID() async -> UInt32 {
-        var instance = self
         // Note: This is a simplified approach - in production you'd want proper atomic operations
-        // For now, we'll return a temporary ID
         return 1_000_000_000 + UInt32.random(in: 0...999999)
     }
 
@@ -212,14 +210,12 @@ extension MapMobRegistry.MobInstance {
         return MobSpawnData(
             objectID: objectID,
             mobID: mobID,
-            position: Point(x: x, y: y),
-            stance: facing,
+            x: x,
+            y: y,
             foothold: foothold,
             rx0: rx0,
             rx1: rx1,
-            hp: currentHP,
-            maxHP: maxHP,
-            effect: 0
+            facing: facing
         )
     }
 }

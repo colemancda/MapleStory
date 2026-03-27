@@ -37,7 +37,7 @@ public actor BuddyListRegistry {
         }
         
         // Load from database
-        let predicate = FetchRequest.Predicate.relationship(.init(name: "character", value: characterID))
+        let predicate = Buddy.CodingKeys.character.stringValue.compare(.equalTo, .relationship(.toOne(.init(characterID))))
         let buddies = try await database.fetch(Buddy.self, predicate: predicate)
         
         // Cache the results

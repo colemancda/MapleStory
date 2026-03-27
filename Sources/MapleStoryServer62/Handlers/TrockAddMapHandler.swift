@@ -54,8 +54,11 @@ public struct TrockAddMapHandler: PacketHandler {
         }
 
         // Validate map can be saved
-        let mapID = packet.mapID
-        guard isValidTrockMap(mapID) else {
+        guard let rawMapID = packet.mapID else {
+            return // No map ID in packet
+        }
+        let mapID = Map.ID(rawValue: rawMapID)
+        guard isValidTrockMap(rawMapID) else {
             return // Cannot save this map
         }
 
@@ -63,7 +66,7 @@ public struct TrockAddMapHandler: PacketHandler {
         var trockMaps = character.trockMaps ?? []
 
         // Add or remove map based on operation
-        if packet.mode == 0 {
+        if packet.mode == 0x03 {
             // Add map
             guard !trockMaps.contains(mapID) else {
                 return // Map already saved

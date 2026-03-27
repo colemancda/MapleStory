@@ -49,4 +49,51 @@ public struct GuildMemberEntity: Codable, Equatable, Hashable, Identifiable, Sen
         self.online = online
         self.joinedAt = joinedAt
     }
+
+    // MARK: - Codable
+
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
+        case id
+        case guild
+        case characterID
+        case characterName
+        case rank
+        case online
+        case joinedAt
+    }
+}
+
+// MARK: - Entity
+
+extension GuildMemberEntity: Entity {
+
+    public static var entityName: EntityName { "GuildMember" }
+
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .characterName: .string,
+            .rank: .int16,
+            .online: .bool,
+            .joinedAt: .date
+        ]
+    }
+
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .guild: Relationship(
+                id: .guild,
+                entity: GuildMemberEntity.self,
+                destination: GuildEntity.self,
+                type: .toOne,
+                inverseRelationship: .id
+            ),
+            .characterID: Relationship(
+                id: .characterID,
+                entity: GuildMemberEntity.self,
+                destination: Character.self,
+                type: .toOne,
+                inverseRelationship: .id
+            )
+        ]
+    }
 }

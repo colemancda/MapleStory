@@ -130,7 +130,7 @@ public actor PartyRegistry {
         
         let party = PartyEntity(
             id: partyEntityID,
-            partyID: PartyID(rawValue: partyIDValue),
+            partyID: partyIDValue,
             leaderID: leaderID,
             createdAt: Date()
         )

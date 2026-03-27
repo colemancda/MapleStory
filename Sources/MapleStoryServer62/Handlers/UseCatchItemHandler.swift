@@ -61,35 +61,31 @@ public struct UseCatchItemHandler: PacketHandler {
 
         // Get monster from map
         let mobRegistry = MapMobRegistry.shared
-        guard let mob = await mobRegistry.mob(objectID: packet.monsterID) else {
+        guard let mob = await mobRegistry.instance(objectID: packet.monsterID) else {
             return // Monster not found
         }
 
         // Validate monster HP is at or below 50% of max HP
         guard mob.currentHP <= mob.maxHP / 2 else {
             // Monster is too strong
-            let message = "You cannot catch the monster as it is too strong."
-            try await connection.send(ServerMessageNotification(message: message, type: .popup))
+            try await connection.send(ServerMessageNotification.popup(
+                message: "You cannot catch the monster as it is too strong."
+            ))
             return
         }
 
         // Check if this is the Ariant PQ catch item (2270002)
         if packet.itemID == 2_270_002 {
             // Broadcast catch notification
-            await connection.broadcast(CatchMonsterNotification(
-                monsterID: packet.monsterID,
+            try await connection.broadcast(CatchMonsterNotification(
+                mobID: packet.monsterID,
                 itemID: packet.itemID,
                 success: 1
-            ))
+            ), map: character.currentMap)
         }
 
-        // Kill the monster (no drops, no exp)
-        await mobRegistry.killMonster(
-            objectID: packet.monsterID,
-            mapID: character.map,
-            dropItems: false,
-            giveExp: false
-        )
+        // Remove the monster from the registry
+        await mobRegistry.remove(objectID: packet.monsterID)
 
         // Consume the catch item
         let manipulator = InventoryManipulator()

@@ -61,20 +61,16 @@ public struct Door: Codable, Equatable, Hashable, Sendable {
     /// Check if a character can use this door
     /// - Parameters:
     ///   - characterID: The character attempting to use the door
-    ///   - party: The character's party (if any)
+    ///   - partyMembers: The members of the character's party (if any)
     /// - Returns: True if the character is the owner or in the owner's party
-    public func canBeUsed(by characterID: Character.ID, party: Party?) -> Bool {
+    public func canBeUsed(by characterID: Character.ID, partyMembers: [PartyMemberEntity]) -> Bool {
         // Owner can always use their own door
         if characterID == ownerID {
             return true
         }
 
-        // Party members can use the door
-        if let party = party {
-            return party.members[ownerID] != nil
-        }
-
-        return false
+        // Party members can use the door if the owner is also in the party
+        return partyMembers.contains { $0.characterID == ownerID }
     }
 }
 

@@ -15,10 +15,10 @@ public actor BBSRegistry {
     public static let shared = BBSRegistry()
 
     /// guildID → threads (localID 0 reserved for the notice thread)
-    private var threads: [GuildID: [BBSThread]] = [:]
+    private var threads: [GuildEntity.ID: [BBSThread]] = [:]
 
     /// globalThreadKey → replies
-    private var replies: [UInt64: [BBSReply]] = [:]
+    private var replies: [String: [BBSReply]] = [:]
 
     private var nextReplyID: UInt32 = 1
 
@@ -26,17 +26,17 @@ public actor BBSRegistry {
 
     // MARK: - Threads
 
-    public func listThreads(guildID: GuildID) -> [BBSThread] {
+    public func listThreads(guildID: GuildEntity.ID) -> [BBSThread] {
         threads[guildID] ?? []
     }
 
-    public func thread(localID: UInt32, guildID: GuildID) -> BBSThread? {
+    public func thread(localID: UInt32, guildID: GuildEntity.ID) -> BBSThread? {
         threads[guildID]?.first { $0.localID == localID }
     }
 
     @discardableResult
     public func createThread(
-        guildID: GuildID,
+        guildID: GuildEntity.ID,
         posterCharacterID: UInt32,
         notice: Bool,
         title: String,
@@ -71,7 +71,7 @@ public actor BBSRegistry {
     @discardableResult
     public func editThread(
         localID: UInt32,
-        guildID: GuildID,
+        guildID: GuildEntity.ID,
         title: String,
         body: String,
         icon: UInt32
@@ -93,21 +93,21 @@ public actor BBSRegistry {
         return true
     }
 
-    public func deleteThread(localID: UInt32, guildID: GuildID) {
+    public func deleteThread(localID: UInt32, guildID: GuildEntity.ID) {
         threads[guildID]?.removeAll { $0.localID == localID }
         replies.removeValue(forKey: replyKey(localID: localID, guildID: guildID))
     }
 
     // MARK: - Replies
 
-    public func replies(localID: UInt32, guildID: GuildID) -> [BBSReply] {
+    public func replies(localID: UInt32, guildID: GuildEntity.ID) -> [BBSReply] {
         replies[replyKey(localID: localID, guildID: guildID)] ?? []
     }
 
     @discardableResult
     public func createReply(
         localID: UInt32,
-        guildID: GuildID,
+        guildID: GuildEntity.ID,
         posterCharacterID: UInt32,
         body: String
     ) -> BBSReply? {
@@ -120,7 +120,7 @@ public actor BBSRegistry {
         let key = replyKey(localID: localID, guildID: guildID)
         let reply = BBSReply(
             id: replyID,
-            threadID: UInt32(key & 0xFFFFFFFF),
+            threadID: localID,
             posterCharacterID: posterCharacterID,
             body: String(body.prefix(25)),
             timestamp: currentTimestamp()
@@ -133,13 +133,13 @@ public actor BBSRegistry {
         return reply
     }
 
-    public func deleteReply(replyID: UInt32, guildID: GuildID) {
+    public func deleteReply(replyID: UInt32, guildID: GuildEntity.ID) {
         for (key, var threadReplies) in replies {
             if let idx = threadReplies.firstIndex(where: { $0.id == replyID }) {
                 threadReplies.remove(at: idx)
                 replies[key] = threadReplies
-                // Decrement reply count
-                let localID = UInt32(key >> 32)
+                // Decrement reply count on the associated thread
+                let localID = UInt32(key.split(separator: ":").last.flatMap { UInt32($0) } ?? 0)
                 if var guildThreads = threads[guildID],
                    let tIdx = guildThreads.firstIndex(where: { $0.localID == localID }),
                    guildThreads[tIdx].replyCount > 0 {
@@ -153,8 +153,8 @@ public actor BBSRegistry {
 
     // MARK: - Private
 
-    private func replyKey(localID: UInt32, guildID: GuildID) -> UInt64 {
-        UInt64(localID) << 32 | UInt64(guildID)
+    private func replyKey(localID: UInt32, guildID: GuildEntity.ID) -> String {
+        "\(guildID.uuidString):\(localID)"
     }
 
     private func currentTimestamp() -> UInt64 {

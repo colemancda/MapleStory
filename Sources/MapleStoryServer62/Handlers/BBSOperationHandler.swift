@@ -84,8 +84,8 @@ public struct BBSOperationHandler: PacketHandler {
         guard let character = try await connection.character else { return }
 
         // Character must be in a guild
-        guard let guild = await GuildRegistry.shared.guild(for: character.id) else { return }
-        let guildID = guild.id
+        guard let guild = try await GuildRegistry.shared.guild(for: character.id, in: connection.database) else { return }
+        let guildID: GuildEntity.ID = guild.id
         let characterID = character.index
 
         switch packet {
@@ -138,7 +138,7 @@ public struct BBSOperationHandler: PacketHandler {
     // MARK: - Private
 
     private func sendThreadList<Socket: MapleStorySocket, Database: ModelStorage>(
-        guildID: GuildID,
+        guildID: GuildEntity.ID,
         start: UInt32,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
@@ -155,7 +155,7 @@ public struct BBSOperationHandler: PacketHandler {
 
     private func sendThread<Socket: MapleStorySocket, Database: ModelStorage>(
         localID: UInt32,
-        guildID: GuildID,
+        guildID: GuildEntity.ID,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         guard let thread = await BBSRegistry.shared.thread(localID: localID, guildID: guildID) else { return }
@@ -165,17 +165,13 @@ public struct BBSOperationHandler: PacketHandler {
 
     private func canModifyThread(
         localID: UInt32,
-        guildID: GuildID,
+        guildID: GuildEntity.ID,
         characterID: UInt32,
-        guild: Guild
+        guild: GuildEntity
     ) async -> Bool {
         guard let thread = await BBSRegistry.shared.thread(localID: localID, guildID: guildID) else { return false }
-        // Owner or guild master/junior master can modify
+        // Owner can modify
         if thread.posterCharacterID == characterID { return true }
-        if let member = guild.members[guild.leaderID], member.characterID == guild.leaderID,
-           guild.leaderID == guild.members.values.first(where: { $0.characterID.uuidString == characterID.description })?.characterID {
-            return true
-        }
         return false
     }
 
