@@ -59,4 +59,74 @@ public struct PartyMemberEntity: Codable, Equatable, Hashable, Identifiable, Sen
         self.map = map
         self.status = status
     }
+    
+    // MARK: - Codable
+    
+    public enum CodingKeys: String, CodingKey, CaseIterable, Sendable {
+        case id
+        case party
+        case characterID
+        case characterName
+        case job
+        case level
+        case channel
+        case map
+        case status
+    }
 }
+
+// MARK: - Entity
+
+extension PartyMemberEntity: Entity {
+    
+    public static var entityName: EntityName { "PartyMember" }
+    
+    public static var attributes: [CodingKeys: AttributeType] {
+        [
+            .characterName: .string,
+            .job: .int32,
+            .level: .int32,
+            .channel: .int16,
+            .map: .int64,
+            .status: .int16
+        ]
+    }
+    
+    public static var relationships: [CodingKeys: Relationship] {
+        [
+            .party: Relationship(
+                id: .party,
+                entity: PartyMemberEntity.self,
+                destination: PartyEntity.self,
+                type: .toOne,
+                inverseRelationship: .leaderID
+            ),
+            .characterID: Relationship(
+                id: .characterID,
+                entity: PartyMemberEntity.self,
+                destination: Character.self,
+                type: .toOne,
+                inverseRelationship: .id
+            )
+        ]
+    }
+}
+
+// MARK: - Conversion
+
+extension PartyMemberEntity {
+    
+    /// Convert to PartyMember for protocol communication
+    public func toPartyMember() -> PartyMember {
+        PartyMember(
+            characterID: characterID,
+            characterName: characterName,
+            job: job,
+            level: level,
+            channel: channel,
+            map: map,
+            status: status
+        )
+    }
+}
+

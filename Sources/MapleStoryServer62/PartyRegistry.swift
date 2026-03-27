@@ -25,6 +25,9 @@ public actor PartyRegistry {
     /// In-memory party cache indexed by party UUID
     private var parties: [PartyEntity.ID: PartyEntity] = [:]
     
+    /// In-memory party cache indexed by PartyID (UInt32)
+    private var partiesByPartyID: [PartyID: PartyEntity.ID] = [:]
+    
     /// In-memory party member cache indexed by character UUID
     private var partyMembers: [Character.ID: PartyMemberEntity] = [:]
     
@@ -44,13 +47,34 @@ public actor PartyRegistry {
         }
         
         // Load from database
-        let predicate = FetchRequest.Predicate.attribute(.init(name: "id", value: partyID))
+        let predicate = PartyEntity.CodingKeys.id.stringValue.compare(.equalTo, .attribute(.string(partyID.description)))
         guard let party = try await database.fetch(PartyEntity.self, predicate: predicate, fetchLimit: 1).first else {
             return nil
         }
         
         // Cache the result
         parties[partyID] = party
+        partiesByPartyID[party.partyID] = partyID
+        
+        return party
+    }
+    
+    /// Load a party by its UInt32 PartyID
+    public func party(by partyID: PartyID, in database: any ModelStorage) async throws -> PartyEntity? {
+        // Check cache first
+        if let entityID = partiesByPartyID[partyID] {
+            return try await loadParty(entityID, from: database)
+        }
+        
+        // Load from database
+        let predicate = PartyEntity.CodingKeys.partyID.stringValue.compare(.equalTo, .attribute(.int64(numericCast(partyID))))
+        guard let party = try await database.fetch(PartyEntity.self, predicate: predicate, fetchLimit: 1).first else {
+            return nil
+        }
+        
+        // Cache the result
+        parties[party.id] = party
+        partiesByPartyID[party.partyID] = party.id
         
         return party
     }
@@ -64,7 +88,7 @@ public actor PartyRegistry {
         }
         if members.isEmpty {
             // Load from database
-            let predicate = FetchRequest.Predicate.relationship(.init(name: "party", value: partyID))
+            let predicate = PartyMemberEntity.CodingKeys.party.stringValue.compare(.equalTo, .relationship(.toOne(.init(partyID))))
             members = try await database.fetch(PartyMemberEntity.self, predicate: predicate)
         }
         
@@ -79,7 +103,7 @@ public actor PartyRegistry {
         }
         
         // Not in cache, load from database
-        let predicate = FetchRequest.Predicate.relationship(.init(name: "character", value: characterID))
+        let predicate = PartyMemberEntity.CodingKeys.characterID.stringValue.compare(.equalTo, .relationship(.toOne(.init(characterID))))
         guard let member = try await database.fetch(PartyMemberEntity.self, predicate: predicate, fetchLimit: 1).first else {
             return nil
         }
@@ -100,18 +124,20 @@ public actor PartyRegistry {
         map: Map.ID,
         in database: any ModelStorage
     ) async throws -> PartyEntity {
-        let partyID = PartyEntity.ID()
+        let partyEntityID = PartyEntity.ID()
+        let partyIDValue = nextPartyID
         nextPartyID += 1
         
         let party = PartyEntity(
-            id: partyID,
+            id: partyEntityID,
+            partyID: PartyID(rawValue: partyIDValue),
             leaderID: leaderID,
             createdAt: Date()
         )
         
         let member = PartyMemberEntity(
             id: UUID(),
-            party: partyID,
+            party: partyEntityID,
             characterID: leaderID,
             characterName: leaderName,
             job: leaderJob,
@@ -126,7 +152,8 @@ public actor PartyRegistry {
         try await database.insert(member)
         
         // Update cache
-        parties[partyID] = party
+        parties[partyEntityID] = party
+        partiesByPartyID[party.partyID] = partyEntityID
         partyMembers[leaderID] = member
         
         return party
@@ -143,8 +170,11 @@ public actor PartyRegistry {
         to partyID: PartyEntity.ID,
         in database: any ModelStorage
     ) async throws -> Bool {
-        guard var party = try await loadParty(partyID, from: database) else { return false }
-        guard party.members.count < 6 else { return false }
+        guard let party = try await loadParty(partyID, from: database) else { return false }
+        
+        // Load members to check count
+        let members = try await loadPartyMembers(partyID, from: database)
+        guard members.count < 6 else { return false }
         
         let member = PartyMemberEntity(
             id: UUID(),
@@ -184,6 +214,9 @@ public actor PartyRegistry {
         if members.isEmpty {
             // Disband party
             try await database.delete(PartyEntity.self, for: partyID)
+            if let party = parties[partyID] {
+                partiesByPartyID.removeValue(forKey: party.partyID)
+            }
             parties.removeValue(forKey: partyID)
         } else if var party = parties[partyID], party.leaderID == characterID {
             // Transfer leadership to next member
@@ -238,6 +271,9 @@ public actor PartyRegistry {
         try await database.delete(PartyEntity.self, for: partyID)
         
         // Remove from cache
+        if let party = parties[partyID] {
+            partiesByPartyID.removeValue(forKey: party.partyID)
+        }
         parties.removeValue(forKey: partyID)
     }
     
