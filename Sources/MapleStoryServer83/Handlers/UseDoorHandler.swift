@@ -33,22 +33,22 @@ public struct UseDoorHandler: PacketHandler {
             return
         }
 
-        guard let door = await DoorRegistry.shared.find(ownerID: doorOwner.id, in: character.currentMap) else {
+        guard let door = await connection.findDoor(ownerID: doorOwner.id, in: character.currentMap) else {
             try await connection.send(ServerMessageNotification.notice(message: "That door has expired or doesn't exist."))
             try await connection.send(UpdateStatsNotification.enableActions)
             return
         }
 
         if door.isExpired {
-            await DoorRegistry.shared.remove(ownerID: doorOwner.id)
+            await connection.removeDoor(ownerID: doorOwner.id)
             try await connection.send(ServerMessageNotification.notice(message: "That door has expired."))
             try await connection.send(UpdateStatsNotification.enableActions)
             return
         }
 
         let partyMembers: [PartyMemberEntity]
-        if let party = try await PartyRegistry.shared.party(for: character.id, in: connection.database) {
-            partyMembers = try await PartyRegistry.shared.loadPartyMembers(party.id, from: connection.database)
+        if let party = try await connection.party(for: character.id) {
+            partyMembers = try await connection.partyMembers(party.id)
         } else {
             partyMembers = []
         }

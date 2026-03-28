@@ -31,7 +31,7 @@ public struct ChangeMapHandler: PacketHandler {
                 return
             }
 
-            guard let mapData = await MapDataCache.shared.map(id: character.currentMap) else {
+            guard let mapData = await connection.mapData(id: character.currentMap) else {
                 return
             }
             guard let portal = mapData.portals.first(where: { $0.name == packet.portalName }) else {
@@ -39,24 +39,11 @@ public struct ChangeMapHandler: PacketHandler {
             }
 
             let targetMapID = Map.ID(rawValue: portal.targetMap)
-            let spawnPoint = await findSpawnPoint(named: portal.targetName, in: targetMapID)
+            let spawnPoint = await connection.portalSpawnPoint(named: portal.targetName, in: targetMapID)
 
             try await connection.warp(to: targetMapID, spawn: spawnPoint)
         }
 
         try await connection.database.insert(character)
-    }
-
-    private func findSpawnPoint(
-        named portalName: String,
-        in mapID: Map.ID
-    ) async -> UInt8 {
-        guard let targetMapData = await MapDataCache.shared.map(id: mapID) else {
-            return 0
-        }
-        if let index = targetMapData.portals.firstIndex(where: { $0.name == portalName }) {
-            return UInt8(index)
-        }
-        return 0
     }
 }

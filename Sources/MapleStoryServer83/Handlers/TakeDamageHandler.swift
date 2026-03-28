@@ -22,7 +22,7 @@ public struct TakeDamageHandler: PacketHandler {
 
         let damage: UInt32
         if packet.damageFrom >= 0, packet.monsterIDFrom > 0 {
-            if let mob = await MobDataCache.shared.mob(id: packet.monsterIDFrom) {
+            if let mob = await connection.mobData(id: packet.monsterIDFrom) {
                 let cap = UInt32(max(0, mob.paDamage))
                 damage = (cap > 0) ? min(packet.damage, cap) : packet.damage
             } else {

@@ -33,7 +33,7 @@ public struct MoveLifeHandler: PacketHandler {
         )
         try await connection.broadcast(notification, map: mapID)
 
-        let instance = await MapMobRegistry.shared.instance(objectID: packet.objectID)
+        let instance = await connection.mobInstance(objectID: packet.objectID)
         let response = MoveMonsterResponse(
             objectID: packet.objectID,
             moveID: packet.moveID,

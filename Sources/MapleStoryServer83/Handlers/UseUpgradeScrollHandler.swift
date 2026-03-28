@@ -30,7 +30,7 @@ public struct UseUpgradeScrollHandler: PacketHandler {
         guard var equipData = equipItem.equip else { return }
         guard equipData.slots > 0 else { return }
 
-        let scrollData = await ScrollDataCache.shared.scroll(scrollID)
+        let scrollData = await connection.scrollData(id: scrollID)
         guard let data = scrollData else { return }
 
         let successChance = data.successRate

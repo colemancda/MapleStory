@@ -18,34 +18,21 @@ public struct ItemPickupHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard var character = try await connection.character else {
-            return
-        }
+        guard var character = try await connection.character else { return }
 
-        guard let mapItem = await MapItemRegistry.shared.drop(
-            objectID: packet.objectID,
-            on: character.currentMap
-        ) else {
+        guard let mapItem = await connection.mapDrop(objectID: packet.objectID, on: character.currentMap) else {
             return
         }
 
         if mapItem.isExpired {
-            await MapItemRegistry.shared.removeDrop(objectID: packet.objectID, from: character.currentMap)
+            await connection.removeMapDrop(objectID: packet.objectID, from: character.currentMap)
             return
         }
 
-        guard mapItem.canPickUp(by: character.index) else {
-            return
-        }
+        guard mapItem.canPickUp(by: character.index) else { return }
 
         let dropPosition = PlayerPosition(x: mapItem.position.x, y: mapItem.position.y)
-        let inRange = await PlayerPositionRegistry.shared.isInRange(
-            characterID: character.id,
-            position: dropPosition,
-            range: 150
-        )
-
-        guard inRange else {
+        guard await connection.isPlayerInRange(characterID: character.id, position: dropPosition, range: 150) else {
             return
         }
 
@@ -55,24 +42,15 @@ public struct ItemPickupHandler: PacketHandler {
         } else {
             let manipulator = InventoryManipulator()
 
-            guard try await manipulator.checkSpace(
-                mapItem.itemID,
-                quantity: UInt16(mapItem.quantity),
-                for: character
-            ) else {
+            guard try await manipulator.checkSpace(mapItem.itemID, quantity: UInt16(mapItem.quantity), for: character) else {
                 return
             }
 
-            try await manipulator.addFromDrop(
-                mapItem.itemID,
-                quantity: UInt16(mapItem.quantity),
-                to: character
-            )
-
+            try await manipulator.addFromDrop(mapItem.itemID, quantity: UInt16(mapItem.quantity), to: character)
             try await connection.database.insert(character)
         }
 
-        await MapItemRegistry.shared.removeDrop(objectID: packet.objectID, from: character.currentMap)
+        await connection.removeMapDrop(objectID: packet.objectID, from: character.currentMap)
 
         try await connection.broadcast(RemoveItemFromMapNotification(
             animation: 1,

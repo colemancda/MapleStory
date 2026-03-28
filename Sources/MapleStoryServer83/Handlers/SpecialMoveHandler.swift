@@ -22,19 +22,12 @@ public struct SpecialMoveHandler: PacketHandler {
             return
         }
 
-        guard let skill = await SkillDataCache.shared.skill(id: packet.skillID),
+        guard let skill = await connection.skillData(id: packet.skillID),
               let skillLevel = skill.levels[Int(packet.skillLevel)] else {
             return
         }
 
-        let canUse = await SkillStatCalculator.shared.canUseSkill(
-            packet.skillID,
-            level: Int(packet.skillLevel),
-            by: character,
-            skillCache: SkillDataCache.shared
-        )
-
-        guard canUse else {
+        guard await connection.canUseSkill(packet.skillID, level: Int(packet.skillLevel), by: character) else {
             return
         }
 
@@ -61,7 +54,7 @@ public struct SpecialMoveHandler: PacketHandler {
                 level: Int(packet.skillLevel),
                 duration: duration
             )
-            await CharacterBuffRegistry.shared.applyBuff(buff, to: character.id)
+            await connection.applyBuff(buff, to: character.id)
 
             let buffStats = calculateBuffStats(skillID: packet.skillID, level: skillLevel)
 
@@ -92,13 +85,13 @@ public struct SpecialMoveHandler: PacketHandler {
         skillLevel: Int,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let mapData = await MapDataCache.shared.map(id: character.currentMap) else {
+        guard let mapData = await connection.mapData(id: character.currentMap) else {
             try await connection.send(ServerMessageNotification.notice(message: "Cannot create door here."))
             return
         }
 
         let townMapID = Map.ID(rawValue: mapData.info.returnMap)
-        guard let townMapData = await MapDataCache.shared.map(id: townMapID) else {
+        guard let townMapData = await connection.mapData(id: townMapID) else {
             return
         }
 
@@ -108,7 +101,7 @@ public struct SpecialMoveHandler: PacketHandler {
             return
         }
 
-        guard let charPosition = await PlayerPositionRegistry.shared.position(for: character.id) else {
+        guard let charPosition = await connection.playerPosition(for: character.id) else {
             try await connection.send(ServerMessageNotification.notice(message: "Cannot determine your position."))
             return
         }
@@ -124,6 +117,6 @@ public struct SpecialMoveHandler: PacketHandler {
             duration: duration
         )
 
-        await DoorRegistry.shared.register(door)
+        await connection.registerDoor(door)
     }
 }

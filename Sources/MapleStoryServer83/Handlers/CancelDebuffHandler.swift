@@ -19,6 +19,6 @@ public struct CancelDebuffHandler: PacketHandler {
     ) async throws {
         _ = packet
         guard let character = try await connection.character else { return }
-        await CharacterBuffRegistry.shared.cleanupExpired(for: character.id)
+        await connection.cleanupExpiredBuffs(for: character.id)
     }
 }

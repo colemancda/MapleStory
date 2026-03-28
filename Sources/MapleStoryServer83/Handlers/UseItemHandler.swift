@@ -29,7 +29,7 @@ public struct UseItemHandler: PacketHandler {
             return
         }
 
-        guard let itemData = await ItemDataCache.shared.consume(id: item.itemId) else {
+        guard let itemData = await connection.consumeItemData(id: item.itemId) else {
             return
         }
 

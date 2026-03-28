@@ -22,10 +22,7 @@ public struct CancelBuffHandler: PacketHandler {
             return
         }
 
-        let removed = await CharacterBuffRegistry.shared.removeBuff(
-            skillID: packet.skillID,
-            from: character.id
-        )
+        let removed = await connection.removeBuff(skillID: packet.skillID, from: character.id)
 
         guard removed else {
             return

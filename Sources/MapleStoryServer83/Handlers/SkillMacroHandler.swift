@@ -31,7 +31,7 @@ public struct SkillMacroHandler: PacketHandler {
             )
         }
 
-        await SkillMacroRegistry.shared.saveMacros(macros, for: character.id)
-        try await SkillMacroRegistry.shared.saveMacros(for: character.id, database: connection.database)
+        await connection.saveSkillMacros(macros, for: character.id)
+        try await connection.persistSkillMacros(for: character.id)
     }
 }

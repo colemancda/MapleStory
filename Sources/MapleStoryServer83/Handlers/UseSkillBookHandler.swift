@@ -22,13 +22,12 @@ public struct UseSkillBookHandler: PacketHandler {
 
         guard packet.itemID / 1000 == 228 else { return }
 
-        let skillBookData = await SkillBookDataCache.shared.skillBook(packet.itemID)
-        guard let data = skillBookData else { return }
+        guard let data = await connection.skillBookData(id: packet.itemID) else { return }
 
         let skillID = data.skillID
         let successRate = data.successRate
 
-        guard let existingSkill = await CharacterSkillRegistry.shared.skill(skillID, for: character.id) else { return }
+        guard let existingSkill = await connection.characterSkill(skillID, for: character.id) else { return }
         guard existingSkill.masteryLevel < 30 else { return }
 
         let roll = Int.random(in: 1...100)
@@ -41,9 +40,9 @@ public struct UseSkillBookHandler: PacketHandler {
         var newMasteryLevel = existingSkill.masteryLevel
 
         if success {
-            if let updatedMastery = await CharacterSkillRegistry.shared.addMasteryLevel(skillID, for: character.id) {
+            if let updatedMastery = await connection.addMasteryLevel(skillID, for: character.id) {
                 newMasteryLevel = updatedMastery
-                try await CharacterSkillRegistry.shared.saveSkills(for: character.id, database: connection.database)
+                try await connection.saveSkills(for: character.id)
             }
         }
 

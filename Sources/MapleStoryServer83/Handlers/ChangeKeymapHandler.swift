@@ -24,8 +24,7 @@ public struct ChangeKeymapHandler: PacketHandler {
             KeymapEntry(key: binding.key, type: binding.type, action: binding.action)
         }
 
-        await KeymapRegistry.shared.saveKeymap(keymap, for: character.id)
-
-        try await KeymapRegistry.shared.saveKeymap(for: character.id, database: connection.database)
+        await connection.saveKeymap(keymap, for: character.id)
+        try await connection.persistKeymap(for: character.id)
     }
 }

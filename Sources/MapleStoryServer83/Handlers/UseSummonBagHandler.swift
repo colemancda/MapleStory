@@ -19,8 +19,7 @@ public struct UseSummonBagHandler: PacketHandler {
     ) async throws {
         guard let character = try await connection.character else { return }
 
-        let positionRegistry = PlayerPositionRegistry.shared
-        let playerPosition = await positionRegistry.position(for: character.id)
+        let playerPosition = await connection.playerPosition(for: character.id)
         guard playerPosition != nil else { return }
 
         let inventory = await character.getInventory()
@@ -28,20 +27,19 @@ public struct UseSummonBagHandler: PacketHandler {
         guard bagItem.itemId == packet.itemID else { return }
         guard isSummonBag(packet.itemID) else { return }
 
-        guard let summonData = await SummonBagDataCache.shared.data(for: packet.itemID) else { return }
+        guard let summonData = await connection.summonBagData(id: packet.itemID) else { return }
 
         let manipulator = InventoryManipulator()
         _ = try await manipulator.removeById(packet.itemID, quantity: 1, from: character)
 
-        let mobRegistry = MapMobRegistry.shared
         let mapID = character.currentMap
 
         for summon in summonData.mobs {
             let roll = Int.random(in: 1...100)
             if roll <= summon.chance {
-                guard let mobTemplate = await MobDataCache.shared.mob(id: summon.mobID) else { continue }
+                guard let mobTemplate = await connection.mobData(id: summon.mobID) else { continue }
 
-                let oid = await mobRegistry.nextObjectID()
+                let oid = await connection.nextMobObjectID()
                 let mobPosition = playerPosition!
 
                 let instance = MapMobRegistry.MobInstance(
@@ -59,9 +57,9 @@ public struct UseSummonBagHandler: PacketHandler {
                     mobTime: 0
                 )
 
-                await mobRegistry.addMob(instance)
+                await connection.addMob(instance)
 
-                let controller = await mobRegistry.controller(for: mapID)
+                let controller = await connection.mobController(for: mapID)
                 if let controllerAddress = controller, controllerAddress == connection.address {
                     try await connection.send(SpawnMonsterControl(control: 2, mob: instance.toSpawnData()))
                 }

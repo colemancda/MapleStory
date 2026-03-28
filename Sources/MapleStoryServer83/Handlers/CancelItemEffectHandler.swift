@@ -20,10 +20,7 @@ public struct CancelItemEffectHandler: PacketHandler {
     ) async throws {
         guard let character = try await connection.character else { return }
 
-        let removed = await CharacterBuffRegistry.shared.removeBuff(
-            skillID: packet.skillID,
-            from: character.id
-        )
+        let removed = await connection.removeBuff(skillID: packet.skillID, from: character.id)
         guard removed else { return }
 
         try await connection.send(CancelBuffNotification(skillID: packet.skillID))

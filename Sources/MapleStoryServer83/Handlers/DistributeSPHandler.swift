@@ -21,11 +21,11 @@ public struct DistributeSPHandler: PacketHandler {
         guard var character = try await connection.character else { return }
         guard character.sp > 0 else { return }
 
-        guard let _ = await SkillDataCache.shared.skill(id: packet.skillID) else {
+        guard let _ = await connection.skillData(id: packet.skillID) else {
             return
         }
 
-        let currentSkill = await CharacterSkillRegistry.shared.skill(packet.skillID, for: character.id)
+        let currentSkill = await connection.characterSkill(packet.skillID, for: character.id)
         let currentLevel = currentSkill?.level ?? 0
 
         guard canLearnSkill(skillID: packet.skillID, job: character.job) else {
@@ -37,15 +37,15 @@ public struct DistributeSPHandler: PacketHandler {
             return
         }
 
-        let success = await CharacterSkillRegistry.shared.addSkillLevel(packet.skillID, for: character.id)
-        guard success else {
+        let success = await connection.addSkillLevel(packet.skillID, for: character.id)
+        guard success != nil else {
             return
         }
 
         character.sp -= 1
         try await connection.database.insert(character)
 
-        try await CharacterSkillRegistry.shared.saveSkills(for: character.id, database: connection.database)
+        try await connection.saveSkills(for: character.id)
 
         let notification = UpdateStatsNotification(
             announce: true,

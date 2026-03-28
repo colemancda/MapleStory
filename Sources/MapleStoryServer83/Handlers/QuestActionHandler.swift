@@ -22,7 +22,7 @@ public struct QuestActionHandler: PacketHandler {
             return
         }
 
-        guard await QuestDataCache.shared.exists(packet.questID) else {
+        guard await connection.questExists(packet.questID) else {
             return
         }
 
@@ -50,7 +50,7 @@ public struct QuestActionHandler: PacketHandler {
 
         try await connection.database.insert(character)
 
-        let questData = await QuestStateRegistry.shared.getQuestData(for: character.id)
+        let questData = await connection.questData(for: character.id)
         _ = questData
     }
 
@@ -60,19 +60,19 @@ public struct QuestActionHandler: PacketHandler {
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let requirement = await QuestDataCache.shared.requirement(questID: questID) else { return }
+        guard let requirement = await connection.questRequirement(questID: questID) else { return }
         guard requirement.canStartAt(npcID: npcID) else { return }
 
-        let current = await QuestStateRegistry.shared.quest(questID, for: character.id)
+        let current = await connection.questState(questID, for: character.id)
         if let state = current {
             if !requirement.canRepeat(completionCount: state.completionCount) { return }
             if state.status == .started { return }
         }
 
-        let allQuests = await QuestStateRegistry.shared.quests(for: character.id)
+        let allQuests = await connection.allQuestStates(for: character.id)
         guard requirement.canStart(character: character, questStates: allQuests) else { return }
 
-        await QuestStateRegistry.shared.startQuest(questID, for: character.id)
+        await connection.startQuest(questID, for: character.id)
 
         try await connection.send(UpdateQuestInfoNotification(
             questID: questID,
@@ -88,16 +88,16 @@ public struct QuestActionHandler: PacketHandler {
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let requirement = await QuestDataCache.shared.requirement(questID: questID) else { return }
+        guard let requirement = await connection.questRequirement(questID: questID) else { return }
         guard requirement.canCompleteAt(npcID: npcID) else { return }
 
-        let current = await QuestStateRegistry.shared.quest(questID, for: character.id)
+        let current = await connection.questState(questID, for: character.id)
         guard let state = current, state.status == .started else { return }
 
-        let meetsProgress = await QuestStateRegistry.shared.meetsRequirements(questID: questID, for: character.id)
+        let meetsProgress = await connection.questMeetsRequirements(questID, for: character)
         guard meetsProgress else { return }
 
-        guard let reward = await QuestDataCache.shared.reward(questID: questID) else { return }
+        guard let reward = await connection.questReward(questID: questID) else { return }
 
         if reward.exp > 0 {
             try await connection.gainExp(reward.exp)
@@ -115,7 +115,7 @@ public struct QuestActionHandler: PacketHandler {
             }
         }
 
-        let success = await QuestStateRegistry.shared.completeQuest(questID, for: character.id)
+        let success = await connection.completeQuest(questID, for: character.id)
         guard success else { return }
 
         try await connection.send(ShowQuestCompletionNotification(
@@ -138,10 +138,10 @@ public struct QuestActionHandler: PacketHandler {
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        let current = await QuestStateRegistry.shared.quest(questID, for: character.id)
+        let current = await connection.questState(questID, for: character.id)
         guard let state = current, state.status == .started else { return }
 
-        let success = await QuestStateRegistry.shared.forfeitQuest(questID, for: character.id)
+        let success = await connection.forfeitQuest(questID, for: character.id)
         guard success else { return }
 
         try await connection.send(UpdateQuestInfoNotification(

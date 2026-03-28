@@ -18,7 +18,7 @@ public struct AutoAggroHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         guard let character = try await connection.character else { return }
-        guard let instance = await MapMobRegistry.shared.instance(objectID: packet.objectID),
+        guard let instance = await connection.mobInstance(objectID: packet.objectID),
               instance.mapID == character.currentMap else { return }
 
         try await connection.send(MoveMonsterResponse(

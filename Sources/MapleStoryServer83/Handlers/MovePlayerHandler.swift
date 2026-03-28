@@ -22,7 +22,7 @@ public struct MovePlayerHandler: PacketHandler {
 
         if let finalPos = packet.movements.finalPosition {
             let playerPos = PlayerPosition(x: finalPos.x, y: finalPos.y)
-            await PlayerPositionRegistry.shared.updatePosition(playerPos, for: character.id)
+            await connection.updatePlayerPosition(playerPos, for: character.id)
         }
 
         let notification = MovePlayerNotification(

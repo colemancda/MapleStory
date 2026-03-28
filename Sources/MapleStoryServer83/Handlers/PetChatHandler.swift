@@ -22,11 +22,11 @@ public struct PetChatHandler: PacketHandler {
         guard let mapID = await connection.mapID else { return }
 
         let petID = PetID(packet.petID)
-        guard let spawnedPet = await PetRegistry.shared.spawnedPet(petID),
+        guard let spawnedPet = await connection.spawnedPet(petID),
               spawnedPet.ownerID == character.id else {
             return
         }
-        guard let slot = await PetRegistry.shared.activeSlot(for: petID, ownerID: character.id) else {
+        guard let slot = await connection.activePetSlot(for: petID, ownerID: character.id) else {
             return
         }
 

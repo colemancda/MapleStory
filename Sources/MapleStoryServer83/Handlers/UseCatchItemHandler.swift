@@ -25,8 +25,7 @@ public struct UseCatchItemHandler: PacketHandler {
         guard catchItem.itemId == packet.itemID else { return }
         guard isCatchItem(packet.itemID) else { return }
 
-        let mobRegistry = MapMobRegistry.shared
-        guard let mob = await mobRegistry.instance(objectID: packet.monsterID) else { return }
+        guard let mob = await connection.mobInstance(objectID: packet.monsterID) else { return }
 
         guard mob.currentHP <= mob.maxHP / 2 else {
             try await connection.send(ServerMessageNotification.popup(
@@ -43,7 +42,7 @@ public struct UseCatchItemHandler: PacketHandler {
             ), map: character.currentMap)
         }
 
-        await mobRegistry.remove(objectID: packet.monsterID)
+        await connection.removeMob(objectID: packet.monsterID)
 
         let manipulator = InventoryManipulator()
         _ = try await manipulator.removeById(packet.itemID, quantity: 1, from: character)
