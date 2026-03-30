@@ -18,21 +18,70 @@ public struct UseItemHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard var character = try await connection.character else {
+        guard var character = try await connection.character else { return }
+
+        // Cannot use items while dead.
+        guard character.hp > 0 else {
+            try await connection.send(UpdateStatsNotification.enableActions)
             return
         }
 
         let inventory = await character.getInventory()
-
         let slot = Int8(packet.slot)
-        guard let item = inventory[.use][slot] else {
+        guard let item = inventory[.use][slot] else { return }
+        guard item.itemId == packet.itemID else { return }
+
+        guard let itemData = await connection.consumeItemData(id: item.itemId) else { return }
+
+        // Remove one from the stack.
+        var updatedInventory = inventory
+        if item.quantity > 1 {
+            updatedInventory[.use][slot]?.quantity -= 1
+        } else {
+            updatedInventory[.use][slot] = nil
+        }
+        await character.setInventory(updatedInventory)
+
+        // Special items — dispel debuffs or apply area effects.
+        switch item.itemId {
+        case 2050004: // ALL_CURE_POTION: remove all debuffs
+            await connection.dispelAllDebuffs(from: character.id)
+            try await connection.database.insert(character)
+            try await connection.send(UpdateStatsNotification.enableActions)
+            return
+
+        case 2050001: // EYEDROP: remove darkness
+            await connection.dispelDebuff(.darkness, from: character.id)
+            try await connection.database.insert(character)
+            try await connection.send(UpdateStatsNotification.enableActions)
+            return
+
+        case 2050002: // TONIC: remove weaken + slow
+            await connection.dispelDebuff(.weaken, from: character.id)
+            await connection.dispelDebuff(.slow, from: character.id)
+            try await connection.database.insert(character)
+            try await connection.send(UpdateStatsNotification.enableActions)
+            return
+
+        case 2050003: // HOLY_WATER: remove seal + curse
+            await connection.dispelDebuff(.seal, from: character.id)
+            await connection.dispelDebuff(.curse, from: character.id)
+            try await connection.database.insert(character)
+            try await connection.send(UpdateStatsNotification.enableActions)
+            return
+
+        default:
+            break
+        }
+
+        // Town scrolls: handled as teleport items (stub).
+        if isTownScroll(item.itemId) {
+            try await connection.database.insert(character)
+            try await connection.send(UpdateStatsNotification.enableActions)
             return
         }
 
-        guard let itemData = await connection.consumeItemData(id: item.itemId) else {
-            return
-        }
-
+        // Standard HP/MP recovery.
         var changedStats: MapleStat = []
 
         let hpRecovery = itemData.hp
@@ -40,8 +89,7 @@ public struct UseItemHandler: PacketHandler {
         if hpRecovery > 0 || hpRateRecovery > 0 {
             var hpGain = Int32(hpRecovery)
             if hpRateRecovery > 0 {
-                let percentGain = Int32(character.maxHp) * hpRateRecovery / 100
-                hpGain += percentGain
+                hpGain += Int32(character.maxHp) * hpRateRecovery / 100
             }
             character.hp = min(UInt16(Int32(character.hp) + hpGain), character.maxHp)
             changedStats.formUnion(.hp)
@@ -52,21 +100,13 @@ public struct UseItemHandler: PacketHandler {
         if mpRecovery > 0 || mpRateRecovery > 0 {
             var mpGain = Int32(mpRecovery)
             if mpRateRecovery > 0 {
-                let percentGain = Int32(character.maxMp) * mpRateRecovery / 100
-                mpGain += percentGain
+                mpGain += Int32(character.maxMp) * mpRateRecovery / 100
             }
             character.mp = min(UInt16(Int32(character.mp) + mpGain), character.maxMp)
             changedStats.formUnion(.mp)
         }
 
-        var updatedInventory = inventory
-        if item.quantity > 1 {
-            updatedInventory[.use][slot]?.quantity -= 1
-        } else {
-            updatedInventory[.use][slot] = nil
-        }
         await character.setInventory(updatedInventory)
-
         try await connection.database.insert(character)
 
         if !changedStats.isEmpty {
@@ -83,5 +123,12 @@ public struct UseItemHandler: PacketHandler {
             )
             try await connection.send(notification)
         }
+        try await connection.send(UpdateStatsNotification.enableActions)
+    }
+
+    // MARK: - Private
+
+    private func isTownScroll(_ itemID: UInt32) -> Bool {
+        return itemID >= 2030000 && itemID < 2040000
     }
 }

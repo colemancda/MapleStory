@@ -29,4 +29,21 @@ public struct MoveMonsterNotification: MapleStoryPacket, Codable, Equatable, Has
     public let startY: Int16
 
     public let movements: [Movement]
+
+    public init(
+        objectID: UInt32, unknown: UInt8, skillPossible: Bool,
+        skill: UInt8, skillID: UInt8, skillLevel: UInt8, pOption: UInt16,
+        startX: Int16, startY: Int16, movements: [Movement]
+    ) {
+        self.objectID = objectID
+        self.unknown = unknown
+        self.skillPossible = skillPossible
+        self.skill = skill
+        self.skillID = skillID
+        self.skillLevel = skillLevel
+        self.pOption = pOption
+        self.startX = startX
+        self.startY = startY
+        self.movements = movements
+    }
 }

@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct SpawnPetHandler: PacketHandler {
 
@@ -48,8 +49,7 @@ public struct SpawnPetHandler: PacketHandler {
             y: (playerPosition?.y ?? 0) - 12
         )
 
-        guard await connection.spawnPet(pet.id, ownerID: character.id, lead: packet.isLead == 1, position: petPosition),
-              let activeSlot = await connection.activePetSlot(for: pet.id, ownerID: character.id) else {
+        guard let activeSlot = await connection.spawnPet(pet.id, ownerID: character.id, lead: packet.isLead == 1, position: petPosition) else {
             return
         }
 

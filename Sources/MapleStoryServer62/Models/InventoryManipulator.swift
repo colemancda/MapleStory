@@ -14,6 +14,8 @@ import MapleStoryServer
 /// Actor that handles all inventory operations (thread-safe).
 public actor InventoryManipulator {
 
+    public init() { }
+
     // MARK: - Add Items
 
     /// Add an item by ID to the character's inventory.

@@ -21,4 +21,11 @@ public struct RemoveItemFromMapNotification: MapleStoryPacket, Codable, Equatabl
 
     /// Present only when animation >= 2 and picked up by a pet.
     public let petSlot: UInt8?
+
+    public init(animation: UInt8, objectID: UInt32, characterID: UInt32? = nil, petSlot: UInt8? = nil) {
+        self.animation = animation
+        self.objectID = objectID
+        self.characterID = characterID
+        self.petSlot = petSlot
+    }
 }

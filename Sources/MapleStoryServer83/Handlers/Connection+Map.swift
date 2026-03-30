@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
@@ -39,7 +40,7 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
 
     // MARK: - Map Items (drops)
 
-    func mapDrop(objectID: UInt32, on mapID: Map.ID) async -> MapItemRegistry.Drop? {
+    func mapDrop(objectID: UInt32, on mapID: Map.ID) async -> MapItem? {
         await MapItemRegistry.shared.drop(objectID: objectID, on: mapID)
     }
 
@@ -59,5 +60,15 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
 
     func removeDoor(ownerID: Character.ID) async {
         await DoorRegistry.shared.remove(ownerID: ownerID)
+    }
+
+    // MARK: - Warp
+
+    func warp(to mapID: Map.ID, spawn: UInt8 = 0) async throws {
+        guard var character = try await self.character else { return }
+        character.currentMap = mapID
+        character.spawnPoint = spawn
+        try await database.insert(character)
+        setMap(mapID)
     }
 }

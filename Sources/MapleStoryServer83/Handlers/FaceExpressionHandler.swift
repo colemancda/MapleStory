@@ -20,7 +20,7 @@ public struct FaceExpressionHandler: PacketHandler {
         guard let character = try await connection.character else { return }
         try await connection.broadcast(FacialExpressionNotification(
             characterID: character.index,
-            expression: packet.emote
+            expression: Int32(bitPattern: packet.expression)
         ), map: character.currentMap)
     }
 }

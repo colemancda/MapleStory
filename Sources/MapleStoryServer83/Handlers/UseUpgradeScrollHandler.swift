@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct UseUpgradeScrollHandler: PacketHandler {
 
@@ -30,15 +31,15 @@ public struct UseUpgradeScrollHandler: PacketHandler {
         guard var equipData = equipItem.equip else { return }
         guard equipData.slots > 0 else { return }
 
-        let scrollData = await connection.scrollData(id: scrollID)
-        guard let data = scrollData else { return }
+        guard let data = await connection.scrollData(id: scrollID) else { return }
 
         let successChance = data.successRate
         let destroyedChance = data.destroyChance
         let roll = Int.random(in: 1...100)
         let hasWhiteScroll = packet.whiteScroll == 1
 
-        var result: ShowScrollEffectNotification.ScrollResult = .failure
+        var success = false
+        var curse = false
 
         if roll <= successChance {
             equipData.str += data.str
@@ -58,17 +59,18 @@ public struct UseUpgradeScrollHandler: PacketHandler {
             equipData.slots -= 1
             equipItem.equip = equipData
             inventory[.equip][Int8(packet.destinationSlot)] = equipItem
-            result = .success
+            success = true
         } else if roll <= (successChance + destroyedChance) {
+            // Item is cursed/destroyed.
             inventory[.equip][Int8(packet.destinationSlot)] = nil
-            result = .destroyed
+            curse = true
         } else {
+            // Failure: decrease upgrade slot unless white scroll is in use.
             if !hasWhiteScroll {
                 equipData.slots -= 1
                 equipItem.equip = equipData
                 inventory[.equip][Int8(packet.destinationSlot)] = equipItem
             }
-            result = .failure
         }
 
         await character.setInventory(inventory)
@@ -78,11 +80,15 @@ public struct UseUpgradeScrollHandler: PacketHandler {
 
         try await connection.database.insert(character)
 
-        try await connection.send(ShowScrollEffectNotification(
+        let notification = ShowScrollEffectNotification(
             characterID: character.index,
-            result: result,
-            position: packet.destinationSlot
-        ))
+            success: success,
+            curse: curse,
+            legendarySpirit: false,
+            whiteScroll: hasWhiteScroll
+        )
+        try await connection.send(notification)
+        try await connection.broadcast(notification, map: character.currentMap)
     }
 
     private func isScroll(_ itemID: UInt32) -> Bool {

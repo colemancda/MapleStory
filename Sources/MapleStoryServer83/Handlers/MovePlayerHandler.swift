@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct MovePlayerHandler: PacketHandler {
 
@@ -25,7 +26,7 @@ public struct MovePlayerHandler: PacketHandler {
             await connection.updatePlayerPosition(playerPos, for: character.id)
         }
 
-        let notification = MovePlayerNotification(
+        let notification = MapleStory83.MovePlayerNotification(
             characterID: character.index,
             unknown: 0,
             movements: packet.movements

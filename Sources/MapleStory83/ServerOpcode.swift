@@ -129,6 +129,9 @@ public enum ServerOpcode: UInt16, MapleStoryOpcode, Codable, CaseIterable, Senda
     /// Quest clear opcode. (0x31)
     case questClear = 0x31
 
+    /// Skill learn item result opcode. (0x33)
+    case skillLearnItemResult = 0x33
+
     /// Set gender opcode. (0x3A)
     case setGender = 0x3A
 

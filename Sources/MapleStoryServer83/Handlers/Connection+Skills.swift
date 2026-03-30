@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
@@ -36,7 +37,8 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
         await CharacterSkillRegistry.shared.skill(skillID, for: characterID)
     }
 
-    func addSkillLevel(_ skillID: UInt32, for characterID: Character.ID) async -> UInt8? {
+    @discardableResult
+    func addSkillLevel(_ skillID: UInt32, for characterID: Character.ID) async -> Bool {
         await CharacterSkillRegistry.shared.addSkillLevel(skillID, for: characterID)
     }
 
@@ -54,12 +56,39 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
         await CharacterBuffRegistry.shared.applyBuff(buff, to: characterID)
     }
 
-    func removeBuff(skillID: UInt32, from characterID: Character.ID) async {
+    @discardableResult
+    func removeBuff(skillID: UInt32, from characterID: Character.ID) async -> Bool {
         await CharacterBuffRegistry.shared.removeBuff(skillID: skillID, from: characterID)
+    }
+
+    func activeBuffs(for characterID: Character.ID) async -> [BuffState] {
+        await CharacterBuffRegistry.shared.buffs(for: characterID)
+    }
+
+    func hasBuff(skillID: UInt32, for characterID: Character.ID) async -> Bool {
+        let buffs = await CharacterBuffRegistry.shared.buffs(for: characterID)
+        return buffs.contains { $0.skillID == skillID }
     }
 
     func cleanupExpiredBuffs(for characterID: Character.ID) async {
         await CharacterBuffRegistry.shared.cleanupExpired(for: characterID)
+    }
+
+    // MARK: - Debuffs
+
+    /// Debuff types that can affect a character.
+    enum Debuff {
+        case darkness, weaken, slow, seal, curse, poison, stun, freeze
+    }
+
+    /// Remove a specific debuff from a character (stub).
+    func dispelDebuff(_ debuff: Debuff, from characterID: Character.ID) async {
+        // TODO: implement debuff state tracking
+    }
+
+    /// Remove all debuffs from a character (stub).
+    func dispelAllDebuffs(from characterID: Character.ID) async {
+        // TODO: implement debuff state tracking
     }
 
     // MARK: - Skill Macros

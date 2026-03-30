@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct QuestActionHandler: PacketHandler {
 
@@ -84,7 +85,7 @@ public struct QuestActionHandler: PacketHandler {
     private func handleComplete<Socket: MapleStorySocket, Database: ModelStorage>(
         questID: QuestID,
         npcID: UInt32,
-        selection: UInt8,
+        selection _: UInt8,
         character: inout Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
@@ -118,13 +119,7 @@ public struct QuestActionHandler: PacketHandler {
         let success = await connection.completeQuest(questID, for: character.id)
         guard success else { return }
 
-        try await connection.send(ShowQuestCompletionNotification(
-            questID: questID,
-            selection: selection,
-            expReward: reward.exp,
-            mesoReward: reward.meso,
-            items: reward.items
-        ))
+        try await connection.send(ShowQuestCompletionNotification(questID: questID))
 
         try await connection.send(UpdateQuestInfoNotification(
             questID: questID,

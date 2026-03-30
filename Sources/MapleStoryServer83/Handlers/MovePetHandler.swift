@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct MovePetHandler: PacketHandler {
 
@@ -32,7 +33,7 @@ public struct MovePetHandler: PacketHandler {
         guard let slot = await connection.activePetSlot(for: petID, ownerID: character.id) else { return }
 
         try await connection.broadcast(
-            MovePetNotification(
+            MapleStory83.MovePetNotification(
                 characterID: character.index,
                 slot: slot,
                 petID: packet.petID,

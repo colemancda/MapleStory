@@ -13,4 +13,9 @@ public struct FacialExpressionNotification: MapleStoryPacket, Codable, Equatable
     public let characterID: UInt32
 
     public let expression: Int32
+
+    public init(characterID: UInt32, expression: Int32) {
+        self.characterID = characterID
+        self.expression = expression
+    }
 }

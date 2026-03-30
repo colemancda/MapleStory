@@ -21,4 +21,13 @@ public struct PetChatNotification: MapleStoryPacket, Codable, Equatable, Hashabl
     public let text: String
 
     public let unknown2: UInt8
+
+    public init(characterID: UInt32, slot: UInt8, unknown: UInt8, text: String) {
+        self.characterID = characterID
+        self.petSlot = slot
+        self.unknown = unknown
+        self.action = 0
+        self.text = text
+        self.unknown2 = 0
+    }
 }

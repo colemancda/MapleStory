@@ -5,8 +5,10 @@
 import Foundation
 import CoreModel
 import MapleStory
+import MapleStory62
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
@@ -94,7 +96,7 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
         try await GuildRegistry.shared.loadGuildMembers(guildID, from: database)
     }
 
-    func createGuild(name: GuildName, leaderID: Character.ID, leaderName: CharacterName) async throws -> GuildEntity {
+    func createGuild(name: String, leaderID: Character.ID, leaderName: CharacterName) async throws -> GuildEntity {
         try await GuildRegistry.shared.createGuild(name: name, leaderID: leaderID, leaderName: leaderName, in: database)
     }
 
@@ -145,22 +147,23 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
         try await BuddyListRegistry.shared.updateBuddyPending(buddyID: buddyID, for: characterID, pending: pending, in: database)
     }
 
-    func buddyListNotification(for characterID: Character.ID) async throws -> [BuddyListNotification.Buddy] {
-        try await BuddyListRegistry.shared.buddyListNotification(for: characterID, in: database)
+    func buddyListNotification(for characterID: Character.ID) async throws -> [MapleStory83.BuddyListNotification.Buddy] {
+        let v62 = try await BuddyListRegistry.shared.buddyListNotification(for: characterID, in: database)
+        return v62.map { MapleStory83.BuddyListNotification.Buddy(id: $0.id, name: $0.name, value0: 0, channel: $0.channel) }
     }
 
     // MARK: - BBS
 
-    func bbsListThreads(guildID: GuildEntity.ID) async -> [BBSThread] {
-        await BBSRegistry.shared.listThreads(guildID: guildID)
+    func bbsListThreads(guildID: GuildEntity.ID) async -> [MapleStory83.BBSThread] {
+        await BBSRegistry.shared.listThreads(guildID: guildID).map { $0.toV83Thread() }
     }
 
-    func bbsThread(localID: UInt32, guildID: GuildEntity.ID) async -> BBSThread? {
-        await BBSRegistry.shared.thread(localID: localID, guildID: guildID)
+    func bbsThread(localID: UInt32, guildID: GuildEntity.ID) async -> MapleStory83.BBSThread? {
+        await BBSRegistry.shared.thread(localID: localID, guildID: guildID).map { $0.toV83Thread() }
     }
 
-    func bbsReplies(localID: UInt32, guildID: GuildEntity.ID) async -> [BBSReply] {
-        await BBSRegistry.shared.replies(localID: localID, guildID: guildID)
+    func bbsReplies(localID: UInt32, guildID: GuildEntity.ID) async -> [MapleStory83.BBSReply] {
+        await BBSRegistry.shared.replies(localID: localID, guildID: guildID).map { $0.toV83Reply() }
     }
 
     func bbsCreateThread(
@@ -195,5 +198,34 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
 
     func bbsDeleteReply(replyID: UInt32, guildID: GuildEntity.ID) async {
         await BBSRegistry.shared.deleteReply(replyID: replyID, guildID: guildID)
+    }
+}
+
+// MARK: - BBS Type Conversions
+
+private extension MapleStory62.BBSThread {
+    func toV83Thread() -> MapleStory83.BBSThread {
+        MapleStory83.BBSThread(
+            localID: localID,
+            posterCharacterID: posterCharacterID,
+            title: title,
+            timestamp: timestamp,
+            icon: icon,
+            replyCount: replyCount,
+            body: body,
+            notice: notice
+        )
+    }
+}
+
+private extension MapleStory62.BBSReply {
+    func toV83Reply() -> MapleStory83.BBSReply {
+        MapleStory83.BBSReply(
+            id: id,
+            threadID: threadID,
+            posterCharacterID: posterCharacterID,
+            body: body,
+            timestamp: timestamp
+        )
     }
 }
