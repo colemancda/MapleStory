@@ -18,6 +18,13 @@ public struct GeneralChatHandler: PacketHandler {
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
         guard let character = try await connection.character else { return }
+
+        // Validate message length (max 127 characters for non-GMs).
+        guard packet.message.count <= 127 else { return }
+
+        // Reject empty messages.
+        guard !packet.message.isEmpty else { return }
+
         let notification = ChatTextNotification(
             characterID: character.index,
             isGM: false,

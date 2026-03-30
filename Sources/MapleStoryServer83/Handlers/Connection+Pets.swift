@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
@@ -28,7 +29,7 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
     }
 
     @discardableResult
-    func spawnPet(_ petID: PetID, ownerID: Character.ID, lead: Bool, position: PetPosition) async -> Bool {
+    func spawnPet(_ petID: PetID, ownerID: Character.ID, lead: Bool, position: PetPosition) async -> UInt8? {
         await PetRegistry.shared.spawnPet(petID, ownerID: ownerID, lead: lead, position: position)
     }
 

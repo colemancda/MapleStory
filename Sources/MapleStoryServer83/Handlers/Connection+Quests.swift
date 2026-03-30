@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
@@ -34,7 +35,7 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
     }
 
     func questMeetsRequirements(_ questID: QuestID, for character: MapleStory.Character) async -> Bool {
-        await QuestStateRegistry.shared.meetsRequirements(questID: questID, for: character)
+        await QuestStateRegistry.shared.meetsRequirements(questID: questID, for: character.id)
     }
 
     func questData(for characterID: Character.ID) async -> CharacterQuestData {
@@ -47,11 +48,11 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
         await QuestDataCache.shared.exists(questID)
     }
 
-    func questRequirement(questID: QuestID) async -> WzQuestRequirement? {
+    func questRequirement(questID: QuestID) async -> QuestRequirement? {
         await QuestDataCache.shared.requirement(questID: questID)
     }
 
-    func questReward(questID: QuestID) async -> WzQuestReward? {
+    func questReward(questID: QuestID) async -> QuestReward? {
         await QuestDataCache.shared.reward(questID: questID)
     }
 }

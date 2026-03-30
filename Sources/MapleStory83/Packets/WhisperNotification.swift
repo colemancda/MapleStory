@@ -20,4 +20,12 @@ public struct WhisperNotification: MapleStoryPacket, Codable, Equatable, Hashabl
     public let fromAdmin: Bool?
 
     public let message: String?
+
+    public init(flag: UInt8, characterName: String, channelOrSuccess: UInt8?, fromAdmin: Bool?, message: String?) {
+        self.flag = flag
+        self.characterName = characterName
+        self.channelOrSuccess = channelOrSuccess
+        self.fromAdmin = fromAdmin
+        self.message = message
+    }
 }

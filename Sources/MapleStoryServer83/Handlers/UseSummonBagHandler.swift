@@ -6,6 +6,7 @@ import Foundation
 import CoreModel
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct UseSummonBagHandler: PacketHandler {
 

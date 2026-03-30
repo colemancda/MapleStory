@@ -3,6 +3,7 @@
 //
 
 import Foundation
+import MapleStory
 
 /// Fame give/receive result notification.
 ///
@@ -21,4 +22,22 @@ public struct FameResponseNotification: MapleStoryPacket, Codable, Equatable, Ha
 
     /// New fame value. Present when status == 0.
     public let newFame: UInt16?
+
+    public init(status: UInt8, characterName: String? = nil, mode: UInt8? = nil, newFame: UInt16? = nil) {
+        self.status = status
+        self.characterName = characterName
+        self.mode = mode
+        self.newFame = newFame
+    }
+}
+
+public extension FameResponseNotification {
+
+    static func error(_ code: UInt8) -> FameResponseNotification {
+        FameResponseNotification(status: code)
+    }
+
+    static func success(targetName: CharacterName, mode: UInt8, newFame: UInt16) -> FameResponseNotification {
+        FameResponseNotification(status: 0, characterName: targetName.rawValue, mode: mode, newFame: newFame)
+    }
 }

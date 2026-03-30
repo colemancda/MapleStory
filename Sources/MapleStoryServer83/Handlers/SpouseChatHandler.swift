@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct SpouseChatHandler: PacketHandler {
 
@@ -45,7 +46,7 @@ public struct SpouseChatHandler: PacketHandler {
             return
         }
 
-        let spousePacket = SpousechatNotification(
+        let spousePacket = SpouseChatNotification(
             sender: character.name.rawValue,
             message: packet.message
         )

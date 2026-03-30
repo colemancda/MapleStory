@@ -21,4 +21,13 @@ public struct MoveMonsterResponseNotification: MapleStoryPacket, Codable, Equata
     public let skillID: UInt8
 
     public let skillLevel: UInt8
+
+    public init(objectID: UInt32, moveID: UInt16, useSkills: Bool, currentMP: UInt16, skillID: UInt8, skillLevel: UInt8) {
+        self.objectID = objectID
+        self.moveID = moveID
+        self.useSkills = useSkills
+        self.currentMP = currentMP
+        self.skillID = skillID
+        self.skillLevel = skillLevel
+    }
 }

@@ -15,4 +15,10 @@ public struct MovePlayerNotification: MapleStoryPacket, Codable, Equatable, Hash
     public let unknown: Int32
 
     public let movements: [Movement]
+
+    public init(characterID: UInt32, unknown: Int32, movements: [Movement]) {
+        self.characterID = characterID
+        self.unknown = unknown
+        self.movements = movements
+    }
 }

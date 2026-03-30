@@ -21,11 +21,11 @@ public struct AutoAggroHandler: PacketHandler {
         guard let instance = await connection.mobInstance(objectID: packet.objectID),
               instance.mapID == character.currentMap else { return }
 
-        try await connection.send(MoveMonsterResponse(
+        try await connection.send(MoveMonsterResponseNotification(
             objectID: packet.objectID,
             moveID: 0,
-            useSkill: false,
-            mp: 0,
+            useSkills: false,
+            currentMP: 0,
             skillID: 0,
             skillLevel: 0
         ))

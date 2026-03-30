@@ -19,4 +19,12 @@ public struct ShowScrollEffectNotification: MapleStoryPacket, Codable, Equatable
     public let legendarySpirit: Bool
 
     public let whiteScroll: Bool
+
+    public init(characterID: UInt32, success: Bool, curse: Bool, legendarySpirit: Bool, whiteScroll: Bool) {
+        self.characterID = characterID
+        self.success = success
+        self.curse = curse
+        self.legendarySpirit = legendarySpirit
+        self.whiteScroll = whiteScroll
+    }
 }

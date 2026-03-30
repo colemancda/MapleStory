@@ -7,6 +7,22 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
+
+extension MapMobRegistry.MobInstance {
+    func toSpawnData() -> MobSpawnData {
+        MobSpawnData(
+            objectID: objectID,
+            mobID: mobID,
+            x: x,
+            y: y,
+            foothold: foothold,
+            rx0: rx0,
+            rx1: rx1,
+            facing: facing
+        )
+    }
+}
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
@@ -35,6 +51,11 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
 
     func addMob(_ instance: MapMobRegistry.MobInstance) async {
         await MapMobRegistry.shared.addMob(instance)
+    }
+
+    /// Returns true if the mob has a NEUTRALISE status effect active (stub).
+    func mobIsNeutralised(objectID: UInt32) async -> Bool {
+        return false
     }
 
     // MARK: - Mob Data

@@ -176,6 +176,7 @@ let package = Package(
             dependencies: [
                 "MapleStory83",
                 "MapleStoryServer",
+                "MapleStoryServer62",
                 .product(
                     name: "ArgumentParser",
                     package: "swift-argument-parser"

@@ -42,6 +42,22 @@ public actor MapMobRegistry {
         public let facing: UInt8
         /// Respawn delay in seconds (0 = never respawn).
         public let mobTime: Int32
+
+        public init(objectID: UInt32, mobID: UInt32, mapID: Map.ID, currentHP: Int32, maxHP: Int32,
+                    x: Int16, y: Int16, foothold: UInt16, rx0: Int16, rx1: Int16, facing: UInt8, mobTime: Int32) {
+            self.objectID = objectID
+            self.mobID = mobID
+            self.mapID = mapID
+            self.currentHP = currentHP
+            self.maxHP = maxHP
+            self.x = x
+            self.y = y
+            self.foothold = foothold
+            self.rx0 = rx0
+            self.rx1 = rx1
+            self.facing = facing
+            self.mobTime = mobTime
+        }
     }
 
     // MARK: - Storage

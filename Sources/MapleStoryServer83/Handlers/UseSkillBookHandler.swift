@@ -7,6 +7,7 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct UseSkillBookHandler: PacketHandler {
 
@@ -47,9 +48,10 @@ public struct UseSkillBookHandler: PacketHandler {
         }
 
         try await connection.send(UseSkillBookNotification(
+            characterID: character.index,
             skillID: skillID,
-            currentLevel: existingSkill.level,
-            masteryLevel: newMasteryLevel,
+            maxLevel: UInt32(newMasteryLevel),
+            canUse: true,
             success: success
         ))
     }

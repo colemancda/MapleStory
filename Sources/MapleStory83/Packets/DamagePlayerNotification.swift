@@ -25,4 +25,13 @@ public struct DamagePlayerNotification: MapleStoryPacket, Codable, Equatable, Ha
 
     /// Not present when skill == -4.
     public let direction: UInt8?
+
+    public init(characterID: UInt32, skill: Int8, unknown: UInt32?, damage: Int32, monsterIDFrom: UInt32?, direction: UInt8?) {
+        self.characterID = characterID
+        self.skill = skill
+        self.unknown = unknown
+        self.damage = damage
+        self.monsterIDFrom = monsterIDFrom
+        self.direction = direction
+    }
 }

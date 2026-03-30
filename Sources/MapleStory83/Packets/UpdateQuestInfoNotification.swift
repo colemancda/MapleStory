@@ -3,18 +3,21 @@
 //
 
 import Foundation
+import MapleStory
 
-/// Updates client quest info (start/progress/complete state).
-///
 public struct UpdateQuestInfoNotification: MapleStoryPacket, Codable, Equatable, Hashable, Sendable {
 
     public static var opcode: ServerOpcode { .updateQuestInfo }
 
-    public let mode: UInt8
-
     public let questID: UInt16
 
-    public let npcID: UInt32
+    public let state: UInt8
 
-    public let unknown: UInt32
+    public let progress: String
+
+    public init(questID: QuestID, state: QuestStatus, progress: String = "") {
+        self.questID = questID
+        self.state = state.rawValue
+        self.progress = progress
+    }
 }

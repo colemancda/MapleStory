@@ -28,18 +28,17 @@ public struct MesoDropHandler: PacketHandler {
         guard let mapID = await connection.mapID else { return }
 
         let objectID = UInt32.random(in: 1...1_000_000)
-        let timestamp = UInt32(Date().timeIntervalSince1970 * 1000)
 
-        try await connection.broadcast(DropItemFromMapobjectNotification(
-            source: 1,
+        try await connection.broadcast(DropItemFromMapObjectNotification(
+            mod: 0,
             objectID: objectID,
-            itemID: 0,
-            quantity: packet.amount,
+            isMeso: true,
+            itemID: packet.amount,
             ownerID: character.index,
-            ownerType: 1,
+            dropType: 0,
             x: 0,
             y: 0,
-            timestamp: timestamp
+            dropperObjectID: character.index
         ), map: mapID)
     }
 }

@@ -7,13 +7,14 @@ import CoreModel
 import MapleStory
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 extension MapleStoryServer.Connection
 where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.ServerOpcode {
 
     // MARK: - Item Data
 
-    func consumeItemData(id: UInt32) async -> WzConsume? {
+    func consumeItemData(id: UInt32) async -> WzItemConsume? {
         await ItemDataCache.shared.consume(id: id)
     }
 
