@@ -17,6 +17,19 @@ public struct DamageSummonHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Summon damage tracking — not yet implemented.
+        guard let character = try await connection.character else { return }
+        guard let mapID = await connection.mapID else { return }
+
+        try await connection.broadcast(
+            DamageSummonNotification(
+                characterID: character.index,
+                summonObjectID: packet.objectID,
+                unknown: packet.unkByte,
+                damage: Int32(bitPattern: packet.damage),
+                monsterIDFrom: packet.monsterIDFrom,
+                unknown2: packet.stance
+            ),
+            map: mapID
+        )
     }
 }

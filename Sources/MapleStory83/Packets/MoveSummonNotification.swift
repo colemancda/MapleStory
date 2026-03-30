@@ -19,4 +19,12 @@ public struct MoveSummonNotification: MapleStoryPacket, Codable, Equatable, Hash
     public let startY: Int16
 
     public let movements: [Movement]
+
+    public init(characterID: UInt32, summonObjectID: UInt32, startX: Int16, startY: Int16, movements: [Movement]) {
+        self.characterID = characterID
+        self.summonObjectID = summonObjectID
+        self.startX = startX
+        self.startY = startY
+        self.movements = movements
+    }
 }

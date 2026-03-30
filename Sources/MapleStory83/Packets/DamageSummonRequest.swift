@@ -8,7 +8,7 @@ public struct DamageSummonRequest: MapleStoryPacket, Codable, Equatable, Hashabl
 
     public static var opcode: ClientOpcode { .damageSummon }
 
-    internal let value0: UInt32
+    public let objectID: UInt32
 
     public let unkByte: UInt8
 

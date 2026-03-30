@@ -17,6 +17,18 @@ public struct MoveSummonHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Summon movement broadcast — not yet implemented.
+        guard let character = try await connection.character else { return }
+        guard let mapID = await connection.mapID else { return }
+
+        try await connection.broadcast(
+            MoveSummonNotification(
+                characterID: character.index,
+                summonObjectID: packet.objectID,
+                startX: packet.startX,
+                startY: packet.startY,
+                movements: []
+            ),
+            map: mapID
+        )
     }
 }
