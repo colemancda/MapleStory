@@ -20,8 +20,8 @@ public struct HealOverTimeHandler: PacketHandler {
     ) async throws {
         guard var character = try await connection.character else { return }
 
-        let healHP = min(packet.hp, 140)
-        let healMP = packet.mp
+        let healHP = packet.hp
+        let healMP = packet.mp < 1000 ? packet.mp : 0
 
         var changedStats: MapleStat = []
 

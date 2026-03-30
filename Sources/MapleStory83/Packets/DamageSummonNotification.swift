@@ -21,4 +21,13 @@ public struct DamageSummonNotification: MapleStoryPacket, Codable, Equatable, Ha
     public let monsterIDFrom: UInt32
 
     public let unknown2: UInt8
+
+    public init(characterID: UInt32, summonObjectID: UInt32, unknown: UInt8, damage: Int32, monsterIDFrom: UInt32, unknown2: UInt8) {
+        self.characterID = characterID
+        self.summonObjectID = summonObjectID
+        self.unknown = unknown
+        self.damage = damage
+        self.monsterIDFrom = monsterIDFrom
+        self.unknown2 = unknown2
+    }
 }
