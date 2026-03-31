@@ -16,4 +16,10 @@ public struct KillMonsterNotification: MapleStoryPacket, Codable, Equatable, Has
     public let animation: UInt8
 
     public let animation2: UInt8
+
+    public init(objectID: UInt32, animation: UInt8, animation2: UInt8 = 0) {
+        self.objectID = objectID
+        self.animation = animation
+        self.animation2 = animation2
+    }
 }
