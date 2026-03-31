@@ -114,6 +114,30 @@ where ClientOpcode == MapleStory83.ClientOpcode, ServerOpcode == MapleStory83.Se
         try await GuildRegistry.shared.disbandGuild(guildID, in: database)
     }
 
+    @discardableResult
+    func addGuildMember(_ characterID: Character.ID, name: CharacterName, to guildID: GuildEntity.ID) async throws -> Bool {
+        try await GuildRegistry.shared.addMember(characterID, name: name, to: guildID, in: database)
+    }
+
+    @discardableResult
+    func updateGuildNotice(_ guildID: GuildEntity.ID, notice: String?) async throws -> Bool {
+        try await GuildRegistry.shared.updateNotice(guildID, notice: notice, in: database)
+    }
+
+    func pendingGuildInvite(for characterID: Character.ID) async -> PendingGuildInvite? {
+        await GuildRegistry.shared.getPendingInvite(for: characterID)
+    }
+
+    @discardableResult
+    func addPendingGuildInvite(_ invite: PendingGuildInvite) async -> Bool {
+        await GuildRegistry.shared.addPendingInvite(invite)
+    }
+
+    @discardableResult
+    func removePendingGuildInvite(for characterID: Character.ID) async -> Bool {
+        await GuildRegistry.shared.removePendingInvite(for: characterID)
+    }
+
     // MARK: - Buddy List
 
     func isBuddyListFull(_ characterID: Character.ID, capacity: UInt8) async throws -> Bool {
