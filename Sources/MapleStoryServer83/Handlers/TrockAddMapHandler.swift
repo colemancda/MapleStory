@@ -6,6 +6,7 @@ import Foundation
 import CoreModel
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct TrockAddMapHandler: PacketHandler {
 
@@ -19,36 +20,21 @@ public struct TrockAddMapHandler: PacketHandler {
     ) async throws {
         guard var character = try await connection.character else { return }
 
-        let inventory = await character.getInventory()
+        var maps = character.trockMaps ?? []
 
-        let hasTrock = inventory[.use].values.contains { $0.itemId == 5_020_000 }
-        guard hasTrock else { return }
-
-        guard let rawMapID = packet.mapID else { return }
-        let mapID = Map.ID(rawValue: rawMapID)
-        guard isValidTrockMap(rawMapID) else { return }
-
-        var trockMaps = character.trockMaps ?? []
-
-        if packet.mode == 0x03 {
-            guard !trockMaps.contains(mapID) else { return }
-            guard trockMaps.count < 5 else { return }
-            trockMaps.append(mapID)
+        if packet.type == 0x00 {
+            guard let rawMapID = packet.mapID else { return }
+            let mapID = Map.ID(rawValue: rawMapID)
+            maps.removeAll { $0 == mapID }
+        } else if packet.type == 0x01 {
+            let mapID = character.currentMap
+            guard !maps.contains(mapID), maps.count < 5 else { return }
+            maps.append(mapID)
         } else {
-            trockMaps.removeAll { $0 == mapID }
+            return
         }
 
-        character.trockMaps = trockMaps
+        character.trockMaps = maps
         try await connection.database.insert(character)
-        try await connection.send(UpdateStatsNotification.enableActions)
-    }
-
-    private func isValidTrockMap(_ mapID: UInt32) -> Bool {
-        switch mapID {
-        case 910000000...999999999:
-            return false
-        default:
-            return true
-        }
     }
 }
