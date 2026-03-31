@@ -38,7 +38,7 @@ public struct BuddyListModifyHandler: PacketHandler {
         character: Character,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        guard let characterName = CharacterName(rawValue: name) else {
+        guard name.count >= 4, let characterName = CharacterName(rawValue: name) else {
             try await connection.send(BuddyListMessageNotification.characterNotFound)
             return
         }

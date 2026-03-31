@@ -18,6 +18,11 @@ public struct ChangeChannelHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
+        // Reject if already on the requested channel
+        if let currentIndex = await connection.channelIndex, UInt8(currentIndex) == packet.channel {
+            return
+        }
+
         guard let world = try await connection.world else { return }
         guard let targetChannel = try await Channel.fetch(packet.channel, world: world.id, in: connection.database) else {
             try await connection.send(ServerMessageNotification.notice(message: "Invalid channel."))
