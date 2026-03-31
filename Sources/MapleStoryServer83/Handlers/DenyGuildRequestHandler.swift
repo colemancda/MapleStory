@@ -6,6 +6,7 @@ import Foundation
 import CoreModel
 import MapleStory83
 import MapleStoryServer
+import MapleStoryServer62
 
 public struct DenyGuildRequestHandler: PacketHandler {
 
@@ -17,6 +18,7 @@ public struct DenyGuildRequestHandler: PacketHandler {
         packet: Packet,
         connection: MapleStoryServer<Socket, Database, ClientOpcode, ServerOpcode>.Connection
     ) async throws {
-        // Deny guild invitation — not yet implemented.
+        guard let character = try await connection.character else { return }
+        await connection.removePendingGuildInvite(for: character.id)
     }
 }
