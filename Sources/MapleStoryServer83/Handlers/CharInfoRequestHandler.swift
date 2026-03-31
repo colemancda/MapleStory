@@ -20,17 +20,22 @@ public struct CharInfoRequestHandler: PacketHandler {
     ) async throws {
         guard let character = try await connection.character else { return }
 
-        guard let target = try await Character.fetch(
-            packet.characterID,
-            world: character.world,
-            in: connection.database
-        ) else {
-            try await connection.send(ServerMessageNotification.notice(message: "Character not found."))
-            return
-        }
+        // characterID in the packet is the target's map object ID (Character.Index).
+        // Fetch the target character by their numeric index within the same world.
+        let predicates: [Character.Predicate] = [
+            .index(packet.characterID),
+            .world(character.world)
+        ]
+        let predicate = FetchRequest.Predicate.compound(.and(predicates.map { .init(predicate: $0) }))
+        guard let target = try await connection.database.fetch(
+            Character.self,
+            predicate: predicate,
+            fetchLimit: 1
+        ).first else { return }
 
-        try await connection.send(ServerMessageNotification.notice(
-            message: "\(target.name.rawValue) Lv.\(target.level) \(target.job)"
-        ))
+        // Don't send self-info.
+        guard target.id != character.id else { return }
+
+        // TODO: send proper charInfo packet (opcode 0x3D) once CharInfoResponse is implemented.
     }
 }

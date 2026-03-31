@@ -22,6 +22,7 @@ public struct PartyOperationHandler: PacketHandler {
 
         switch packet {
         case .create:
+            guard character.level >= 10 else { return }
             if try await connection.party(for: character.id) != nil {
                 try await connection.send(ServerMessageNotification.notice(message: "You are already in a party."))
                 return

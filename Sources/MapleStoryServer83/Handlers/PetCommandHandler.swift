@@ -31,13 +31,16 @@ public struct PetCommandHandler: PacketHandler {
             return
         }
 
+        // 50% base success rate (WZ pet command data not yet implemented).
+        let success = Int.random(in: 0..<100) < 50
+
         try await connection.broadcast(
             PetCommandNotification(
                 characterID: character.index,
                 slot: slot,
                 isFoodCommand: false,
                 command: packet.command,
-                success: true
+                success: success
             ),
             map: mapID
         )
