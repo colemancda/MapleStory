@@ -41,13 +41,15 @@ public struct CancelBuffHandler: PacketHandler {
     /// animation to the map but have no buff state to remove server-side.
     private func isChanneledSkill(_ skillID: UInt32) -> Bool {
         switch skillID {
-        case 2121001, // F/P Arch Mage: Big Bang
-             2221001, // I/L Arch Mage: Big Bang
-             2321001, // Bishop: Big Bang
-             3121004, // Bowmaster: Hurricane
-             3221001, // Marksman: Piercing Arrow
-             5221004, // Corsair: Rapid Fire
-             13111002: // Wind Archer: Hurricane
+        case 2121001,   // F/P Arch Mage: Big Bang
+             2221001,   // I/L Arch Mage: Big Bang
+             2321001,   // Bishop: Big Bang
+             3121004,   // Bowmaster: Hurricane
+             3221001,   // Marksman: Piercing Arrow
+             5221004,   // Corsair: Rapid Fire
+             13111002,  // Wind Archer: Hurricane
+             22151001,  // Evan: Fire Breath
+             22121000:  // Evan: Ice Breath
             return true
         default:
             return false
