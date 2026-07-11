@@ -93,4 +93,5 @@ enum ClientGraphicsError: Error {
     case shaderLinkFailed(String)
     case textureCreationFailed
     case fontRasterizationFailed
+    case imageDecodeFailed
 }
