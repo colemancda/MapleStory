@@ -24,6 +24,7 @@ final class LoginModel: @unchecked Sendable {
         case worldSelect
         case characterSelect
         case enteringGame
+        case inGame
     }
 
     struct Snapshot {
@@ -37,6 +38,8 @@ final class LoginModel: @unchecked Sendable {
         var selectedWorld: Int
         var characters: [String]
         var selectedCharacter: Int
+        var avatarX: Float
+        var avatarY: Float
     }
 
     private let lock = NSLock()
@@ -51,6 +54,8 @@ final class LoginModel: @unchecked Sendable {
     private var characters: [String] = []
     private var characterIDs: [UInt32] = []
     private var selectedCharacter = 0
+    private var avatarX: Float = 0
+    private var avatarY: Float = 0
     private var client: V83Client?
 
     func snapshot() -> Snapshot {
@@ -65,8 +70,16 @@ final class LoginModel: @unchecked Sendable {
             worlds: worlds,
             selectedWorld: selectedWorld,
             characters: characters,
-            selectedCharacter: selectedCharacter
+            selectedCharacter: selectedCharacter,
+            avatarX: avatarX,
+            avatarY: avatarY
         )
+    }
+
+    func moveAvatar(dx: Float, dy: Float) {
+        lock.lock(); defer { lock.unlock() }
+        avatarX += dx
+        avatarY += dy
     }
 
     func setStatus(_ newStatus: Status, message newMessage: String? = nil) {
