@@ -23,10 +23,39 @@ public struct WzMapSprite: Sendable {
     public var z: Int
 }
 
+/// A decoded background/foreground layer, carrying the parallax + tiling
+/// parameters needed to reproduce MapleStory's scrolling backdrops.
+///
+/// Positioning follows the reference client's `Background::draw`: the layer's
+/// screen position is `base position + rx/ry-scaled parallax offset` (already in
+/// screen space, not world space), then wrapped for tiling.
+public struct WzMapBackground: Sendable {
+    public var rgba: [UInt8]
+    public var width: Int
+    public var height: Int
+    /// Base position (the WZ `x`/`y` fields).
+    public var x: Int
+    public var y: Int
+    public var originX: Int
+    public var originY: Int
+    /// Parallax rate, percent. 100 = scrolls with the world; 0 = fixed to the screen.
+    public var rx: Int
+    public var ry: Int
+    /// Tile spacing; falls back to the bitmap's own size when zero.
+    public var cx: Int
+    public var cy: Int
+    public var horizontalTile: Bool
+    public var verticalTile: Bool
+    public var isForeground: Bool
+    public var opacity: Float
+    public var flipped: Bool
+}
+
 /// A loaded map: its sprites (already decoded to RGBA) and camera bounds.
 public struct WzLoadedMap: Sendable {
     public var id: Int
-    public var backgrounds: [WzMapSprite]
+    public var backgrounds: [WzMapBackground]
+    public var foregrounds: [WzMapBackground]
     public var tiles: [WzMapSprite]
     public var objects: [WzMapSprite]
     public var left: Int
@@ -52,20 +81,40 @@ public final class WzMapLoader {
             throw WzArchiveError.invalidHeader
         }
 
-        var backgrounds: [WzMapSprite] = []
+        var backgrounds: [WzMapBackground] = []
+        var foregrounds: [WzMapBackground] = []
         var tiles: [WzMapSprite] = []
         var objects: [WzMapSprite] = []
 
         // Backgrounds
         for entry in props["back"]?.children ?? [] {
-            guard let bS = entry.value.children.string("bS"), bS.isEmpty == false else { continue }
-            let no = entry.value.children.int("no") ?? 0
-            let x = entry.value.children.int("x") ?? 0
-            let y = entry.value.children.int("y") ?? 0
-            let ani = entry.value.children.int("ani") ?? 0
+            let c = entry.value.children
+            guard let bS = c.string("bS"), bS.isEmpty == false else { continue }
+            let no = c.int("no") ?? 0
+            let x = c.int("x") ?? 0
+            let y = c.int("y") ?? 0
+            let ani = c.int("ani") ?? 0
             let folder = ani == 1 ? "ani" : "back"
-            if let sprite = try sprite(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)", x: x, y: y, z: 0) {
-                backgrounds.append(sprite)
+            guard let decoded = try decodeSprite(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)") else { continue }
+
+            let type = c.int("type") ?? 0
+            let horizontalTile = [1, 3, 4, 6, 7].contains(type)
+            let verticalTile = [2, 3, 5, 6, 7].contains(type)
+            let alpha = c.int("a") ?? 255
+            let background = WzMapBackground(
+                rgba: decoded.rgba, width: decoded.width, height: decoded.height,
+                x: x, y: y, originX: decoded.originX, originY: decoded.originY,
+                rx: c.int("rx") ?? 0, ry: c.int("ry") ?? 0,
+                cx: c.int("cx") ?? 0, cy: c.int("cy") ?? 0,
+                horizontalTile: horizontalTile, verticalTile: verticalTile,
+                isForeground: (c.int("front") ?? 0) != 0,
+                opacity: Float(alpha) / 255,
+                flipped: (c.int("f") ?? 0) != 0
+            )
+            if background.isForeground {
+                foregrounds.append(background)
+            } else {
+                backgrounds.append(background)
             }
         }
 
@@ -95,22 +144,37 @@ public final class WzMapLoader {
         tiles.sort { $0.z < $1.z }
         objects.sort { $0.z < $1.z }
 
-        let bounds = computeBounds(props: props, sprites: backgrounds + tiles + objects)
-        return WzLoadedMap(id: mapID, backgrounds: backgrounds, tiles: tiles, objects: objects,
+        let bounds = computeBounds(props: props, tiles: tiles, objects: objects)
+        return WzLoadedMap(id: mapID, backgrounds: backgrounds, foregrounds: foregrounds,
+                           tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom)
     }
 
     // MARK: - Sprite resolution
 
+    private struct DecodedSprite {
+        var rgba: [UInt8]
+        var width: Int
+        var height: Int
+        var originX: Int
+        var originY: Int
+    }
+
     private func sprite(imagePath: String, inner: String, x: Int, y: Int, z: Int) throws -> WzMapSprite? {
+        guard let decoded = try decodeSprite(imagePath: imagePath, inner: inner) else { return nil }
+        return WzMapSprite(rgba: decoded.rgba, width: decoded.width, height: decoded.height,
+                           x: x, y: y, originX: decoded.originX, originY: decoded.originY, z: z)
+    }
+
+    private func decodeSprite(imagePath: String, inner: String) throws -> DecodedSprite? {
         guard let node = try imageProperties(imagePath)?.property(at: inner) else { return nil }
         // Origin comes from the referencing node; pixels may come from a link target.
         let origin = originVector(of: node)
         guard let canvas = try resolveCanvas(node, imagePath: imagePath, depth: 0) else { return nil }
         guard canvas.dataLength > 0 else { return nil }
         let bitmap = try archive.decodeCanvas(canvas)
-        return WzMapSprite(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
-                           x: x, y: y, originX: origin.x, originY: origin.y, z: z)
+        return DecodedSprite(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
+                             originX: origin.x, originY: origin.y)
     }
 
     /// Descend to a pixel-bearing canvas, following `_inlink`/`_outlink` and taking
@@ -153,14 +217,15 @@ public final class WzMapLoader {
 
     // MARK: - Bounds
 
-    private func computeBounds(props: [WzNamedProperty], sprites: [WzMapSprite]) -> (left: Int, top: Int, right: Int, bottom: Int) {
+    private func computeBounds(props: [WzNamedProperty], tiles: [WzMapSprite], objects: [WzMapSprite]) -> (left: Int, top: Int, right: Int, bottom: Int) {
         if let l = props.int("info/VRLeft"), let t = props.int("info/VRTop"),
            let r = props.int("info/VRRight"), let b = props.int("info/VRBottom") {
             return (l, t, r, b)
         }
-        // Fallback: extents of placed sprites.
+        // Fallback: extents of placed tiles/objects (backgrounds are screen-relative,
+        // not world-placed, so they don't inform world bounds).
         var minX = 0, minY = 0, maxX = 0, maxY = 0
-        for s in sprites {
+        for s in tiles + objects {
             minX = min(minX, s.x - s.originX)
             minY = min(minY, s.y - s.originY)
             maxX = max(maxX, s.x - s.originX + s.width)
