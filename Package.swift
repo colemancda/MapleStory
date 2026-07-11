@@ -267,5 +267,13 @@ let package = Package(
                 "MapleStory83"
             ]
         ),
+        .testTarget(
+            name: "MapleStoryClientTests",
+            dependencies: [
+                "MapleStory",
+                "MapleStory83",
+                "MapleStoryClient"
+            ]
+        ),
     ]
 )

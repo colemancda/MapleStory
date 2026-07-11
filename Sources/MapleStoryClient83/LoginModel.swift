@@ -92,4 +92,14 @@ final class LoginModel: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         worlds = newWorlds
     }
+
+    func clearWorlds() {
+        lock.lock(); defer { lock.unlock() }
+        worlds.removeAll(keepingCapacity: true)
+    }
+
+    func addWorld(_ name: String) {
+        lock.lock(); defer { lock.unlock() }
+        worlds.append(name)
+    }
 }
