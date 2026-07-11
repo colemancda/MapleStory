@@ -119,6 +119,14 @@ internal extension EncryptedPacket {
     }
 }
 
+public extension EncryptedPacket {
+
+    /// Decodes the payload length from a 4-byte encrypted packet header.
+    static func length(header: UInt32) -> Int {
+        length(header)
+    }
+}
+
 // MARK: - Crypto Function
 
 internal enum Crypto {
