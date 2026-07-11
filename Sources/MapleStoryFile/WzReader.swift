@@ -94,6 +94,14 @@ public final class WzReader {
         Int64(bitPattern: try readUInt64())
     }
 
+    /// Read `length` raw (unencrypted) ASCII bytes as a string.
+    public func readRawString(length: Int) throws -> String {
+        guard length >= 0, position + length <= data.count else { throw WzReaderError.outOfBounds }
+        let bytes = data[position ..< position + length]
+        position += length
+        return String(decoding: bytes, as: UTF8.self)
+    }
+
     // MARK: - Compressed integers
 
     /// A single signed byte, or a full `Int32` when the byte is `-128`.
