@@ -113,7 +113,8 @@ final class LoginScene: Scene {
                 let client = try await V83Client.connect(configuration: configuration, log: log)
                 model.setClient(client)
                 try await client.send(MapleStory83.PlayerLoginRequest(character: character))
-                model.setStatus(.loggedIn, message: "Entered game (character \(character))")
+                model.setStatus(.loggedIn, message: "In game as character \(character)")
+                model.setPhase(.inGame)
             } catch {
                 model.setStatus(.failed, message: "Channel connect failed: \(error)")
             }
@@ -139,6 +140,8 @@ final class LoginScene: Scene {
             renderList(title: "Characters", items: snapshot.characters, selected: snapshot.selectedCharacter, context: context)
         case .enteringGame:
             text.draw("Entering game...", x: 48, y: 176, scale: 0.8, color: .white, using: renderer)
+        case .inGame:
+            renderGame(snapshot, context: context)
         }
 
         if snapshot.message.isEmpty == false {
@@ -152,6 +155,38 @@ final class LoginScene: Scene {
         drawField(label: "ID", value: snapshot.username, active: snapshot.activeField == 0, y: 176, context: context)
         drawField(label: "PW", value: String(repeating: "*", count: snapshot.password.count), active: snapshot.activeField == 1, y: 240, context: context)
         text.draw("[Tab] switch field   [Enter] log in", x: 48, y: 300, scale: 0.5, color: .gray(0.55), using: renderer)
+    }
+
+    /// Placeholder scrolling game view: a ground grid drawn through a camera that
+    /// follows the avatar, plus the avatar itself. Real WZ map/sprite rendering
+    /// will replace the placeholder art once a WZ canvas->texture path exists.
+    private func renderGame(_ snapshot: LoginModel.Snapshot, context: RenderContext) {
+        let renderer = context.renderer
+        let width = Float(context.width)
+        let height = Float(context.height)
+        let camera = Camera(x: snapshot.avatarX, y: snapshot.avatarY, viewportWidth: width, viewportHeight: height)
+
+        // Ground grid: draw vertical/horizontal lines every 64 world units.
+        let spacing: Float = 64
+        let lineColor = RGBAColor.gray(0.16)
+        let originX = snapshot.avatarX.truncatingRemainder(dividingBy: spacing)
+        let originY = snapshot.avatarY.truncatingRemainder(dividingBy: spacing)
+        var gx = -originX
+        while gx <= width {
+            renderer.fill(Rectangle(x: gx, y: 0, width: 1, height: height), color: lineColor)
+            gx += spacing
+        }
+        var gy = -originY
+        while gy <= height {
+            renderer.fill(Rectangle(x: 0, y: gy, width: width, height: 1), color: lineColor)
+            gy += spacing
+        }
+
+        // Avatar: a quad centered on the camera.
+        let avatar = camera.screenRect(worldX: snapshot.avatarX - 16, worldY: snapshot.avatarY - 24, width: 32, height: 48)
+        renderer.fill(avatar, color: RGBAColor(red: 0.9, green: 0.5, blue: 0.2, alpha: 1))
+
+        context.text.draw("[Arrows] move", x: 48, y: height - 88, scale: 0.5, color: .gray(0.6), using: renderer)
     }
 
     private func renderList(title: String, items: [String], selected: Int, context: RenderContext) {
@@ -186,6 +221,24 @@ final class LoginScene: Scene {
         case .characterSelect:
             handleCharacterSelect(event)
         case .enteringGame:
+            break
+        case .inGame:
+            handleInGame(event)
+        }
+    }
+
+    private func handleInGame(_ event: InputEvent) {
+        let step: Float = 16
+        switch event {
+        case .control(.left):
+            model.moveAvatar(dx: -step, dy: 0)
+        case .control(.right):
+            model.moveAvatar(dx: step, dy: 0)
+        case .control(.up):
+            model.moveAvatar(dx: 0, dy: -step)
+        case .control(.down):
+            model.moveAvatar(dx: 0, dy: step)
+        default:
             break
         }
     }
