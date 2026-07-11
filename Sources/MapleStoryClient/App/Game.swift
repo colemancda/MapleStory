@@ -8,6 +8,11 @@
 
 import Foundation
 import SDL3Swift
+import CoreGraphics
+import ImageIO
+#if canImport(OpenGL)
+@preconcurrency import OpenGL.GL3
+#endif
 
 /// The application shell: creates an OpenGL window and runs the render loop,
 /// forwarding input and drawing to the active ``Scene``.
@@ -24,6 +29,12 @@ public final class Game {
 
     /// Background clear color.
     public var clearColor: RGBAColor = .gray(0.08)
+
+    /// If set, capture the framebuffer to this PNG path after `captureAfterFrames`
+    /// frames and then stop the loop (for headless verification).
+    public var capturePath: String?
+    public var captureAfterFrames: Int = 3
+    private var frameCount = 0
 
     public init(title: String, width: Int = 1024, height: Int = 768) throws {
         try SDL.initialize(subSystems: [.video])
@@ -77,8 +88,43 @@ public final class Game {
                 scene.render(RenderContext(renderer: renderer, text: text, width: pointWidth, height: pointHeight))
             }
             try window.glSwap()
+
+            frameCount += 1
+            if let capturePath, frameCount >= captureAfterFrames {
+                captureFramebuffer(width: pixelWidth, height: pixelHeight, to: capturePath)
+                isRunning = false
+            }
         }
         SDL.quit()
+    }
+
+    /// Read the GL framebuffer and write it to a PNG (rows flipped to top-left origin).
+    private func captureFramebuffer(width: Int, height: Int, to path: String) {
+        var pixels = [UInt8](repeating: 0, count: width * height * 4)
+        glReadPixels(0, 0, GLsizei(width), GLsizei(height), GLenum(GL_RGBA), GLenum(GL_UNSIGNED_BYTE), &pixels)
+
+        let rowBytes = width * 4
+        var flipped = [UInt8](repeating: 0, count: pixels.count)
+        for y in 0 ..< height {
+            let src = (height - 1 - y) * rowBytes
+            let dst = y * rowBytes
+            flipped.replaceSubrange(dst ..< dst + rowBytes, with: pixels[src ..< src + rowBytes])
+        }
+        // Force opaque so the screenshot isn't transparent where alpha wasn't written.
+        for p in 0 ..< (width * height) { flipped[p * 4 + 3] = 255 }
+
+        let colorSpace = CGColorSpaceCreateDeviceRGB()
+        guard let context = CGContext(data: nil, width: width, height: height, bitsPerComponent: 8,
+                                      bytesPerRow: rowBytes, space: colorSpace,
+                                      bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue) else { return }
+        flipped.withUnsafeBytes { buffer in
+            context.data?.copyMemory(from: buffer.baseAddress!, byteCount: buffer.count)
+        }
+        guard let image = context.makeImage() else { return }
+        let url = URL(fileURLWithPath: path) as CFURL
+        guard let destination = CGImageDestinationCreateWithURL(url, "public.png" as CFString, 1, nil) else { return }
+        CGImageDestinationAddImage(destination, image, nil)
+        CGImageDestinationFinalize(destination)
     }
 
     // MARK: - Event Translation
