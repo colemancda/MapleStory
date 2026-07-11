@@ -46,6 +46,12 @@ public final class Texture {
         self.height = height
     }
 
+    /// Load a texture from an image file (PNG, etc.). Requires a current GL context.
+    public convenience init(contentsOf url: URL) throws {
+        let image = try ImageDecoder.decode(contentsOf: url)
+        try self.init(width: image.width, height: image.height, rgba: image.rgba)
+    }
+
     deinit {
         var id = self.id
         glDeleteTextures(1, &id)
