@@ -23,6 +23,7 @@ final class LoginModel: @unchecked Sendable {
         case login
         case worldSelect
         case characterSelect
+        case enteringGame
     }
 
     struct Snapshot {
@@ -35,6 +36,7 @@ final class LoginModel: @unchecked Sendable {
         var worlds: [String]
         var selectedWorld: Int
         var characters: [String]
+        var selectedCharacter: Int
     }
 
     private let lock = NSLock()
@@ -47,6 +49,8 @@ final class LoginModel: @unchecked Sendable {
     private var worlds: [String] = []
     private var selectedWorld = 0
     private var characters: [String] = []
+    private var characterIDs: [UInt32] = []
+    private var selectedCharacter = 0
     private var client: V83Client?
 
     func snapshot() -> Snapshot {
@@ -60,7 +64,8 @@ final class LoginModel: @unchecked Sendable {
             message: message,
             worlds: worlds,
             selectedWorld: selectedWorld,
-            characters: characters
+            characters: characters,
+            selectedCharacter: selectedCharacter
         )
     }
 
@@ -92,9 +97,23 @@ final class LoginModel: @unchecked Sendable {
         return selectedWorld
     }
 
-    func setCharacters(_ names: [String]) {
+    func setCharacters(_ list: [(id: UInt32, name: String)]) {
         lock.lock(); defer { lock.unlock() }
-        characters = names
+        characters = list.map(\.name)
+        characterIDs = list.map(\.id)
+        selectedCharacter = 0
+    }
+
+    func moveCharacterSelection(by delta: Int) {
+        lock.lock(); defer { lock.unlock() }
+        guard characters.isEmpty == false else { return }
+        selectedCharacter = min(max(0, selectedCharacter + delta), characters.count - 1)
+    }
+
+    func selectedCharacterID() -> UInt32? {
+        lock.lock(); defer { lock.unlock() }
+        guard characterIDs.indices.contains(selectedCharacter) else { return nil }
+        return characterIDs[selectedCharacter]
     }
 
     func setClient(_ newClient: V83Client) {

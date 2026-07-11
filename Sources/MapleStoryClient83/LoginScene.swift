@@ -46,6 +46,9 @@ final class LoginScene: Scene {
                 await client.register { (characters: MapleStory83.CharacterListResponse) in
                     LoginScene.handle(characterList: characters, model: model)
                 }
+                await client.register { (serverIP: MapleStory83.ServerIPResponse) in
+                    LoginScene.handle(serverIP: serverIP, model: model, verbose: verbose)
+                }
                 model.setClient(client)
                 model.setStatus(.ready, message: "Connected to \(configuration.destination.rawValue)")
             } catch {
@@ -83,10 +86,38 @@ final class LoginScene: Scene {
     }
 
     private static func handle(characterList: MapleStory83.CharacterListResponse, model: LoginModel) {
-        let names = characterList.characters.map { "\($0.stats.name)" }
-        model.setCharacters(names)
-        model.setStatus(.loggedIn, message: names.isEmpty ? "No characters on this world" : "Select a character")
+        let list = characterList.characters.map { (id: $0.stats.id, name: "\($0.stats.name)") }
+        model.setCharacters(list)
+        model.setStatus(.loggedIn, message: list.isEmpty ? "No characters on this world" : "Select a character")
         model.setPhase(.characterSelect)
+    }
+
+    /// The login server hands off to a channel server: connect there and enter the game.
+    private static func handle(serverIP: MapleStory83.ServerIPResponse, model: LoginModel, verbose: Bool) {
+        let address = serverIP.address
+        let character = serverIP.character
+        model.setPhase(.enteringGame)
+        model.setStatus(.loggedIn, message: "Connecting to channel \(address.rawValue)...")
+        Task.detached {
+            let log: (@Sendable (String) -> Void)?
+            if verbose {
+                log = { message in print("[net] \(message)") }
+            } else {
+                log = nil
+            }
+            do {
+                if let previous = model.currentClient() {
+                    await previous.close()
+                }
+                let configuration = ClientConfiguration(destination: address)
+                let client = try await V83Client.connect(configuration: configuration, log: log)
+                model.setClient(client)
+                try await client.send(MapleStory83.PlayerLoginRequest(character: character))
+                model.setStatus(.loggedIn, message: "Entered game (character \(character))")
+            } catch {
+                model.setStatus(.failed, message: "Channel connect failed: \(error)")
+            }
+        }
     }
 
     // MARK: - Scene
@@ -105,7 +136,9 @@ final class LoginScene: Scene {
         case .worldSelect:
             renderList(title: "Worlds", items: snapshot.worlds, selected: snapshot.selectedWorld, context: context)
         case .characterSelect:
-            renderList(title: "Characters", items: snapshot.characters, selected: -1, context: context)
+            renderList(title: "Characters", items: snapshot.characters, selected: snapshot.selectedCharacter, context: context)
+        case .enteringGame:
+            text.draw("Entering game...", x: 48, y: 176, scale: 0.8, color: .white, using: renderer)
         }
 
         if snapshot.message.isEmpty == false {
@@ -151,7 +184,35 @@ final class LoginScene: Scene {
         case .worldSelect:
             handleWorldSelect(event)
         case .characterSelect:
+            handleCharacterSelect(event)
+        case .enteringGame:
             break
+        }
+    }
+
+    private func handleCharacterSelect(_ event: InputEvent) {
+        switch event {
+        case .control(.up):
+            model.moveCharacterSelection(by: -1)
+        case .control(.down):
+            model.moveCharacterSelection(by: 1)
+        case .control(.enter):
+            selectCharacter()
+        default:
+            break
+        }
+    }
+
+    private func selectCharacter() {
+        let model = self.model
+        guard let client = model.currentClient(), let id = model.selectedCharacterID() else { return }
+        model.setStatus(.loggedIn, message: "Selecting character \(id)...")
+        Task.detached {
+            do {
+                try await client.send(MapleStory83.CharacterSelectRequest(character: id))
+            } catch {
+                model.setStatus(.failed, message: "Character select failed: \(error)")
+            }
         }
     }
 
