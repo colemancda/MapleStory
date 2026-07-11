@@ -151,9 +151,10 @@ extension WzProperty {
         }
         let width = Int(try reader.readCompressedInt())
         let height = Int(try reader.readCompressedInt())
-        let format = Int(try reader.readCompressedInt())
-        let scale = Int(try reader.readUInt8())
-        _ = try reader.readInt32() // unknown (0)
+        let format1 = Int(try reader.readCompressedInt())
+        let format2 = Int(try reader.readCompressedInt())
+        let format = format1 + (format2 << 8)
+        reader.skip(4) // unknown
         let length = Int(try reader.readInt32()) - 1
         reader.skip(1) // unknown
         let dataOffset = reader.position
@@ -162,7 +163,7 @@ extension WzProperty {
             width: width,
             height: height,
             format: format,
-            scale: scale,
+            scale: 0,
             properties: properties,
             dataOffset: dataOffset,
             dataLength: max(0, length)

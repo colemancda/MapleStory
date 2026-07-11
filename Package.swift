@@ -130,9 +130,16 @@ let package = Package(
             ]
         ),
         .target(
+            name: "CZlibShim",
+            linkerSettings: [
+                .linkedLibrary("z")
+            ]
+        ),
+        .target(
             name: "MapleStoryFile",
             dependencies: [
-                "CryptoSwift"
+                "CryptoSwift",
+                "CZlibShim"
             ]
         ),
         .target(
