@@ -123,6 +123,14 @@ public final class Game {
             return .control(.backspace)
         case 43: // tab
             return .control(.tab)
+        case 79: // right
+            return .control(.right)
+        case 80: // left
+            return .control(.left)
+        case 81: // down
+            return .control(.down)
+        case 82: // up
+            return .control(.up)
         default:
             return nil
         }

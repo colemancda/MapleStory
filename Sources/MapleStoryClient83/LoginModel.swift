@@ -18,33 +18,49 @@ final class LoginModel: @unchecked Sendable {
         case failed = "Connection failed"
     }
 
+    /// Which screen the login flow is currently showing.
+    enum Phase: Sendable {
+        case login
+        case worldSelect
+        case characterSelect
+    }
+
     struct Snapshot {
         var status: Status
+        var phase: Phase
         var username: String
         var password: String
         var activeField: Int
         var message: String
         var worlds: [String]
+        var selectedWorld: Int
+        var characters: [String]
     }
 
     private let lock = NSLock()
     private var status: Status = .connecting
+    private var phase: Phase = .login
     private var username = ""
     private var password = ""
     private var activeField = 0   // 0 = username, 1 = password
     private var message = ""
     private var worlds: [String] = []
+    private var selectedWorld = 0
+    private var characters: [String] = []
     private var client: V83Client?
 
     func snapshot() -> Snapshot {
         lock.lock(); defer { lock.unlock() }
         return Snapshot(
             status: status,
+            phase: phase,
             username: username,
             password: password,
             activeField: activeField,
             message: message,
-            worlds: worlds
+            worlds: worlds,
+            selectedWorld: selectedWorld,
+            characters: characters
         )
     }
 
@@ -52,6 +68,33 @@ final class LoginModel: @unchecked Sendable {
         lock.lock(); defer { lock.unlock() }
         status = newStatus
         if let newMessage { message = newMessage }
+    }
+
+    func setPhase(_ newPhase: Phase) {
+        lock.lock(); defer { lock.unlock() }
+        phase = newPhase
+    }
+
+    func currentPhase() -> Phase {
+        lock.lock(); defer { lock.unlock() }
+        return phase
+    }
+
+    /// Move the world-select cursor, clamped to the available worlds.
+    func moveWorldSelection(by delta: Int) {
+        lock.lock(); defer { lock.unlock() }
+        guard worlds.isEmpty == false else { return }
+        selectedWorld = min(max(0, selectedWorld + delta), worlds.count - 1)
+    }
+
+    func selectedWorldIndex() -> Int {
+        lock.lock(); defer { lock.unlock() }
+        return selectedWorld
+    }
+
+    func setCharacters(_ names: [String]) {
+        lock.lock(); defer { lock.unlock() }
+        characters = names
     }
 
     func setClient(_ newClient: V83Client) {

@@ -43,6 +43,9 @@ final class LoginScene: Scene {
                 await client.register { (list: MapleStory83.ServerListResponse) in
                     LoginScene.handle(serverList: list, model: model)
                 }
+                await client.register { (characters: MapleStory83.CharacterListResponse) in
+                    LoginScene.handle(characterList: characters, model: model)
+                }
                 model.setClient(client)
                 model.setStatus(.ready, message: "Connected to \(configuration.destination.rawValue)")
             } catch {
@@ -74,8 +77,16 @@ final class LoginScene: Scene {
         case let .world(_, world):
             model.addWorld(world.name)
         case .end:
-            model.setStatus(.loggedIn, message: "Select a world")
+            model.setStatus(.loggedIn, message: "Select a world  [Up/Down] move  [Enter] choose")
+            model.setPhase(.worldSelect)
         }
+    }
+
+    private static func handle(characterList: MapleStory83.CharacterListResponse, model: LoginModel) {
+        let names = characterList.characters.map { "\($0.stats.name)" }
+        model.setCharacters(names)
+        model.setStatus(.loggedIn, message: names.isEmpty ? "No characters on this world" : "Select a character")
+        model.setPhase(.characterSelect)
     }
 
     // MARK: - Scene
@@ -88,19 +99,39 @@ final class LoginScene: Scene {
         text.draw("MapleStory v83", x: 48, y: 48, scale: 1, color: .white, using: renderer)
         text.draw(snapshot.status.rawValue, x: 48, y: 104, scale: 0.6, color: .gray(0.85), using: renderer)
 
-        drawField(label: "ID", value: snapshot.username, active: snapshot.activeField == 0, y: 176, context: context)
-        drawField(label: "PW", value: String(repeating: "*", count: snapshot.password.count), active: snapshot.activeField == 1, y: 240, context: context)
-
-        text.draw("[Tab] switch field   [Enter] log in", x: 48, y: 300, scale: 0.5, color: .gray(0.55), using: renderer)
-
-        if snapshot.message.isEmpty == false {
-            text.draw(snapshot.message, x: 48, y: 340, scale: 0.5, color: .gray(0.75), using: renderer)
+        switch snapshot.phase {
+        case .login:
+            renderLogin(snapshot, context: context)
+        case .worldSelect:
+            renderList(title: "Worlds", items: snapshot.worlds, selected: snapshot.selectedWorld, context: context)
+        case .characterSelect:
+            renderList(title: "Characters", items: snapshot.characters, selected: -1, context: context)
         }
 
-        var worldY: Float = 400
-        for world in snapshot.worlds {
-            text.draw("- " + world, x: 48, y: worldY, scale: 0.6, using: renderer)
-            worldY += 32
+        if snapshot.message.isEmpty == false {
+            text.draw(snapshot.message, x: 48, y: Float(context.height) - 60, scale: 0.5, color: .gray(0.75), using: renderer)
+        }
+    }
+
+    private func renderLogin(_ snapshot: LoginModel.Snapshot, context: RenderContext) {
+        let renderer = context.renderer
+        let text = context.text
+        drawField(label: "ID", value: snapshot.username, active: snapshot.activeField == 0, y: 176, context: context)
+        drawField(label: "PW", value: String(repeating: "*", count: snapshot.password.count), active: snapshot.activeField == 1, y: 240, context: context)
+        text.draw("[Tab] switch field   [Enter] log in", x: 48, y: 300, scale: 0.5, color: .gray(0.55), using: renderer)
+    }
+
+    private func renderList(title: String, items: [String], selected: Int, context: RenderContext) {
+        let renderer = context.renderer
+        let text = context.text
+        text.draw(title, x: 48, y: 168, scale: 0.7, color: .gray(0.7), using: renderer)
+        var y: Float = 216
+        for (index, item) in items.enumerated() {
+            if index == selected {
+                renderer.fill(Rectangle(x: 40, y: y - 6, width: 420, height: 34), color: .gray(0.32))
+            }
+            text.draw(item, x: 56, y: y, scale: 0.6, color: .white, using: renderer)
+            y += 36
         }
     }
 
@@ -114,6 +145,17 @@ final class LoginScene: Scene {
     }
 
     func handle(_ event: InputEvent) {
+        switch model.currentPhase() {
+        case .login:
+            handleLogin(event)
+        case .worldSelect:
+            handleWorldSelect(event)
+        case .characterSelect:
+            break
+        }
+    }
+
+    private func handleLogin(_ event: InputEvent) {
         switch event {
         case let .character(character):
             model.append(character)
@@ -123,8 +165,35 @@ final class LoginScene: Scene {
             model.toggleField()
         case .control(.enter):
             submitLogin()
-        case .control(.escape), .mouseDown, .resize, .quit:
+        default:
             break
+        }
+    }
+
+    private func handleWorldSelect(_ event: InputEvent) {
+        switch event {
+        case .control(.up):
+            model.moveWorldSelection(by: -1)
+        case .control(.down):
+            model.moveWorldSelection(by: 1)
+        case .control(.enter):
+            requestCharacters()
+        default:
+            break
+        }
+    }
+
+    private func requestCharacters() {
+        let model = self.model
+        guard let client = model.currentClient() else { return }
+        let world = UInt8(min(max(0, model.selectedWorldIndex()), 255))
+        model.setStatus(.loggedIn, message: "Loading characters for world \(world)...")
+        Task.detached {
+            do {
+                try await client.send(MapleStory83.CharacterListRequest(world: world, channel: 0))
+            } catch {
+                model.setStatus(.failed, message: "Character list request failed: \(error)")
+            }
         }
     }
 
