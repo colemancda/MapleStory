@@ -17,19 +17,19 @@ let package = Package(
         ),
         .library(
             name: "MapleStory28",
-            targets: ["MapleStory"]
+            targets: ["MapleStory28"]
         ),
         .library(
             name: "MapleStory40",
-            targets: ["MapleStory"]
+            targets: ["MapleStory40"]
         ),
         .library(
             name: "MapleStory62",
-            targets: ["MapleStory"]
+            targets: ["MapleStory62"]
         ),
         .library(
             name: "MapleStory83",
-            targets: ["MapleStory"]
+            targets: ["MapleStory83"]
         ),
         .executable(
             name: "MapleStoryServer28",
@@ -184,7 +184,6 @@ let package = Package(
             dependencies: [
                 "MapleStory83",
                 "MapleStoryServer",
-                "MapleStoryServer62",
                 .product(
                     name: "ArgumentParser",
                     package: "swift-argument-parser"
