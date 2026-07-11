@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import BinaryParsing
 
 /// MapleStory Packet Decoder
 public struct MapleStoryDecoder {
@@ -185,23 +186,37 @@ internal extension MapleStoryDecoder.Decoder {
     }
     
     func read <T: MapleStoryRawDecodable> (_ type: T.Type) throws -> T {
-        
+
         let offset = self.offset
         let data = try read(T.binaryLength)
         guard let value = T.init(binaryData: data) else {
             throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Could not parse \(type) from \(data) at offset \(offset)"))
         }
-                
+
         return value
     }
-    
+
+    /// Safely parse a fixed-width integer with the given wire byte order using `BinaryParsing`.
+    func readInteger <T: FixedWidthInteger & BitwiseCopyable> (_ type: T.Type, endianness: Endianness) throws -> T {
+
+        let offset = self.offset
+        let byteCount = MemoryLayout<T>.size
+        let data = try read(byteCount)
+        do {
+            return try data.withParserSpan { (span) throws(ParsingError) in
+                try T(parsing: &span, endianness: endianness, byteCount: byteCount)
+            }
+        } catch {
+            throw DecodingError.typeMismatch(type, DecodingError.Context(codingPath: self.codingPath, debugDescription: "Could not parse \(type) at offset \(offset): \(error)"))
+        }
+    }
+
     func readString() throws -> String {
         return try readLengthPrefixString()
     }
-    
-    func readNumeric <T: MapleStoryRawDecodable & FixedWidthInteger> (_ type: T.Type, isLittleEndian: Bool = true) throws -> T {
-        let value = try read(type)
-        return isLittleEndian ? T.init(littleEndian: value) : T.init(bigEndian: value)
+
+    func readNumeric <T: MapleStoryRawDecodable & FixedWidthInteger & BitwiseCopyable> (_ type: T.Type, isLittleEndian: Bool = true) throws -> T {
+        return try readInteger(type, endianness: isLittleEndian ? .little : .big)
     }
     
     func readDouble(_ data: Data) throws -> Double {
@@ -429,8 +444,8 @@ internal struct MapleStoryKeyedDecodingContainer <K: CodingKey> : KeyedDecodingC
         return try self.decoder.read(T.self)
     }
     
-    private func decodeNumeric <T: MapleStoryRawDecodable & FixedWidthInteger> (_ type: T.Type, forKey key: Key) throws -> T {
-        
+    private func decodeNumeric <T: MapleStoryRawDecodable & FixedWidthInteger & BitwiseCopyable> (_ type: T.Type, forKey key: Key) throws -> T {
+
         self.decoder.codingPath.append(key)
         defer { self.decoder.codingPath.removeLast() }
         self.decoder.log?("Will read \(T.self) at path \"\(decoder.codingPath.path)\"")
@@ -589,8 +604,8 @@ public struct MapleStoryDecodingContainer {
         return try self.decoder.read(T.self)
     }
     
-    private func decodeNumeric <T: MapleStoryRawDecodable & FixedWidthInteger> (_ type: T.Type, isLittleEndian: Bool = true) throws -> T {
-        
+    private func decodeNumeric <T: MapleStoryRawDecodable & FixedWidthInteger & BitwiseCopyable> (_ type: T.Type, isLittleEndian: Bool = true) throws -> T {
+
         self.decoder.log?("Will read \(T.self)")
         return try self.decoder.readNumeric(T.self, isLittleEndian: isLittleEndian)
     }
@@ -850,16 +865,24 @@ internal protocol MapleStoryRawDecodable {
     static var binaryLength: Int { get }
 }
 
-internal extension MapleStoryRawDecodable {
-    
+internal extension MapleStoryRawDecodable where Self: FixedWidthInteger & BitwiseCopyable {
+
     init?(binaryData data: Data) {
-        
+
         guard data.count == Self.binaryLength
             else { return nil }
-        
-        self = data.withUnsafeBytes { $0.load(as: Self.self) }
+
+        // Reconstruct the value from its raw bytes in host byte order,
+        // matching an in-memory load without unaligned / unsafe access.
+        let host = Endianness(isBigEndian: 1.bigEndian == 1)
+        guard let value = try? data.withParserSpan({ (span) throws(ParsingError) -> Self in
+            try Self(parsing: &span, endianness: host, byteCount: Self.binaryLength)
+        }) else {
+            return nil
+        }
+        self = value
     }
-    
+
     static var binaryLength: Int { return MemoryLayout<Self>.size }
 }
 
