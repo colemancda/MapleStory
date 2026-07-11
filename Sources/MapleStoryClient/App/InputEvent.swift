@@ -14,6 +14,10 @@ public enum ControlKey: Sendable, Equatable {
     case backspace
     case escape
     case tab
+    case up
+    case down
+    case left
+    case right
 }
 
 /// A translated input event delivered to the active ``Scene``.
