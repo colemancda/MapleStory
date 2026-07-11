@@ -32,6 +32,10 @@ let package = Package(
             targets: ["MapleStory83"]
         ),
         .library(
+            name: "MapleStoryFile",
+            targets: ["MapleStoryFile"]
+        ),
+        .library(
             name: "MapleStoryClient",
             targets: ["MapleStoryClient"]
         ),
@@ -123,6 +127,12 @@ let package = Package(
                     name: "CoreModel",
                     package: "CoreModel"
                 )
+            ]
+        ),
+        .target(
+            name: "MapleStoryFile",
+            dependencies: [
+                "CryptoSwift"
             ]
         ),
         .target(
@@ -273,6 +283,12 @@ let package = Package(
                 "MapleStory",
                 "MapleStory83",
                 "MapleStoryClient"
+            ]
+        ),
+        .testTarget(
+            name: "MapleStoryFileTests",
+            dependencies: [
+                "MapleStoryFile"
             ]
         ),
     ]
