@@ -20,14 +20,17 @@ final class WzMapLoaderTests: XCTestCase {
         let loader = WzMapLoader(archive: wz)
         let map = try loader.load(mapID: 100000000)
 
-        print("Henesys: backgrounds=\(map.backgrounds.count) tiles=\(map.tiles.count) objects=\(map.objects.count)")
+        print("Henesys: backgrounds=\(map.backgrounds.count) foregrounds=\(map.foregrounds.count) tiles=\(map.tiles.count) objects=\(map.objects.count)")
         print("  bounds L=\(map.left) T=\(map.top) R=\(map.right) B=\(map.bottom)")
 
         XCTAssertFalse(map.backgrounds.isEmpty)
         XCTAssertFalse(map.tiles.isEmpty)
         XCTAssertFalse(map.objects.isEmpty)
-        for sprite in map.tiles + map.objects + map.backgrounds {
+        for sprite in map.tiles + map.objects {
             XCTAssertEqual(sprite.rgba.count, sprite.width * sprite.height * 4)
+        }
+        for layer in map.backgrounds + map.foregrounds {
+            XCTAssertEqual(layer.rgba.count, layer.width * layer.height * 4)
         }
     }
 }
