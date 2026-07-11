@@ -102,6 +102,14 @@ public final class WzReader {
         return String(decoding: bytes, as: UTF8.self)
     }
 
+    public func readFloat() throws -> Float {
+        Float(bitPattern: try readUInt32())
+    }
+
+    public func readDouble() throws -> Double {
+        Double(bitPattern: try readUInt64())
+    }
+
     // MARK: - Compressed integers
 
     /// A single signed byte, or a full `Int32` when the byte is `-128`.
