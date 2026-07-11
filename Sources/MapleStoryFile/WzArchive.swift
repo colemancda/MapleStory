@@ -33,6 +33,8 @@ public final class WzArchive {
     public let versionHash: UInt32
     public let root: WzDirectory
 
+    private let reader: WzReader
+
     /// Open and fully parse a WZ archive.
     ///
     /// - Parameters:
@@ -41,6 +43,7 @@ public final class WzArchive {
     public init(data: Data, mapleVersion: WzMapleVersion, version: Int? = nil) throws {
         let key = try WzMutableKey(iv: mapleVersion.initializationVector)
         let reader = WzReader(data: data, key: key)
+        self.reader = reader
 
         // Header
         let ident = try reader.readRawString(length: 4)
@@ -77,5 +80,16 @@ public final class WzArchive {
         let root = WzDirectory(name: ident)
         try root.parse(reader: reader)
         self.root = root
+    }
+
+    /// Parse the property tree of an image (`.img`) entry on demand.
+    public func properties(of image: WzImage) throws -> [WzNamedProperty] {
+        reader.seek(to: Int(image.offset))
+        let header = try reader.readUInt8()
+        guard header == 0x73 else { throw WzArchiveError.unknownEntryType(header) }
+        let identifier = try reader.readWzString()
+        _ = try reader.readUInt16()
+        guard identifier == "Property" else { throw WzArchiveError.invalidHeader }
+        return try WzProperty.parseList(reader: reader, base: Int(image.offset))
     }
 }
