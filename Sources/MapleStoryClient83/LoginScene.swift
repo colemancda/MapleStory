@@ -40,6 +40,9 @@ final class LoginScene: Scene {
                 await client.register { (response: MapleStory83.LoginResponse) in
                     LoginScene.handle(response: response, model: model)
                 }
+                await client.register { (list: MapleStory83.ServerListResponse) in
+                    LoginScene.handle(serverList: list, model: model)
+                }
                 model.setClient(client)
                 model.setStatus(.ready, message: "Connected to \(configuration.destination.rawValue)")
             } catch {
@@ -51,13 +54,27 @@ final class LoginScene: Scene {
     private static func handle(response: MapleStory83.LoginResponse, model: LoginModel) {
         switch response {
         case .success:
-            model.setStatus(.loggedIn, message: "Login successful")
+            model.clearWorlds()
+            model.setStatus(.loggedIn, message: "Login successful - loading worlds...")
+            // Request the world list.
+            if let client = model.currentClient() {
+                Task.detached { try? await client.send(MapleStory83.ServerListRequest()) }
+            }
         case .failure(let error):
             model.setStatus(.ready, message: "Login failed: \(error)")
         case .permanentBan:
             model.setStatus(.ready, message: "Account permanently banned")
         case .temporaryBan(let error, _):
             model.setStatus(.ready, message: "Temporarily banned: \(error)")
+        }
+    }
+
+    private static func handle(serverList: MapleStory83.ServerListResponse, model: LoginModel) {
+        switch serverList {
+        case let .world(_, world):
+            model.addWorld(world.name)
+        case .end:
+            model.setStatus(.loggedIn, message: "Select a world")
         }
     }
 
