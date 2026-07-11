@@ -146,6 +146,7 @@ let package = Package(
             name: "MapleStoryClient",
             dependencies: [
                 "MapleStory",
+                "MapleStoryFile",
                 .product(
                     name: "SDL3Swift",
                     package: "SDL"
@@ -157,6 +158,7 @@ let package = Package(
             dependencies: [
                 "MapleStoryClient",
                 "MapleStory83",
+                "MapleStoryFile",
                 .product(
                     name: "ArgumentParser",
                     package: "swift-argument-parser"
