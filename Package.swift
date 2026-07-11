@@ -31,6 +31,14 @@ let package = Package(
             name: "MapleStory83",
             targets: ["MapleStory83"]
         ),
+        .library(
+            name: "MapleStoryClient",
+            targets: ["MapleStoryClient"]
+        ),
+        .executable(
+            name: "MapleStoryClient83",
+            targets: ["MapleStoryClient83"]
+        ),
         .executable(
             name: "MapleStoryServer28",
             targets: ["MapleStoryServer28"]
@@ -64,6 +72,10 @@ let package = Package(
         .package(
             url: "https://github.com/apple/swift-binary-parsing.git",
             .upToNextMinor(from: "0.0.2")
+        ),
+        .package(
+            url: "https://github.com/PureSwift/SDL",
+            branch: "master"
         ),
         .package(
             url: "https://github.com/apple/swift-argument-parser",
@@ -110,6 +122,27 @@ let package = Package(
                 .product(
                     name: "CoreModel",
                     package: "CoreModel"
+                )
+            ]
+        ),
+        .target(
+            name: "MapleStoryClient",
+            dependencies: [
+                "MapleStory",
+                .product(
+                    name: "SDL3Swift",
+                    package: "SDL"
+                )
+            ]
+        ),
+        .executableTarget(
+            name: "MapleStoryClient83",
+            dependencies: [
+                "MapleStoryClient",
+                "MapleStory83",
+                .product(
+                    name: "ArgumentParser",
+                    package: "swift-argument-parser"
                 )
             ]
         ),
