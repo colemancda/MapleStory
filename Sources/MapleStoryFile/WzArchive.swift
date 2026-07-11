@@ -92,4 +92,14 @@ public final class WzArchive {
         guard identifier == "Property" else { throw WzArchiveError.invalidHeader }
         return try WzProperty.parseList(reader: reader, base: Int(image.offset))
     }
+
+    /// Decode a canvas's bitmap to RGBA8.
+    public func decodeCanvas(_ canvas: WzCanvas) throws -> WzDecodedBitmap {
+        let data = reader.data
+        let start = canvas.dataOffset
+        let end = start + canvas.dataLength
+        guard start >= 0, end <= data.count else { throw WzBitmapError.decompressionFailed }
+        let compressed = Array(data[start ..< end])
+        return try WzBitmap.decode(canvas: canvas, compressed: compressed, key: reader.key)
+    }
 }
