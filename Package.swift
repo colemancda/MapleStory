@@ -62,6 +62,10 @@ let package = Package(
             from: "1.1.0"
         ),
         .package(
+            url: "https://github.com/apple/swift-binary-parsing.git",
+            .upToNextMinor(from: "0.0.2")
+        ),
+        .package(
             url: "https://github.com/apple/swift-argument-parser",
             from: "1.2.0"
         ),
@@ -88,6 +92,10 @@ let package = Package(
                 .product(
                     name: "CoreModel",
                     package: "CoreModel"
+                ),
+                .product(
+                    name: "BinaryParsing",
+                    package: "swift-binary-parsing"
                 )
             ]
         ),
