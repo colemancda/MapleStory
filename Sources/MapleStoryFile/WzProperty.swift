@@ -45,6 +45,76 @@ public struct WzCanvas: Sendable {
     public let dataLength: Int
 }
 
+// MARK: - Navigation
+
+public extension WzProperty {
+
+    var intValue: Int? {
+        switch self {
+        case .int16(let v): return Int(v)
+        case .int32(let v): return Int(v)
+        case .int64(let v): return Int(v)
+        case .float(let v): return Int(v)
+        case .double(let v): return Int(v)
+        case .string(let s): return Int(s)
+        default: return nil
+        }
+    }
+
+    var stringValue: String? {
+        switch self {
+        case .string(let s): return s
+        case .uol(let s): return s
+        default: return nil
+        }
+    }
+
+    var vectorValue: (x: Int, y: Int)? {
+        if case let .vector(x, y) = self { return (Int(x), Int(y)) }
+        return nil
+    }
+
+    var canvasValue: WzCanvas? {
+        if case let .canvas(canvas) = self { return canvas }
+        return nil
+    }
+
+    /// Child properties of a container value (sub, canvas, or convex).
+    var children: [WzNamedProperty] {
+        switch self {
+        case .sub(let items): return items
+        case .canvas(let canvas): return canvas.properties
+        case .convex(let items): return items.enumerated().map { WzNamedProperty(name: "\($0.offset)", value: $0.element) }
+        default: return []
+        }
+    }
+}
+
+public extension Array where Element == WzNamedProperty {
+
+    /// Direct child by name.
+    subscript(_ name: String) -> WzProperty? {
+        first { $0.name == name }?.value
+    }
+
+    /// Descend a `/`-separated path.
+    func property(at path: String) -> WzProperty? {
+        var current = self
+        var result: WzProperty?
+        for component in path.split(separator: "/").map(String.init) {
+            guard let value = current[component] else { return nil }
+            result = value
+            current = value.children
+        }
+        return result
+    }
+
+    func int(_ path: String) -> Int? { property(at: path)?.intValue }
+    func string(_ path: String) -> String? { property(at: path)?.stringValue }
+    func vector(_ path: String) -> (x: Int, y: Int)? { property(at: path)?.vectorValue }
+    func canvas(_ path: String) -> WzCanvas? { property(at: path)?.canvasValue }
+}
+
 extension WzProperty {
 
     /// Parse a WZ property list beginning at the reader's current position.
