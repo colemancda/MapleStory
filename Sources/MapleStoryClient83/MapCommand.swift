@@ -18,6 +18,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Path to Map.wz.")
     var wz: String
 
+    @Option(name: .long, help: "Path to Character.wz. If provided, spawns a walking player (arrow keys move; camera follows).")
+    var characterWz: String?
+
     @Option(name: .long, help: "Map ID to render.")
     var id: Int = 100000000
 
@@ -43,8 +46,17 @@ struct MapCommand: ParsableCommand {
         let map = try loader.load(mapID: id)
         print("Map \(id): \(map.backgrounds.count) backgrounds, \(map.tiles.count) tiles, \(map.objects.count) objects")
 
+        var character: WzLoadedCharacter?
+        if let characterWz {
+            print("Loading \(characterWz) ...")
+            let characterData = try Data(contentsOf: URL(fileURLWithPath: characterWz))
+            let characterArchive = try WzArchive(data: characterData, mapleVersion: version)
+            character = try WzCharacterLoader(archive: characterArchive).load()
+            print("Character loaded: \(character?.stand.frames.count ?? 0) stand frames, \(character?.walk.frames.count ?? 0) walk frames")
+        }
+
         let game = try Game(title: "MapleStory Map \(id)", width: 1024, height: 768)
-        game.setScene(MapScene(map: map))
+        game.setScene(MapScene(map: map, character: character))
         if let screenshot {
             game.capturePath = screenshot
             game.captureAfterFrames = 5
