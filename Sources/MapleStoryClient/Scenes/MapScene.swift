@@ -24,8 +24,9 @@ public final class MapScene: Scene {
     private var built = false
     private var backgroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
     private var foregroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
-    private var tiles: [(texture: Texture, sprite: WzMapSprite)] = []
-    private var objects: [(texture: Texture, sprite: WzMapSprite)] = []
+    /// Per map layer (0...7): that layer's objects (z-sorted) followed by its
+    /// tiles (z-sorted) - the reference client's `TilesObjs::draw` order.
+    private var layerSprites: [[(texture: Texture, sprite: WzMapSprite)]] = []
     private var standFrames: [CharacterFrameTextures] = []
     private var walkFrames: [CharacterFrameTextures] = []
 
@@ -44,6 +45,10 @@ public final class MapScene: Scene {
     // Vertical physics: the player position is the foot point; footholds are ground.
     private var velocityY: Float = 0
     private var onGround = false
+
+    /// The map layer of the foothold the player stands on; the player draws
+    /// after this layer's content (drawn on top of everything until known).
+    private var playerLayer = 7
 
     /// Walking speed in world units per second.
     public var walkSpeed: Float = 150
@@ -87,8 +92,12 @@ public final class MapScene: Scene {
     private func buildTextures() {
         backgroundTextures = MapScene.backgroundTextures(for: map.backgrounds)
         foregroundTextures = MapScene.backgroundTextures(for: map.foregrounds)
-        tiles = MapScene.textures(for: map.tiles)
-        objects = MapScene.textures(for: map.objects)
+        // Objects before tiles within each layer (loader arrays are z-sorted).
+        let objectTextures = MapScene.textures(for: map.objects)
+        let tileTextures = MapScene.textures(for: map.tiles)
+        layerSprites = (0 ... 7).map { layer in
+            objectTextures.filter { $0.1.layer == layer } + tileTextures.filter { $0.1.layer == layer }
+        }
         if let character {
             standFrames = MapScene.characterTextures(for: character.stand)
             walkFrames = MapScene.characterTextures(for: character.walk)
@@ -195,9 +204,10 @@ public final class MapScene: Scene {
 
         if onGround {
             // Follow the terrain under the (possibly moved) feet.
-            if let ground = map.groundY(atX: playerX, below: playerY, tolerance: climbTolerance),
-               ground <= playerY + climbTolerance {
-                playerY = ground
+            if let ground = map.ground(atX: playerX, below: playerY, tolerance: climbTolerance),
+               ground.y <= playerY + climbTolerance {
+                playerY = ground.y
+                playerLayer = ground.foothold.layer
             } else {
                 // Walked off an edge.
                 onGround = false
@@ -210,11 +220,12 @@ public final class MapScene: Scene {
             let newY = playerY + velocityY * Float(deltaTime)
             // Land on the first foothold crossed while falling.
             if velocityY > 0,
-               let ground = map.groundY(atX: playerX, below: playerY),
-               ground <= newY {
-                playerY = ground
+               let ground = map.ground(atX: playerX, below: playerY),
+               ground.y <= newY {
+                playerY = ground.y
                 velocityY = 0
                 onGround = true
+                playerLayer = ground.foothold.layer
             } else {
                 playerY = newY
             }
@@ -230,14 +241,14 @@ public final class MapScene: Scene {
         for (texture, layer) in backgroundTextures {
             draw(layer, texture: texture, camera: camera, context: context)
         }
-        for (texture, sprite) in tiles {
-            drawWorldSprite(sprite, texture: texture, camera: camera, context: context)
-        }
-        for (texture, sprite) in objects {
-            drawWorldSprite(sprite, texture: texture, camera: camera, context: context)
-        }
-        if character != nil {
-            drawPlayer(camera: camera, context: context)
+        for (layer, sprites) in layerSprites.enumerated() {
+            for (texture, sprite) in sprites {
+                drawWorldSprite(sprite, texture: texture, camera: camera, context: context)
+            }
+            // The player belongs to its foothold's layer.
+            if character != nil && layer == min(playerLayer, layerSprites.count - 1) {
+                drawPlayer(camera: camera, context: context)
+            }
         }
         for (texture, layer) in foregroundTextures {
             draw(layer, texture: texture, camera: camera, context: context)
@@ -267,9 +278,13 @@ public final class MapScene: Scene {
     }
 
     private func drawWorldSprite(_ sprite: WzMapSprite, texture: Texture, camera: Camera, context: RenderContext) {
-        let origin = camera.screen(forWorldX: Float(sprite.x - sprite.originX), worldY: Float(sprite.y - sprite.originY))
+        // A flipped sprite mirrors around its origin, so the effective origin x
+        // mirrors too.
+        let effectiveOriginX = sprite.flipped ? (sprite.width - sprite.originX) : sprite.originX
+        let origin = camera.screen(forWorldX: Float(sprite.x - effectiveOriginX), worldY: Float(sprite.y - sprite.originY))
         let rect = Rectangle(x: origin.x, y: origin.y, width: Float(sprite.width), height: Float(sprite.height))
-        context.renderer.draw(texture, in: rect)
+        let uv = sprite.flipped ? Rectangle(x: 1, y: 0, width: -1, height: 1) : Rectangle(x: 0, y: 0, width: 1, height: 1)
+        context.renderer.draw(texture, in: rect, uv: uv)
     }
 
     /// Draw a background/foreground layer with parallax scrolling and tiling.

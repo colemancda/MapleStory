@@ -20,7 +20,14 @@ public struct WzMapSprite: Sendable {
     public var y: Int
     public var originX: Int
     public var originY: Int
+    /// Map layer (0...7). Layers draw in order; within a layer objects draw
+    /// before tiles (the reference client's `TilesObjs::draw`).
+    public var layer: Int
+    /// Z within the layer: objects use their placement `z`; tiles use the
+    /// tileset canvas's `z` (falling back to `zM` when zero).
     public var z: Int
+    /// Horizontal mirror (the placement's `f` flag).
+    public var flipped: Bool
 }
 
 /// A decoded background/foreground layer, carrying the parallax + tiling
@@ -99,20 +106,25 @@ public struct WzLoadedMap: Sendable {
 
 public extension WzLoadedMap {
 
-    /// The y of the nearest walkable foothold at `x` lying at or below `y`
-    /// (allowing `tolerance` above it, for climbing slopes), or `nil` when there
-    /// is no ground under that point.
-    func groundY(atX x: Float, below y: Float, tolerance: Float = 0) -> Float? {
-        var best: Float?
+    /// The nearest walkable foothold at `x` lying at or below `y` (allowing
+    /// `tolerance` above it, for climbing slopes), with its interpolated y, or
+    /// `nil` when there is no ground under that point.
+    func ground(atX x: Float, below y: Float, tolerance: Float = 0) -> (y: Float, foothold: WzFoothold)? {
+        var best: (y: Float, foothold: WzFoothold)?
         for foothold in footholds {
             guard let groundY = foothold.groundY(atX: x), groundY >= y - tolerance else { continue }
             if let current = best {
-                if groundY < current { best = groundY }
+                if groundY < current.y { best = (groundY, foothold) }
             } else {
-                best = groundY
+                best = (groundY, foothold)
             }
         }
         return best
+    }
+
+    /// The y of the nearest walkable foothold at `x` lying at or below `y`.
+    func groundY(atX x: Float, below y: Float, tolerance: Float = 0) -> Float? {
+        ground(atX: x, below: y, tolerance: tolerance)?.y
     }
 }
 
@@ -177,8 +189,10 @@ public final class WzMapLoader {
                 for entry in props.property(at: "\(layer)/tile")?.children ?? [] {
                     let c = entry.value.children
                     guard let u = c.string("u"), let no = c.int("no") else { continue }
-                    let x = c.int("x") ?? 0, y = c.int("y") ?? 0, z = c.int("z") ?? 0
-                    if let sprite = try sprite(imagePath: "Tile/\(tileSet).img", inner: "\(u)/\(no)", x: x, y: y, z: layer * 100_000 + z) {
+                    let x = c.int("x") ?? 0, y = c.int("y") ?? 0
+                    // Tile z lives on the tileset canvas, not the placement.
+                    if let sprite = try sprite(imagePath: "Tile/\(tileSet).img", inner: "\(u)/\(no)",
+                                               x: x, y: y, layer: layer, z: nil, flipped: false) {
                         tiles.append(sprite)
                     }
                 }
@@ -187,14 +201,21 @@ public final class WzMapLoader {
                 let c = entry.value.children
                 guard let oS = c.string("oS"), let l0 = c.string("l0"), let l1 = c.string("l1"), let l2 = c.string("l2") else { continue }
                 let x = c.int("x") ?? 0, y = c.int("y") ?? 0, z = c.int("z") ?? 0
-                if let sprite = try sprite(imagePath: "Obj/\(oS).img", inner: "\(l0)/\(l1)/\(l2)", x: x, y: y, z: layer * 100_000 + z) {
+                let flipped = (c.int("f") ?? 0) != 0
+                if let sprite = try sprite(imagePath: "Obj/\(oS).img", inner: "\(l0)/\(l1)/\(l2)",
+                                           x: x, y: y, layer: layer, z: z, flipped: flipped) {
                     objects.append(sprite)
                 }
             }
         }
 
-        tiles.sort { $0.z < $1.z }
-        objects.sort { $0.z < $1.z }
+        // Stable sort by (layer, z) so equal-z sprites keep file order.
+        tiles = tiles.enumerated()
+            .sorted { ($0.element.layer, $0.element.z, $0.offset) < ($1.element.layer, $1.element.z, $1.offset) }
+            .map(\.element)
+        objects = objects.enumerated()
+            .sorted { ($0.element.layer, $0.element.z, $0.offset) < ($1.element.layer, $1.element.z, $1.offset) }
+            .map(\.element)
 
         // Footholds: foothold/{layer}/{group}/{id}
         var footholds: [WzFoothold] = []
@@ -233,12 +254,18 @@ public final class WzMapLoader {
         var height: Int
         var originX: Int
         var originY: Int
+        /// The canvas's own z: `z`, or `zM` when `z` is zero (HeavenClient's
+        /// `Tile::Tile` rule). Used when the placement carries no z (tiles).
+        var canvasZ: Int
     }
 
-    private func sprite(imagePath: String, inner: String, x: Int, y: Int, z: Int) throws -> WzMapSprite? {
+    /// - Parameter z: the placement's z (objects), or `nil` to use the canvas's
+    ///   own z (tiles).
+    private func sprite(imagePath: String, inner: String, x: Int, y: Int, layer: Int, z: Int?, flipped: Bool) throws -> WzMapSprite? {
         guard let decoded = try decodeSprite(imagePath: imagePath, inner: inner) else { return nil }
         return WzMapSprite(rgba: decoded.rgba, width: decoded.width, height: decoded.height,
-                           x: x, y: y, originX: decoded.originX, originY: decoded.originY, z: z)
+                           x: x, y: y, originX: decoded.originX, originY: decoded.originY,
+                           layer: layer, z: z ?? decoded.canvasZ, flipped: flipped)
     }
 
     private func decodeSprite(imagePath: String, inner: String) throws -> DecodedSprite? {
@@ -247,11 +274,13 @@ public final class WzMapLoader {
         // data - even when its pixels are delegated elsewhere via _inlink/_outlink.
         guard let presentation = presentationCanvas(of: node, depth: 0) else { return nil }
         let origin = presentation.properties.vector("origin") ?? (0, 0)
+        let z = presentation.properties.int("z") ?? 0
+        let canvasZ = z != 0 ? z : (presentation.properties.int("zM") ?? 0)
         guard let pixels = try pixelCanvas(for: presentation, imagePath: imagePath, depth: 0),
               pixels.dataLength > 0 else { return nil }
         let bitmap = try archive.decodeCanvas(pixels)
         return DecodedSprite(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
-                             originX: origin.x, originY: origin.y)
+                             originX: origin.x, originY: origin.y, canvasZ: canvasZ)
     }
 
     /// Descend containers (animations) to the first canvas, without following links.
