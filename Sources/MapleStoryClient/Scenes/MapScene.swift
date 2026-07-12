@@ -3,11 +3,15 @@
 //  MapleStoryClient
 //
 //  Renders a decoded WZ map (backgrounds, tiles, objects, foregrounds) through
-//  the sprite renderer with a scrolling camera. Background parallax/tiling
-//  follows the reference client's `Background::draw` formula: the screen
-//  position already incorporates the camera offset via `rx`/`ry`, so
-//  backgrounds are drawn directly in screen space rather than through
-//  `Camera.screen(forWorldX:worldY:)`.
+//  the sprite renderer with a scrolling camera, plus an optional walking player
+//  character. Background parallax/tiling follows the reference client's
+//  `Background::draw` formula: the screen position already incorporates the
+//  camera offset via `rx`/`ry`, so backgrounds are drawn directly in screen
+//  space rather than through `Camera.screen(forWorldX:worldY:)`.
+//
+//  Character parts are attached to each other by matching same-named anchor
+//  points (e.g. arm's "navel" to body's "navel"), which are stored relative to
+//  each part's own canvas origin. See `WzCharacterLoader`.
 //
 
 import Foundation
@@ -16,19 +20,53 @@ import MapleStoryFile
 public final class MapScene: Scene {
 
     private let map: WzLoadedMap
+    private let character: WzLoadedCharacter?
     private var built = false
     private var backgroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
     private var foregroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
     private var tiles: [(texture: Texture, sprite: WzMapSprite)] = []
     private var objects: [(texture: Texture, sprite: WzMapSprite)] = []
+    private var standFrames: [CharacterFrameTextures] = []
+    private var walkFrames: [CharacterFrameTextures] = []
 
     private var cameraX: Float
     private var cameraY: Float
 
-    public init(map: WzLoadedMap) {
+    // Player state (only used when `character != nil`).
+    private var playerX: Float
+    private var playerY: Float
+    private var facingRight = true
+    private var isWalking = false
+    private var frameIndex = 0
+    private var frameTimer: Double = 0
+    private var heldKeys: Set<ControlKey> = []
+
+    /// Walking speed in world units per second.
+    public var walkSpeed: Float = 150
+
+    public init(map: WzLoadedMap, character: WzLoadedCharacter? = nil, playerStart: (x: Int, y: Int)? = nil) {
         self.map = map
+        self.character = character
         self.cameraX = Float(map.left + map.right) / 2
         self.cameraY = Float(map.top + map.bottom) / 2
+        let start = playerStart ?? (map.spawnX, map.spawnY)
+        self.playerX = Float(start.x)
+        self.playerY = Float(start.y)
+    }
+
+    // MARK: - Texture upload
+
+    private struct CharacterPartTexture {
+        var texture: Texture
+        var part: WzCharacterPart
+    }
+
+    private struct CharacterFrameTextures {
+        var delayMilliseconds: Int
+        var body: CharacterPartTexture?
+        var arm: CharacterPartTexture?
+        var head: CharacterPartTexture?
+        var face: CharacterPartTexture?
     }
 
     /// Upload sprite pixels to GL textures (must run with a current GL context).
@@ -37,6 +75,10 @@ public final class MapScene: Scene {
         foregroundTextures = MapScene.backgroundTextures(for: map.foregrounds)
         tiles = MapScene.textures(for: map.tiles)
         objects = MapScene.textures(for: map.objects)
+        if let character {
+            standFrames = MapScene.characterTextures(for: character.stand)
+            walkFrames = MapScene.characterTextures(for: character.walk)
+        }
         built = true
     }
 
@@ -60,6 +102,78 @@ public final class MapScene: Scene {
         }
     }
 
+    private static func characterTextures(for animation: WzCharacterAnimation) -> [CharacterFrameTextures] {
+        animation.frames.map { frame in
+            CharacterFrameTextures(
+                delayMilliseconds: frame.delayMilliseconds,
+                body: partTexture(frame.body),
+                arm: partTexture(frame.arm),
+                head: partTexture(frame.head),
+                face: partTexture(frame.face)
+            )
+        }
+    }
+
+    private static func partTexture(_ part: WzCharacterPart?) -> CharacterPartTexture? {
+        guard let part, part.width > 0, part.height > 0,
+              let texture = try? Texture(width: part.width, height: part.height, rgba: part.rgba) else {
+            return nil
+        }
+        return CharacterPartTexture(texture: texture, part: part)
+    }
+
+    // MARK: - Input
+
+    public func updateInput(held: Set<ControlKey>) {
+        heldKeys = held
+    }
+
+    public func update(deltaTime: Double) {
+        guard character != nil else {
+            // No player: arrows pan the camera directly.
+            let step = walkSpeed * Float(deltaTime)
+            if heldKeys.contains(.left) { cameraX -= step }
+            if heldKeys.contains(.right) { cameraX += step }
+            if heldKeys.contains(.up) { cameraY -= step }
+            if heldKeys.contains(.down) { cameraY += step }
+            return
+        }
+
+        let movingLeft = heldKeys.contains(.left)
+        let movingRight = heldKeys.contains(.right)
+        let wasWalking = isWalking
+        isWalking = movingLeft != movingRight
+
+        let step = walkSpeed * Float(deltaTime)
+        if movingRight && movingLeft == false {
+            playerX += step
+            facingRight = true
+        } else if movingLeft && movingRight == false {
+            playerX -= step
+            facingRight = false
+        }
+        playerX = min(max(playerX, Float(map.left)), Float(map.right))
+
+        cameraX = playerX
+        cameraY = playerY
+
+        if isWalking != wasWalking {
+            frameIndex = 0
+            frameTimer = 0
+        }
+
+        let frames = isWalking ? walkFrames : standFrames
+        guard frames.isEmpty == false else { return }
+        frameTimer += deltaTime * 1000
+        let delay = Double(max(frames[frameIndex % frames.count].delayMilliseconds, 1))
+        if frameTimer >= delay {
+            frameTimer -= delay
+            frameIndex = (frameIndex + 1) % frames.count
+        }
+    }
+
+    // MARK: - Rendering
+
     public func render(_ context: RenderContext) {
         if built == false { buildTextures() }
         let camera = Camera(x: cameraX, y: cameraY, viewportWidth: Float(context.width), viewportHeight: Float(context.height))
@@ -72,6 +186,9 @@ public final class MapScene: Scene {
         }
         for (texture, sprite) in objects {
             drawWorldSprite(sprite, texture: texture, camera: camera, context: context)
+        }
+        if character != nil {
+            drawPlayer(camera: camera, context: context)
         }
         for (texture, layer) in foregroundTextures {
             draw(layer, texture: texture, camera: camera, context: context)
@@ -126,14 +243,55 @@ public final class MapScene: Scene {
         }
     }
 
-    public func handle(_ event: InputEvent) {
-        let step: Float = 40
-        switch event {
-        case .control(.left): cameraX -= step
-        case .control(.right): cameraX += step
-        case .control(.up): cameraY -= step
-        case .control(.down): cameraY += step
-        default: break
+    /// Draw the player character by attaching parts via matching anchor points:
+    /// arm/body via "navel", head/body via "neck", face/head via "brow".
+    private func drawPlayer(camera: Camera, context: RenderContext) {
+        let frames = isWalking ? walkFrames : standFrames
+        guard frames.isEmpty == false else { return }
+        let frame = frames[frameIndex % frames.count]
+        guard let body = frame.body else { return }
+
+        let flip = facingRight == false
+        let bodyOrigin = (x: Double(playerX), y: Double(playerY))
+        drawPart(body, atOrigin: bodyOrigin, flip: flip, camera: camera, context: context)
+
+        if let arm = frame.arm {
+            let bodyNavel = add(bodyOrigin, body.part.point("navel"))
+            let armOrigin = subtract(bodyNavel, arm.part.point("navel"))
+            drawPart(arm, atOrigin: armOrigin, flip: flip, camera: camera, context: context)
         }
+        if let head = frame.head {
+            let bodyNeck = add(bodyOrigin, body.part.point("neck"))
+            let headOrigin = subtract(bodyNeck, head.part.point("neck"))
+            drawPart(head, atOrigin: headOrigin, flip: flip, camera: camera, context: context)
+
+            if let face = frame.face {
+                let headBrow = add(headOrigin, head.part.point("brow"))
+                let faceOrigin = subtract(headBrow, face.part.point("brow"))
+                drawPart(face, atOrigin: faceOrigin, flip: flip, camera: camera, context: context)
+            }
+        }
+    }
+
+    private func drawPart(_ part: CharacterPartTexture, atOrigin origin: (x: Double, y: Double), flip: Bool, camera: Camera, context: RenderContext) {
+        let effectiveOriginX = flip ? (part.part.width - part.part.originX) : part.part.originX
+        let topLeftX = origin.x - Double(effectiveOriginX)
+        let topLeftY = origin.y - Double(part.part.originY)
+        let screen = camera.screen(forWorldX: Float(topLeftX), worldY: Float(topLeftY))
+        let rect = Rectangle(x: screen.x, y: screen.y, width: Float(part.part.width), height: Float(part.part.height))
+        let uv = flip ? Rectangle(x: 1, y: 0, width: -1, height: 1) : Rectangle(x: 0, y: 0, width: 1, height: 1)
+        context.renderer.draw(part.texture, in: rect, uv: uv)
+    }
+
+    public func handle(_ event: InputEvent) {
+        // Movement is driven by `updateInput(held:)`; no discrete events to handle.
+    }
+
+    private func add(_ origin: (x: Double, y: Double), _ point: (x: Int, y: Int)) -> (x: Double, y: Double) {
+        (origin.x + Double(point.x), origin.y + Double(point.y))
+    }
+
+    private func subtract(_ origin: (x: Double, y: Double), _ point: (x: Int, y: Int)) -> (x: Double, y: Double) {
+        (origin.x - Double(point.x), origin.y - Double(point.y))
     }
 }

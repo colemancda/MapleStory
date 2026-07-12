@@ -62,6 +62,10 @@ public struct WzLoadedMap: Sendable {
     public var top: Int
     public var right: Int
     public var bottom: Int
+    /// The map's default spawn point (its first portal, conventionally "sp"), or
+    /// the map's horizontal center at the bottom of its bounds if no portal exists.
+    public var spawnX: Int
+    public var spawnY: Int
 }
 
 public final class WzMapLoader {
@@ -145,9 +149,14 @@ public final class WzMapLoader {
         objects.sort { $0.z < $1.z }
 
         let bounds = computeBounds(props: props, tiles: tiles, objects: objects)
+        let spawn = props.property(at: "portal/0")?.children
+        let spawnX = spawn?.int("x") ?? (bounds.left + bounds.right) / 2
+        let spawnY = spawn?.int("y") ?? bounds.bottom
+
         return WzLoadedMap(id: mapID, backgrounds: backgrounds, foregrounds: foregrounds,
                            tiles: tiles, objects: objects,
-                           left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom)
+                           left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
+                           spawnX: spawnX, spawnY: spawnY)
     }
 
     // MARK: - Sprite resolution

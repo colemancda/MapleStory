@@ -20,6 +20,11 @@ public struct RenderContext {
 /// The client analogue of the reference client's `UIStateLogin` / `UIStateGame`.
 public protocol Scene: AnyObject {
 
+    /// Called once per frame with the set of movement keys currently held down,
+    /// before ``update(deltaTime:)``. For continuous motion (walking, camera
+    /// panning) rather than discrete key-press events.
+    func updateInput(held: Set<ControlKey>)
+
     /// Advance simulation/animation by `deltaTime` seconds.
     func update(deltaTime: Double)
 
@@ -31,5 +36,6 @@ public protocol Scene: AnyObject {
 }
 
 public extension Scene {
+    func updateInput(held: Set<ControlKey>) {}
     func update(deltaTime: Double) {}
 }

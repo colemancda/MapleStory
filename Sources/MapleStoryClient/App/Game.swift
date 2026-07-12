@@ -77,6 +77,7 @@ public final class Game {
             let deltaTime = Double(now &- last) / 1000
             last = now
 
+            scene?.updateInput(held: Game.heldMovementKeys())
             scene?.update(deltaTime: deltaTime)
 
             let (pointWidth, pointHeight) = window.size
@@ -145,6 +146,17 @@ public final class Game {
         default:
             break
         }
+    }
+
+    /// The movement scancodes currently held down, for continuous motion.
+    private static func heldMovementKeys() -> Set<ControlKey> {
+        let state = SDL.keyboardState
+        var held = Set<ControlKey>()
+        let scancodes: [(Int, ControlKey)] = [(79, .right), (80, .left), (81, .down), (82, .up)]
+        for (scancode, key) in scancodes where scancode < state.count && state[scancode] {
+            held.insert(key)
+        }
+        return held
     }
 
     /// Map a raw SDL scancode to an ``InputEvent``. Values are the stable SDL
