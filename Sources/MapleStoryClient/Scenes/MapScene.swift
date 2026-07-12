@@ -41,8 +41,22 @@ public final class MapScene: Scene {
     private var frameTimer: Double = 0
     private var heldKeys: Set<ControlKey> = []
 
+    // Vertical physics: the player position is the foot point; footholds are ground.
+    private var velocityY: Float = 0
+    private var onGround = false
+
     /// Walking speed in world units per second.
     public var walkSpeed: Float = 150
+
+    /// Downward acceleration in world units per second².
+    public var gravity: Float = 2000
+
+    /// How far above/below the current feet a foothold still counts as walkable
+    /// ground when following slopes and steps.
+    public var climbTolerance: Float = 40
+
+    /// Draw foothold segments as red dotted lines (debug).
+    public var showFootholds = false
 
     public init(map: WzLoadedMap, character: WzLoadedCharacter? = nil, playerStart: (x: Int, y: Int)? = nil) {
         self.map = map
@@ -154,6 +168,8 @@ public final class MapScene: Scene {
         }
         playerX = min(max(playerX, Float(map.left)), Float(map.right))
 
+        updateVerticalPhysics(deltaTime: deltaTime)
+
         cameraX = playerX
         cameraY = playerY
 
@@ -169,6 +185,39 @@ public final class MapScene: Scene {
         if frameTimer >= delay {
             frameTimer -= delay
             frameIndex = (frameIndex + 1) % frames.count
+        }
+    }
+
+    /// Keep the player's feet on foothold geometry: follow slopes/steps while
+    /// grounded, otherwise fall under gravity until landing on a foothold.
+    private func updateVerticalPhysics(deltaTime: Double) {
+        guard map.footholds.isEmpty == false else { return }
+
+        if onGround {
+            // Follow the terrain under the (possibly moved) feet.
+            if let ground = map.groundY(atX: playerX, below: playerY, tolerance: climbTolerance),
+               ground <= playerY + climbTolerance {
+                playerY = ground
+            } else {
+                // Walked off an edge.
+                onGround = false
+                velocityY = 0
+            }
+        }
+
+        if onGround == false {
+            velocityY += gravity * Float(deltaTime)
+            let newY = playerY + velocityY * Float(deltaTime)
+            // Land on the first foothold crossed while falling.
+            if velocityY > 0,
+               let ground = map.groundY(atX: playerX, below: playerY),
+               ground <= newY {
+                playerY = ground
+                velocityY = 0
+                onGround = true
+            } else {
+                playerY = newY
+            }
         }
     }
 
@@ -192,6 +241,28 @@ public final class MapScene: Scene {
         }
         for (texture, layer) in foregroundTextures {
             draw(layer, texture: texture, camera: camera, context: context)
+        }
+        if showFootholds {
+            drawFootholds(camera: camera, context: context)
+        }
+    }
+
+    /// Debug overlay: each foothold as a dotted line (red = ground, blue = wall).
+    private func drawFootholds(camera: Camera, context: RenderContext) {
+        let ground = RGBAColor(red: 1, green: 0.1, blue: 0.1, alpha: 0.9)
+        let wall = RGBAColor(red: 0.2, green: 0.4, blue: 1, alpha: 0.9)
+        for foothold in map.footholds {
+            let steps = max(Int(max(abs(foothold.x2 - foothold.x1), abs(foothold.y2 - foothold.y1))) / 4, 1)
+            for step in 0 ... steps {
+                let t = Float(step) / Float(steps)
+                let x = Float(foothold.x1) + t * Float(foothold.x2 - foothold.x1)
+                let y = Float(foothold.y1) + t * Float(foothold.y2 - foothold.y1)
+                let screen = camera.screen(forWorldX: x, worldY: y)
+                context.renderer.fill(
+                    Rectangle(x: screen.x - 1, y: screen.y - 1, width: 3, height: 3),
+                    color: foothold.isWall ? wall : ground
+                )
+            }
         }
     }
 

@@ -51,6 +51,33 @@ public struct WzMapBackground: Sendable {
     public var flipped: Bool
 }
 
+/// A foothold segment: a piece of walkable ground (or a vertical wall) from the
+/// map's `foothold/{layer}/{group}/{id}` tree.
+public struct WzFoothold: Sendable {
+    public var id: Int
+    public var layer: Int
+    public var x1: Int
+    public var y1: Int
+    public var x2: Int
+    public var y2: Int
+    public var previousID: Int
+    public var nextID: Int
+
+    /// Vertical segments are walls, not walkable ground.
+    public var isWall: Bool { x1 == x2 }
+
+    /// The segment's interpolated y at horizontal position `x`, if `x` is within
+    /// its span (walls excluded).
+    public func groundY(atX x: Float) -> Float? {
+        guard isWall == false else { return nil }
+        let minX = Float(min(x1, x2))
+        let maxX = Float(max(x1, x2))
+        guard x >= minX, x <= maxX else { return nil }
+        let t = (x - Float(x1)) / Float(x2 - x1)
+        return Float(y1) + t * Float(y2 - y1)
+    }
+}
+
 /// A loaded map: its sprites (already decoded to RGBA) and camera bounds.
 public struct WzLoadedMap: Sendable {
     public var id: Int
@@ -66,6 +93,27 @@ public struct WzLoadedMap: Sendable {
     /// the map's horizontal center at the bottom of its bounds if no portal exists.
     public var spawnX: Int
     public var spawnY: Int
+    /// Walkable ground / wall geometry.
+    public var footholds: [WzFoothold]
+}
+
+public extension WzLoadedMap {
+
+    /// The y of the nearest walkable foothold at `x` lying at or below `y`
+    /// (allowing `tolerance` above it, for climbing slopes), or `nil` when there
+    /// is no ground under that point.
+    func groundY(atX x: Float, below y: Float, tolerance: Float = 0) -> Float? {
+        var best: Float?
+        for foothold in footholds {
+            guard let groundY = foothold.groundY(atX: x), groundY >= y - tolerance else { continue }
+            if let current = best {
+                if groundY < current { best = groundY }
+            } else {
+                best = groundY
+            }
+        }
+        return best
+    }
 }
 
 public final class WzMapLoader {
@@ -148,6 +196,24 @@ public final class WzMapLoader {
         tiles.sort { $0.z < $1.z }
         objects.sort { $0.z < $1.z }
 
+        // Footholds: foothold/{layer}/{group}/{id}
+        var footholds: [WzFoothold] = []
+        for layerEntry in props["foothold"]?.children ?? [] {
+            let layer = Int(layerEntry.name) ?? 0
+            for groupEntry in layerEntry.value.children {
+                for segmentEntry in groupEntry.value.children {
+                    let c = segmentEntry.value.children
+                    guard let x1 = c.int("x1"), let y1 = c.int("y1"),
+                          let x2 = c.int("x2"), let y2 = c.int("y2") else { continue }
+                    footholds.append(WzFoothold(
+                        id: Int(segmentEntry.name) ?? 0, layer: layer,
+                        x1: x1, y1: y1, x2: x2, y2: y2,
+                        previousID: c.int("prev") ?? 0, nextID: c.int("next") ?? 0
+                    ))
+                }
+            }
+        }
+
         let bounds = computeBounds(props: props, tiles: tiles, objects: objects)
         let spawn = props.property(at: "portal/0")?.children
         let spawnX = spawn?.int("x") ?? (bounds.left + bounds.right) / 2
@@ -156,7 +222,7 @@ public final class WzMapLoader {
         return WzLoadedMap(id: mapID, backgrounds: backgrounds, foregrounds: foregrounds,
                            tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
-                           spawnX: spawnX, spawnY: spawnY)
+                           spawnX: spawnX, spawnY: spawnY, footholds: footholds)
     }
 
     // MARK: - Sprite resolution
@@ -177,51 +243,49 @@ public final class WzMapLoader {
 
     private func decodeSprite(imagePath: String, inner: String) throws -> DecodedSprite? {
         guard let node = try imageProperties(imagePath)?.property(at: inner) else { return nil }
-        // Origin comes from the referencing node; pixels may come from a link target.
-        let origin = originVector(of: node)
-        guard let canvas = try resolveCanvas(node, imagePath: imagePath, depth: 0) else { return nil }
-        guard canvas.dataLength > 0 else { return nil }
-        let bitmap = try archive.decodeCanvas(canvas)
+        // The presentation canvas (frame 0 of an animation) owns the origin/anchor
+        // data - even when its pixels are delegated elsewhere via _inlink/_outlink.
+        guard let presentation = presentationCanvas(of: node, depth: 0) else { return nil }
+        let origin = presentation.properties.vector("origin") ?? (0, 0)
+        guard let pixels = try pixelCanvas(for: presentation, imagePath: imagePath, depth: 0),
+              pixels.dataLength > 0 else { return nil }
+        let bitmap = try archive.decodeCanvas(pixels)
         return DecodedSprite(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
                              originX: origin.x, originY: origin.y)
     }
 
-    /// Descend to a pixel-bearing canvas, following `_inlink`/`_outlink` and taking
-    /// the first frame of an animation.
-    private func resolveCanvas(_ node: WzProperty, imagePath: String, depth: Int) throws -> WzCanvas? {
+    /// Descend containers (animations) to the first canvas, without following links.
+    private func presentationCanvas(of node: WzProperty, depth: Int) -> WzCanvas? {
         guard depth < 8 else { return nil }
-        if let canvas = node.canvasValue {
-            if canvas.dataLength > 0 { return canvas }
-            if let inlink = canvas.properties.string("_inlink") {
-                if let target = try imageProperties(imagePath)?.property(at: inlink) {
-                    return try resolveCanvas(target, imagePath: imagePath, depth: depth + 1)
-                }
-            }
-            if let outlink = canvas.properties.string("_outlink") {
-                return try resolveOutlink(outlink, depth: depth + 1)
-            }
-            return canvas
-        }
-        // Animation container: use the first frame.
+        if let canvas = node.canvasValue { return canvas }
         if let frame = node.children.first(where: { Int($0.name) != nil })?.value {
-            return try resolveCanvas(frame, imagePath: imagePath, depth: depth + 1)
+            return presentationCanvas(of: frame, depth: depth + 1)
         }
         return nil
     }
 
-    private func resolveOutlink(_ outlink: String, depth: Int) throws -> WzCanvas? {
-        // e.g. "Map/Tile/woodMarble.img/edD/1" -> strip a leading wz-name component.
-        var path = outlink
-        if path.hasPrefix("Map/") { path.removeFirst(4) }
-        guard let range = path.range(of: ".img/") else { return nil }
-        let imagePath = String(path[..<range.upperBound]).dropLast() // include ".img"
-        let inner = String(path[range.upperBound...])
-        guard let node = try imageProperties(String(imagePath))?.property(at: inner) else { return nil }
-        return try resolveCanvas(node, imagePath: String(imagePath), depth: depth)
-    }
-
-    private func originVector(of node: WzProperty) -> (x: Int, y: Int) {
-        node.canvasValue?.properties.vector("origin") ?? node.children.vector("origin") ?? (0, 0)
+    /// The canvas actually holding pixel data: the presentation canvas itself, or
+    /// the `_inlink`/`_outlink` target it delegates its bitmap to.
+    private func pixelCanvas(for canvas: WzCanvas, imagePath: String, depth: Int) throws -> WzCanvas? {
+        guard depth < 8 else { return nil }
+        if canvas.dataLength > 0 { return canvas }
+        if let inlink = canvas.properties.string("_inlink"),
+           let target = try imageProperties(imagePath)?.property(at: inlink),
+           let targetCanvas = presentationCanvas(of: target, depth: 0) {
+            return try pixelCanvas(for: targetCanvas, imagePath: imagePath, depth: depth + 1)
+        }
+        if let outlink = canvas.properties.string("_outlink") {
+            // e.g. "Map/Tile/woodMarble.img/edD/1" -> strip the leading wz name.
+            var path = outlink
+            if path.hasPrefix("Map/") { path.removeFirst(4) }
+            guard let range = path.range(of: ".img/") else { return nil }
+            let targetImage = String(String(path[..<range.upperBound]).dropLast()) // include ".img"
+            let inner = String(path[range.upperBound...])
+            guard let node = try imageProperties(targetImage)?.property(at: inner),
+                  let targetCanvas = presentationCanvas(of: node, depth: 0) else { return nil }
+            return try pixelCanvas(for: targetCanvas, imagePath: targetImage, depth: depth + 1)
+        }
+        return canvas
     }
 
     // MARK: - Bounds
