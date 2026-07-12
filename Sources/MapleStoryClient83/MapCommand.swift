@@ -33,6 +33,12 @@ struct MapCommand: ParsableCommand {
     @Flag(name: .long, help: "Overlay foothold (ground/wall) geometry for debugging.")
     var showFootholds = false
 
+    @Option(name: .long, help: "Player start X (defaults to the map's spawn portal).")
+    var startX: Int?
+
+    @Option(name: .long, help: "Player start Y (defaults to the map's spawn portal).")
+    var startY: Int?
+
     func run() throws {
         let version: WzMapleVersion
         switch region.lowercased() {
@@ -59,7 +65,9 @@ struct MapCommand: ParsableCommand {
         }
 
         let game = try Game(title: "MapleStory Map \(id)", width: 1024, height: 768)
-        let scene = MapScene(map: map, character: character)
+        var playerStart: (x: Int, y: Int)?
+        if let startX, let startY { playerStart = (startX, startY) }
+        let scene = MapScene(map: map, character: character, playerStart: playerStart)
         scene.showFootholds = showFootholds
         game.setScene(scene)
         if let screenshot {
