@@ -11,7 +11,19 @@
 
 import Foundation
 
-/// A decoded, positioned map sprite.
+/// One frame of a (possibly animated) map sprite. Each frame carries its own
+/// bitmap, origin, and hold duration.
+public struct WzSpriteFrame: Sendable {
+    public var rgba: [UInt8]
+    public var width: Int
+    public var height: Int
+    public var originX: Int
+    public var originY: Int
+    public var delayMilliseconds: Int
+}
+
+/// A decoded, positioned map sprite. The top-level bitmap fields mirror
+/// `frames[0]`; animated objects carry every frame in `frames`.
 public struct WzMapSprite: Sendable {
     public var rgba: [UInt8]
     public var width: Int
@@ -28,6 +40,8 @@ public struct WzMapSprite: Sendable {
     public var z: Int
     /// Horizontal mirror (the placement's `f` flag).
     public var flipped: Bool
+    /// All animation frames (a single entry for static sprites).
+    public var frames: [WzSpriteFrame]
 }
 
 /// A decoded background/foreground layer, carrying the parallax + tiling
@@ -263,9 +277,40 @@ public final class WzMapLoader {
     ///   own z (tiles).
     private func sprite(imagePath: String, inner: String, x: Int, y: Int, layer: Int, z: Int?, flipped: Bool) throws -> WzMapSprite? {
         guard let decoded = try decodeSprite(imagePath: imagePath, inner: inner) else { return nil }
+        let frames = try decodeAnimationFrames(imagePath: imagePath, inner: inner, firstFrame: decoded)
         return WzMapSprite(rgba: decoded.rgba, width: decoded.width, height: decoded.height,
                            x: x, y: y, originX: decoded.originX, originY: decoded.originY,
-                           layer: layer, z: z ?? decoded.canvasZ, flipped: flipped)
+                           layer: layer, z: z ?? decoded.canvasZ, flipped: flipped,
+                           frames: frames)
+    }
+
+    /// Decode every animation frame of a node. Static sprites yield a single
+    /// frame built from `firstFrame`.
+    private func decodeAnimationFrames(imagePath: String, inner: String, firstFrame: DecodedSprite) throws -> [WzSpriteFrame] {
+        let fallback = [WzSpriteFrame(rgba: firstFrame.rgba, width: firstFrame.width, height: firstFrame.height,
+                                      originX: firstFrame.originX, originY: firstFrame.originY,
+                                      delayMilliseconds: 100)]
+        guard let node = try imageProperties(imagePath)?.property(at: inner) else { return fallback }
+        // Only containers with numeric children are animations.
+        guard node.canvasValue == nil else { return fallback }
+        let indices = node.children.map(\.name).compactMap(Int.init).sorted()
+        guard indices.count > 1 else { return fallback }
+
+        var frames: [WzSpriteFrame] = []
+        frames.reserveCapacity(indices.count)
+        for index in indices {
+            guard let frameNode = node.children["\(index)"],
+                  let canvas = presentationCanvas(of: frameNode, depth: 0),
+                  let pixels = try pixelCanvas(for: canvas, imagePath: imagePath, depth: 0),
+                  pixels.dataLength > 0,
+                  let bitmap = try? archive.decodeCanvas(pixels) else { continue }
+            let origin = canvas.properties.vector("origin") ?? (0, 0)
+            let delay = canvas.properties.int("delay") ?? 100
+            frames.append(WzSpriteFrame(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
+                                        originX: origin.x, originY: origin.y,
+                                        delayMilliseconds: max(delay, 1)))
+        }
+        return frames.isEmpty ? fallback : frames
     }
 
     private func decodeSprite(imagePath: String, inner: String) throws -> DecodedSprite? {

@@ -39,6 +39,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Player start Y (defaults to the map's spawn portal).")
     var startY: Int?
 
+    @Option(name: .long, help: "Frames to render before capturing the screenshot.")
+    var captureFrames: Int = 30
+
     func run() throws {
         let version: WzMapleVersion
         switch region.lowercased() {
@@ -72,8 +75,8 @@ struct MapCommand: ParsableCommand {
         game.setScene(scene)
         if let screenshot {
             game.capturePath = screenshot
-            // Enough frames for physics (falling to ground) to settle first.
-            game.captureAfterFrames = 30
+            // Default gives physics (falling to ground) time to settle first.
+            game.captureAfterFrames = captureFrames
         }
         try game.run()
         if let screenshot {
