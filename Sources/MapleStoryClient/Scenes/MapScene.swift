@@ -24,9 +24,32 @@ public final class MapScene: Scene {
     private var built = false
     private var backgroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
     private var foregroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
+
+    /// A map sprite with one texture per animation frame and precomputed timing.
+    private struct AnimatedSprite {
+        var sprite: WzMapSprite
+        var frames: [(texture: Texture, frame: WzSpriteFrame)]
+        /// Cumulative end time of each frame, in milliseconds.
+        var frameEnds: [Double]
+        var totalMilliseconds: Double
+
+        /// The frame to show at `time` (seconds since scene start).
+        func frame(at time: Double) -> (texture: Texture, frame: WzSpriteFrame) {
+            guard frames.count > 1, totalMilliseconds > 0 else { return frames[0] }
+            let cycle = (time * 1000).truncatingRemainder(dividingBy: totalMilliseconds)
+            for (index, end) in frameEnds.enumerated() where cycle < end {
+                return frames[index]
+            }
+            return frames[frames.count - 1]
+        }
+    }
+
     /// Per map layer (0...7): that layer's objects (z-sorted) followed by its
     /// tiles (z-sorted) - the reference client's `TilesObjs::draw` order.
-    private var layerSprites: [[(texture: Texture, sprite: WzMapSprite)]] = []
+    private var layerSprites: [[AnimatedSprite]] = []
+
+    /// Scene clock driving map animations.
+    private var sceneTime: Double = 0
     private var standFrames: [CharacterFrameTextures] = []
     private var walkFrames: [CharacterFrameTextures] = []
 
@@ -55,6 +78,9 @@ public final class MapScene: Scene {
 
     /// Downward acceleration in world units per second².
     public var gravity: Float = 2000
+
+    /// Initial upward velocity of a jump, in world units per second.
+    public var jumpSpeed: Float = 700
 
     /// How far above/below the current feet a foothold still counts as walkable
     /// ground when following slopes and steps.
@@ -93,10 +119,10 @@ public final class MapScene: Scene {
         backgroundTextures = MapScene.backgroundTextures(for: map.backgrounds)
         foregroundTextures = MapScene.backgroundTextures(for: map.foregrounds)
         // Objects before tiles within each layer (loader arrays are z-sorted).
-        let objectTextures = MapScene.textures(for: map.objects)
-        let tileTextures = MapScene.textures(for: map.tiles)
+        let objectTextures = MapScene.animatedSprites(for: map.objects)
+        let tileTextures = MapScene.animatedSprites(for: map.tiles)
         layerSprites = (0 ... 7).map { layer in
-            objectTextures.filter { $0.1.layer == layer } + tileTextures.filter { $0.1.layer == layer }
+            objectTextures.filter { $0.sprite.layer == layer } + tileTextures.filter { $0.sprite.layer == layer }
         }
         if let character {
             standFrames = MapScene.characterTextures(for: character.stand)
@@ -105,13 +131,24 @@ public final class MapScene: Scene {
         built = true
     }
 
-    private static func textures(for sprites: [WzMapSprite]) -> [(Texture, WzMapSprite)] {
+    private static func animatedSprites(for sprites: [WzMapSprite]) -> [AnimatedSprite] {
         sprites.compactMap { sprite in
-            guard sprite.width > 0, sprite.height > 0,
-                  let texture = try? Texture(width: sprite.width, height: sprite.height, rgba: sprite.rgba) else {
-                return nil
+            var frames: [(texture: Texture, frame: WzSpriteFrame)] = []
+            for frame in sprite.frames {
+                guard frame.width > 0, frame.height > 0,
+                      let texture = try? Texture(width: frame.width, height: frame.height, rgba: frame.rgba) else {
+                    continue
+                }
+                frames.append((texture, frame))
             }
-            return (texture, sprite)
+            guard frames.isEmpty == false else { return nil }
+            var frameEnds: [Double] = []
+            var total: Double = 0
+            for (_, frame) in frames {
+                total += Double(frame.delayMilliseconds)
+                frameEnds.append(total)
+            }
+            return AnimatedSprite(sprite: sprite, frames: frames, frameEnds: frameEnds, totalMilliseconds: total)
         }
     }
 
@@ -152,6 +189,7 @@ public final class MapScene: Scene {
     }
 
     public func update(deltaTime: Double) {
+        sceneTime += deltaTime
         guard character != nil else {
             // No player: arrows pan the camera directly.
             let step = walkSpeed * Float(deltaTime)
@@ -242,8 +280,9 @@ public final class MapScene: Scene {
             draw(layer, texture: texture, camera: camera, context: context)
         }
         for (layer, sprites) in layerSprites.enumerated() {
-            for (texture, sprite) in sprites {
-                drawWorldSprite(sprite, texture: texture, camera: camera, context: context)
+            for animated in sprites {
+                let (texture, frame) = animated.frame(at: sceneTime)
+                drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
             }
             // The player belongs to its foothold's layer.
             if character != nil && layer == min(playerLayer, layerSprites.count - 1) {
@@ -277,12 +316,12 @@ public final class MapScene: Scene {
         }
     }
 
-    private func drawWorldSprite(_ sprite: WzMapSprite, texture: Texture, camera: Camera, context: RenderContext) {
+    private func drawWorldSprite(_ sprite: WzMapSprite, frame: WzSpriteFrame, texture: Texture, camera: Camera, context: RenderContext) {
         // A flipped sprite mirrors around its origin, so the effective origin x
         // mirrors too.
-        let effectiveOriginX = sprite.flipped ? (sprite.width - sprite.originX) : sprite.originX
-        let origin = camera.screen(forWorldX: Float(sprite.x - effectiveOriginX), worldY: Float(sprite.y - sprite.originY))
-        let rect = Rectangle(x: origin.x, y: origin.y, width: Float(sprite.width), height: Float(sprite.height))
+        let effectiveOriginX = sprite.flipped ? (frame.width - frame.originX) : frame.originX
+        let origin = camera.screen(forWorldX: Float(sprite.x - effectiveOriginX), worldY: Float(sprite.y - frame.originY))
+        let rect = Rectangle(x: origin.x, y: origin.y, width: Float(frame.width), height: Float(frame.height))
         let uv = sprite.flipped ? Rectangle(x: 1, y: 0, width: -1, height: 1) : Rectangle(x: 0, y: 0, width: 1, height: 1)
         context.renderer.draw(texture, in: rect, uv: uv)
     }
@@ -370,7 +409,12 @@ public final class MapScene: Scene {
     }
 
     public func handle(_ event: InputEvent) {
-        // Movement is driven by `updateInput(held:)`; no discrete events to handle.
+        // Continuous movement is driven by `updateInput(held:)`; jumping is a
+        // discrete key press (space, matching common private-server bindings).
+        if case .character(" ") = event, character != nil, onGround {
+            velocityY = -jumpSpeed
+            onGround = false
+        }
     }
 
     private func add(_ origin: (x: Double, y: Double), _ point: (x: Int, y: Int)) -> (x: Double, y: Double) {
