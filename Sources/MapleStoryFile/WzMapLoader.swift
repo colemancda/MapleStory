@@ -212,6 +212,9 @@ public struct WzMapLadder: Sendable {
 
 /// A portal from the map's `portal` node.
 public struct WzMapPortal: Sendable {
+    /// The portal's index in the map's portal node - what the server's
+    /// SetField spawn point refers to.
+    public var id: Int = 0
     /// Portal name (`pn`), e.g. "sp", "east00".
     public var name: String
     /// Portal type (`pt`): 0 = spawn point, 1 = invisible, 2 = visible, ...
@@ -372,6 +375,7 @@ public final class WzMapLoader {
         for entry in props["portal"]?.children ?? [] {
             let c = entry.value.children
             portals.append(WzMapPortal(
+                id: Int(entry.name) ?? portals.count,
                 name: c.string("pn") ?? "",
                 type: c.int("pt") ?? 0,
                 x: c.int("x") ?? 0,

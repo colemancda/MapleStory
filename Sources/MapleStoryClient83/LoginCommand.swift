@@ -40,6 +40,9 @@ struct LoginCommand: ParsableCommand {
     @Option(name: .long, help: "Debug: skip the server and enter this map id directly, exercising the same hand-off as a real SetField warp.")
     var simulateField: Int?
 
+    @Option(name: .long, help: "Debug: spawn-point portal index for --simulate-field.")
+    var simulateSpawn: Int = 0
+
     @Option(name: .long, help: "Debug: start on a phase (world/char) with sample data, without a server.")
     var phase: String?
 
@@ -57,7 +60,7 @@ struct LoginCommand: ParsableCommand {
         scene.assets = try assets.flatMap { try makeLoginAssets(assets: $0, characterLoader: characterLoader, audioPlayer: audioPlayer) }
         if let environment {
             let model = scene.model
-            let enterField: @Sendable (Int, Int) -> Void = { [weak game] mapID, _ in
+            let enterField: @Sendable (Int, Int) -> Void = { [weak game] mapID, spawnPoint in
                 do {
                     // Enter the game as the selected character (default
                     // starter look when no appearance is known).
@@ -66,7 +69,7 @@ struct LoginCommand: ParsableCommand {
                             loader: characterLoader, look: model.selectedCharacterLook()
                         ))
                     }
-                    let mapScene = try environment.makeScene(mapID: mapID)
+                    let mapScene = try environment.makeScene(mapID: mapID, spawnPoint: spawnPoint)
                     game?.enqueueScene(mapScene)
                 } catch {
                     print("Failed to load map \(mapID): \(error)")
@@ -76,9 +79,10 @@ struct LoginCommand: ParsableCommand {
             if let simulateField {
                 // Fire the warp from a background task exactly like a network
                 // handler would.
+                let spawn = simulateSpawn
                 Task.detached {
                     try? await Task.sleep(nanoseconds: 500_000_000)
-                    enterField(simulateField, 0)
+                    enterField(simulateField, spawn)
                 }
             }
         }

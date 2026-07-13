@@ -175,7 +175,8 @@ final class MapEnvironment: @unchecked Sendable {
         character = newCharacter
     }
 
-    func makeScene(mapID: Int, spawnPortal: String? = nil, playerStart: (x: Int, y: Int)? = nil) throws -> MapScene {
+    func makeScene(mapID: Int, spawnPortal: String? = nil, spawnPoint: Int? = nil,
+                   playerStart: (x: Int, y: Int)? = nil) throws -> MapScene {
         let map = try mapLoader.load(mapID: mapID)
         print("Map \(mapID): \(map.backgrounds.count) backgrounds, \(map.tiles.count) tiles, \(map.objects.count) objects, \(map.portals.count) portals")
 
@@ -183,10 +184,15 @@ final class MapEnvironment: @unchecked Sendable {
         appendLife(type: "n", loader: npcLoader, map: map, into: &lifeSprites)
         appendLife(type: "m", loader: mobLoader, map: map, into: &lifeSprites)
 
-        // Spawn at the named arrival portal when transitioning.
+        // Spawn at the named arrival portal (map transitions) or the numbered
+        // spawn point (the server's SetField warp).
         var start = playerStart
         if start == nil, let spawnPortal,
            let arrival = map.portals.first(where: { $0.name == spawnPortal }) {
+            start = (arrival.x, arrival.y)
+        }
+        if start == nil, let spawnPoint,
+           let arrival = map.portals.first(where: { $0.id == spawnPoint }) {
             start = (arrival.x, arrival.y)
         }
 
