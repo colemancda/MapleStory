@@ -239,6 +239,14 @@ public final class MapScene: Scene {
     /// Continuously re-trigger the attack (for headless/debug capture).
     public var debugAttack = false
 
+    /// A game event with an associated sound, forwarded to the host so scene
+    /// code stays audio-framework-free.
+    public enum SoundEvent: Sendable {
+        case jump
+        case attack
+    }
+    public var onSoundEvent: ((SoundEvent) -> Void)?
+
     public init(
         map: WzLoadedMap,
         character: WzLoadedCharacter? = nil,
@@ -401,6 +409,7 @@ public final class MapScene: Scene {
             attackHitApplied = false
             frameIndex = 0
             frameTimer = 0
+            onSoundEvent?(.attack)
         }
         updateMobs(deltaTime: deltaTime)
         guard character != nil else {
@@ -1023,9 +1032,11 @@ public final class MapScene: Scene {
                 // Jump off the ladder/rope.
                 detachFromLadder()
                 velocityY = -jumpSpeed * 0.6
+                onSoundEvent?(.jump)
             } else if onGround {
                 velocityY = -jumpSpeed
                 onGround = false
+                onSoundEvent?(.jump)
             }
         }
         // Control triggers a one-shot ground attack.
@@ -1036,6 +1047,7 @@ public final class MapScene: Scene {
             attackHitApplied = false
             frameIndex = 0
             frameTimer = 0
+            onSoundEvent?(.attack)
         }
         // Up enters a portal the player stands on, or grabs a ladder/rope.
         if case .control(.up) = event, isClimbing == false {

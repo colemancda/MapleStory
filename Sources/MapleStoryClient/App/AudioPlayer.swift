@@ -2,17 +2,21 @@
 //  AudioPlayer.swift
 //  MapleStoryClient
 //
-//  Background-music playback for WZ-extracted audio (MP3), via AVFoundation.
+//  Background-music and sound-effect playback for WZ-extracted audio (MP3),
+//  via AVFoundation.
 //
 
 import Foundation
 import AVFoundation
 
-/// Plays looping background music from in-memory audio data.
+/// Plays looping background music and one-shot sound effects from in-memory
+/// audio data.
 public final class AudioPlayer {
 
     private var player: AVAudioPlayer?
     private var currentTrack: String?
+    /// One-shot effects currently playing (kept alive until finished).
+    private var effects: [AVAudioPlayer] = []
 
     public init() {}
 
@@ -33,10 +37,20 @@ public final class AudioPlayer {
         }
     }
 
+    /// Play `data` once, overlapping music and other effects.
+    public func playEffect(_ data: Data) {
+        effects.removeAll { $0.isPlaying == false }
+        guard let effect = try? AVAudioPlayer(data: data) else { return }
+        effect.play()
+        effects.append(effect)
+    }
+
     public func stop() {
         player?.stop()
         player = nil
         currentTrack = nil
+        effects.forEach { $0.stop() }
+        effects.removeAll()
     }
 
     public var isPlaying: Bool { player?.isPlaying ?? false }
