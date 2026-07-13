@@ -185,7 +185,7 @@ final class MapEnvironment: @unchecked Sendable {
     private let mobLoader: WzLifeSpriteLoader?
     private let stringLoader: WzStringLoader?
     private let soundArchive: WzArchive?
-    private let audioPlayer = AudioPlayer()
+    private let audioPlayer: AudioPlayer
     private let showFootholds: Bool
     private weak var game: Game?
     private lazy var portalFrames: [WzSpriteFrame] = (try? mapLoader.loadPortalAnimation()) ?? []
@@ -203,7 +203,8 @@ final class MapEnvironment: @unchecked Sendable {
         stringLoader: WzStringLoader?,
         soundArchive: WzArchive?,
         showFootholds: Bool,
-        game: Game
+        game: Game,
+        audioPlayer: AudioPlayer = AudioPlayer()
     ) {
         self.mapLoader = mapLoader
         self.character = character
@@ -213,6 +214,7 @@ final class MapEnvironment: @unchecked Sendable {
         self.soundArchive = soundArchive
         self.showFootholds = showFootholds
         self.game = game
+        self.audioPlayer = audioPlayer
     }
 
     func makeScene(mapID: Int, spawnPortal: String? = nil, playerStart: (x: Int, y: Int)? = nil) throws -> MapScene {
