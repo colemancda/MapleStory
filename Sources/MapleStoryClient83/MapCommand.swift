@@ -188,6 +188,11 @@ final class MapEnvironment {
     private weak var game: Game?
     private lazy var portalFrames: [WzSpriteFrame] = (try? mapLoader.loadPortalAnimation()) ?? []
 
+    // One-shot sound effects, decoded once from Sound.wz.
+    private lazy var jumpSound: Data? = soundEffectData(image: "Game.img", path: ["Jump"])
+    private lazy var portalSound: Data? = soundEffectData(image: "Game.img", path: ["Portal"])
+    private lazy var attackSound: Data? = soundEffectData(image: "Weapon.img", path: ["swordL", "Attack"])
+
     init(
         mapLoader: WzMapLoader,
         character: WzLoadedCharacter?,
@@ -223,14 +228,51 @@ final class MapEnvironment {
             start = (arrival.x, arrival.y)
         }
 
+        // Prime the effect decodes so missing paths are reported at load, not
+        // on first use mid-game.
+        _ = jumpSound
+        _ = portalSound
+        _ = attackSound
+
         let scene = MapScene(map: map, character: character, lifeSprites: lifeSprites,
                              portalFrames: portalFrames, playerStart: start)
         scene.showFootholds = showFootholds
         scene.onEnterPortal = { [weak self] portal in
             self?.transition(through: portal)
         }
+        scene.onSoundEvent = { [weak self] event in
+            guard let self else { return }
+            switch event {
+            case .jump: self.playEffect(self.jumpSound)
+            case .attack: self.playEffect(self.attackSound)
+            }
+        }
         playBackgroundMusic(for: map)
         return scene
+    }
+
+    private func playEffect(_ data: Data?) {
+        if let data { audioPlayer.playEffect(data) }
+    }
+
+    /// Decode a sound property at `path` inside `image` in Sound.wz.
+    private func soundEffectData(image: String, path: [String]) -> Data? {
+        guard let soundArchive,
+              let node = soundArchive.root[image],
+              let props = try? soundArchive.properties(of: node) else { return nil }
+        var current = props
+        var property: WzProperty?
+        for component in path {
+            guard let value = current[component] else { return nil }
+            property = value
+            current = value.children
+        }
+        guard let sound = property?.soundValue,
+              let data = soundArchive.soundData(sound) else {
+            print("Sound effect \(image)/\(path.joined(separator: "/")) not found")
+            return nil
+        }
+        return data
     }
 
     /// Play the map's BGM (info/bgm = "{image}/{track}" in Sound.wz).
@@ -251,6 +293,7 @@ final class MapEnvironment {
 
     private func transition(through portal: WzMapPortal) {
         print("Entering portal \(portal.name) -> map \(portal.targetMap) (\(portal.targetName))")
+        playEffect(portalSound)
         do {
             let scene = try makeScene(mapID: portal.targetMap, spawnPortal: portal.targetName)
             game?.setScene(scene)
