@@ -260,7 +260,7 @@ final class MapEnvironment {
         into lifeSprites: inout [WzLifeSprite]
     ) {
         guard let loader else { return }
-        struct Loaded { var stand: [WzSpriteFrame]; var move: [WzSpriteFrame]; var hit: [WzSpriteFrame]; var die: [WzSpriteFrame]; var speed: Int; var maxHP: Int }
+        struct Loaded { var stand: [WzSpriteFrame]; var move: [WzSpriteFrame]; var hit: [WzSpriteFrame]; var die: [WzSpriteFrame]; var speed: Int; var maxHP: Int; var touchDamage: Int }
         var cache: [Int: Loaded] = [:]
         var count = 0
         for life in map.life where life.type == type && life.hidden == false {
@@ -275,7 +275,8 @@ final class MapEnvironment {
                 let die = isMob ? ((try? loader.loadFrames(action: "die1", id: life.id)) ?? []) : []
                 loaded = Loaded(stand: stand, move: move, hit: hit, die: die,
                                 speed: loader.speedPercent(id: life.id),
-                                maxHP: isMob ? loader.maxHP(id: life.id) : 1)
+                                maxHP: isMob ? loader.maxHP(id: life.id) : 1,
+                                touchDamage: isMob ? loader.touchDamage(id: life.id) : 0)
                 cache[life.id] = loaded
             }
             if loaded.stand.isEmpty == false || loaded.move.isEmpty == false {
@@ -283,7 +284,8 @@ final class MapEnvironment {
                 lifeSprites.append(WzLifeSprite(life: life, standFrames: loaded.stand,
                                                 moveFrames: loaded.move, hitFrames: loaded.hit,
                                                 dieFrames: loaded.die, name: name,
-                                                speedPercent: loaded.speed, maxHP: loaded.maxHP))
+                                                speedPercent: loaded.speed, maxHP: loaded.maxHP,
+                                                touchDamage: loaded.touchDamage))
                 count += 1
             }
         }

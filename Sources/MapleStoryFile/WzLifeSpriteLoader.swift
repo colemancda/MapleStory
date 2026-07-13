@@ -25,10 +25,12 @@ public struct WzLifeSprite: Sendable {
     public var speedPercent: Int
     /// Mob max HP (`info/maxHP`).
     public var maxHP: Int
+    /// Damage dealt on contact (`info/PADamage`); 0 for harmless life.
+    public var touchDamage: Int
 
     public init(life: WzMapLife, standFrames: [WzSpriteFrame], moveFrames: [WzSpriteFrame] = [],
                 hitFrames: [WzSpriteFrame] = [], dieFrames: [WzSpriteFrame] = [],
-                name: String? = nil, speedPercent: Int = 0, maxHP: Int = 1) {
+                name: String? = nil, speedPercent: Int = 0, maxHP: Int = 1, touchDamage: Int = 0) {
         self.life = life
         self.standFrames = standFrames
         self.moveFrames = moveFrames
@@ -37,6 +39,7 @@ public struct WzLifeSprite: Sendable {
         self.name = name
         self.speedPercent = speedPercent
         self.maxHP = maxHP
+        self.touchDamage = touchDamage
     }
 }
 
@@ -68,6 +71,11 @@ public final class WzLifeSpriteLoader {
     /// The mob's `info/maxHP` (1 when absent).
     public func maxHP(id spriteID: Int) -> Int {
         max((try? resolvedProperties(id: spriteID))??.int("info/maxHP") ?? 1, 1)
+    }
+
+    /// The mob's contact damage (`info/PADamage`, 0 when absent).
+    public func touchDamage(id spriteID: Int) -> Int {
+        max((try? resolvedProperties(id: spriteID))??.int("info/PADamage") ?? 0, 0)
     }
 
     /// Image properties with `info/link` aliases resolved.
