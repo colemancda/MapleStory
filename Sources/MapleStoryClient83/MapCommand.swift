@@ -15,14 +15,8 @@ struct MapCommand: ParsableCommand {
         abstract: "Load and render a map from a WZ file."
     )
 
-    @Option(name: .long, help: "Path to Map.wz.")
+    @Option(name: .long, help: "Directory containing the game's .wz files (Map.wz required; Character/Base/Npc/Mob/String/Sound.wz used when present).")
     var wz: String
-
-    @Option(name: .long, help: "Path to Character.wz. If provided, spawns a walking player (arrow keys move; camera follows; up enters portals).")
-    var characterWz: String?
-
-    @Option(name: .long, help: "Path to Base.wz (for the character layer z-order). Recommended with --character-wz.")
-    var baseWz: String?
 
     @Option(name: .long, help: "Hair item id (0 = none).")
     var hair: Int = 30030
@@ -40,18 +34,6 @@ struct MapCommand: ParsableCommand {
     var cape: Int = 0
     @Option(name: .long, help: "Glove item id (0 = none).")
     var glove: Int = 0
-
-    @Option(name: .long, help: "Path to Npc.wz. If provided, renders the map's NPCs.")
-    var npcWz: String?
-
-    @Option(name: .long, help: "Path to Mob.wz. If provided, renders the map's mob spawns.")
-    var mobWz: String?
-
-    @Option(name: .long, help: "Path to String.wz. If provided, shows NPC/mob name tags.")
-    var stringWz: String?
-
-    @Option(name: .long, help: "Path to Sound.wz. If provided, plays each map's background music.")
-    var soundWz: String?
 
     @Option(name: .long, help: "Map ID to render.")
     var id: Int = 100000000
@@ -84,24 +66,14 @@ struct MapCommand: ParsableCommand {
     var showFps: Bool = false
 
     func run() throws {
-        let version: WzMapleVersion
-        switch region.lowercased() {
-        case "ems": version = .ems
-        case "bms": version = .bms
-        default: version = .gms
-        }
-
-        print("Loading \(wz) ...")
-        let mapArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: wz)), mapleVersion: version)
+        let assets = WzAssets(directory: wz, region: region)
+        let mapArchive = try assets.requireArchive("Map")
         print("Parsed WZ (version \(mapArchive.version))")
 
         var character: WzLoadedCharacter?
-        if let characterWz {
-            print("Loading \(characterWz) ...")
-            let characterArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: characterWz)), mapleVersion: version)
+        if let characterArchive = try assets.archive("Character") {
             var zmap = WzZmap(order: [:])
-            if let baseWz {
-                let baseArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: baseWz)), mapleVersion: version)
+            if let baseArchive = try assets.archive("Base") {
                 zmap = try WzZmap.load(from: baseArchive)
             }
             var equipment: [WzEquipItem] = []
@@ -115,36 +87,16 @@ struct MapCommand: ParsableCommand {
             if glove != 0 { equipment.append(WzEquipItem(category: "Glove", id: glove)) }
             character = try WzCharacterLoader(archive: characterArchive, zmap: zmap).load(equipment: equipment)
         }
-        var npcLoader: WzLifeSpriteLoader?
-        if let npcWz {
-            print("Loading \(npcWz) ...")
-            npcLoader = WzLifeSpriteLoader(archive: try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: npcWz)), mapleVersion: version))
-        }
-        var mobLoader: WzLifeSpriteLoader?
-        if let mobWz {
-            print("Loading \(mobWz) ...")
-            mobLoader = WzLifeSpriteLoader(archive: try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: mobWz)), mapleVersion: version))
-        }
-        var stringLoader: WzStringLoader?
-        if let stringWz {
-            print("Loading \(stringWz) ...")
-            stringLoader = WzStringLoader(archive: try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: stringWz)), mapleVersion: version))
-        }
-        var soundArchive: WzArchive?
-        if let soundWz {
-            print("Loading \(soundWz) ...")
-            soundArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: soundWz)), mapleVersion: version)
-        }
 
         let game = try Game(title: "MapleStory", width: 1024, height: 768)
         game.showFPS = showFps
         let environment = MapEnvironment(
             mapLoader: WzMapLoader(archive: mapArchive),
             character: character,
-            npcLoader: npcLoader,
-            mobLoader: mobLoader,
-            stringLoader: stringLoader,
-            soundArchive: soundArchive,
+            npcLoader: try assets.archive("Npc").map { WzLifeSpriteLoader(archive: $0) },
+            mobLoader: try assets.archive("Mob").map { WzLifeSpriteLoader(archive: $0) },
+            stringLoader: try assets.archive("String").map { WzStringLoader(archive: $0) },
+            soundArchive: try assets.archive("Sound"),
             showFootholds: showFootholds,
             game: game
         )

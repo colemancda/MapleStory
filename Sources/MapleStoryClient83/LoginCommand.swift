@@ -31,24 +31,9 @@ struct LoginCommand: ParsableCommand {
     @Option(name: .long, help: "Frames to render before capturing the screenshot.")
     var captureFrames: Int = 10
 
-    // WZ assets: when --wz is given, entering the game renders the real map
-    // instead of the placeholder grid.
-    @Option(name: .long, help: "Path to Map.wz (enables real map rendering after login).")
+    @Option(name: .long, help: "Directory containing the game's .wz files. Enables the original login screen (UI.wz + Map.wz) and real map rendering after login.")
     var wz: String?
-    @Option(name: .long, help: "Path to Character.wz (renders the player).")
-    var characterWz: String?
-    @Option(name: .long, help: "Path to Base.wz (character layer z-order).")
-    var baseWz: String?
-    @Option(name: .long, help: "Path to Npc.wz.")
-    var npcWz: String?
-    @Option(name: .long, help: "Path to Mob.wz.")
-    var mobWz: String?
-    @Option(name: .long, help: "Path to String.wz (NPC/mob names).")
-    var stringWz: String?
-    @Option(name: .long, help: "Path to Sound.wz (BGM and effects).")
-    var soundWz: String?
-    @Option(name: .long, help: "Path to UI.wz (renders the original login screen).")
-    var uiWz: String?
+
     @Option(name: .long, help: "WZ region: GMS, EMS or BMS.")
     var region: String = "GMS"
 
@@ -62,9 +47,10 @@ struct LoginCommand: ParsableCommand {
         let configuration = ClientConfiguration(destination: destination)
         let game = try Game(title: "MapleStory v83", width: 1024, height: 768)
         let audioPlayer = AudioPlayer()
-        let environment = try makeMapEnvironment(game: game, audioPlayer: audioPlayer)
+        let assets = wz.map { WzAssets(directory: $0, region: region) }
+        let environment = try assets.flatMap { try makeMapEnvironment(assets: $0, game: game, audioPlayer: audioPlayer) }
         let scene = LoginScene(configuration: configuration, verbose: verbose)
-        scene.assets = try makeLoginAssets(audioPlayer: audioPlayer)
+        scene.assets = try assets.flatMap { try makeLoginAssets(assets: $0, audioPlayer: audioPlayer) }
         if let environment {
             let enterField: @Sendable (Int, Int) -> Void = { [weak game] mapID, _ in
                 do {
@@ -96,30 +82,18 @@ struct LoginCommand: ParsableCommand {
         }
     }
 
-    private var wzVersion: WzMapleVersion {
-        switch region.lowercased() {
-        case "ems": return .ems
-        case "bms": return .bms
-        default: return .gms
-        }
-    }
-
-    private func archive(_ path: String) throws -> WzArchive {
-        print("Loading \(path) ...")
-        return try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: path)), mapleVersion: wzVersion)
-    }
-
     /// Load the original login-screen art from UI.wz (+ Map.wz for the backdrop,
     /// Sound.wz for the title BGM).
-    private func makeLoginAssets(audioPlayer: AudioPlayer) throws -> LoginAssets? {
-        guard let uiWz else { return nil }
-        let uiLoader = WzUILoader(archive: try archive(uiWz))
+    private func makeLoginAssets(assets: WzAssets, audioPlayer: AudioPlayer) throws -> LoginAssets? {
+        guard let uiArchive = try assets.archive("UI") else { return nil }
+        let uiLoader = WzUILoader(archive: uiArchive)
 
         // The login backdrop is a real map (UI.wz/MapLogin.img) whose sprites
         // live in Map.wz/Back/login.img.
         var background: MapScene?
-        if let wz, let loginProps = try uiLoader.properties(image: "MapLogin.img") {
-            let mapLoader = WzMapLoader(archive: try archive(wz))
+        if let mapArchive = try assets.archive("Map"),
+           let loginProps = try uiLoader.properties(image: "MapLogin.img") {
+            let mapLoader = WzMapLoader(archive: mapArchive)
             let (backgrounds, foregrounds) = try mapLoader.loadBackgrounds(from: loginProps)
             // The login backdrop is a static scene: its layers all use
             // rx/ry -100 and the login band occupies world y -600...0 (the
@@ -144,8 +118,7 @@ struct LoginCommand: ParsableCommand {
             background = MapScene(map: loginMap)
 
             // Title BGM (info/bgm = "BgmUI/Title" -> Sound.wz/BgmUI.img/Title).
-            if let soundWz, let bgm = loginMap.bgm {
-                let soundArchive = try archive(soundWz)
+            if let soundArchive = try assets.archive("Sound"), let bgm = loginMap.bgm {
                 let parts = bgm.split(separator: "/").map(String.init)
                 if parts.count == 2,
                    let image = soundArchive.root["\(parts[0]).img"],
@@ -166,17 +139,15 @@ struct LoginCommand: ParsableCommand {
         )
     }
 
-    /// Build the WZ-backed map environment when --wz is provided.
-    private func makeMapEnvironment(game: Game, audioPlayer: AudioPlayer) throws -> MapEnvironment? {
-        guard let wz else { return nil }
-        let mapArchive = try archive(wz)
+    /// Build the WZ-backed map environment for the post-login hand-off.
+    private func makeMapEnvironment(assets: WzAssets, game: Game, audioPlayer: AudioPlayer) throws -> MapEnvironment? {
+        guard let mapArchive = try assets.archive("Map") else { return nil }
 
         var character: WzLoadedCharacter?
-        if let characterWz {
-            let characterArchive = try archive(characterWz)
+        if let characterArchive = try assets.archive("Character") {
             var zmap = WzZmap(order: [:])
-            if let baseWz {
-                zmap = try WzZmap.load(from: try archive(baseWz))
+            if let baseArchive = try assets.archive("Base") {
+                zmap = try WzZmap.load(from: baseArchive)
             }
             // Default starter look; server-driven appearance comes later.
             let equipment = [
@@ -190,10 +161,10 @@ struct LoginCommand: ParsableCommand {
         return MapEnvironment(
             mapLoader: WzMapLoader(archive: mapArchive),
             character: character,
-            npcLoader: try npcWz.map { WzLifeSpriteLoader(archive: try archive($0)) },
-            mobLoader: try mobWz.map { WzLifeSpriteLoader(archive: try archive($0)) },
-            stringLoader: try stringWz.map { WzStringLoader(archive: try archive($0)) },
-            soundArchive: try soundWz.map { try archive($0) },
+            npcLoader: try assets.archive("Npc").map { WzLifeSpriteLoader(archive: $0) },
+            mobLoader: try assets.archive("Mob").map { WzLifeSpriteLoader(archive: $0) },
+            stringLoader: try assets.archive("String").map { WzStringLoader(archive: $0) },
+            soundArchive: try assets.archive("Sound"),
             showFootholds: false,
             game: game,
             audioPlayer: audioPlayer
