@@ -146,6 +146,31 @@ public struct WzLoadedMap: Sendable {
     public var bgm: String?
     /// Pre-rendered minimap (the map's `miniMap` node), when present.
     public var minimap: WzMapMinimap? = nil
+
+    public init(id: Int, backgrounds: [WzMapBackground], foregrounds: [WzMapBackground],
+                tiles: [WzMapSprite], objects: [WzMapSprite],
+                left: Int, top: Int, right: Int, bottom: Int,
+                spawnX: Int, spawnY: Int, footholds: [WzFoothold], life: [WzMapLife],
+                portals: [WzMapPortal], ladders: [WzMapLadder], bgm: String?,
+                minimap: WzMapMinimap? = nil) {
+        self.id = id
+        self.backgrounds = backgrounds
+        self.foregrounds = foregrounds
+        self.tiles = tiles
+        self.objects = objects
+        self.left = left
+        self.top = top
+        self.right = right
+        self.bottom = bottom
+        self.spawnX = spawnX
+        self.spawnY = spawnY
+        self.footholds = footholds
+        self.life = life
+        self.portals = portals
+        self.ladders = ladders
+        self.bgm = bgm
+        self.minimap = minimap
+    }
 }
 
 /// A map's pre-rendered minimap bitmap plus the transform from world
@@ -265,44 +290,11 @@ public final class WzMapLoader {
             throw WzArchiveError.invalidHeader
         }
 
-        var backgrounds: [WzMapBackground] = []
-        var foregrounds: [WzMapBackground] = []
         var tiles: [WzMapSprite] = []
         var objects: [WzMapSprite] = []
 
         // Backgrounds
-        for entry in props["back"]?.children ?? [] {
-            let c = entry.value.children
-            guard let bS = c.string("bS"), bS.isEmpty == false else { continue }
-            let no = c.int("no") ?? 0
-            let x = c.int("x") ?? 0
-            let y = c.int("y") ?? 0
-            let ani = c.int("ani") ?? 0
-            let folder = ani == 1 ? "ani" : "back"
-            guard let decoded = try decodeSprite(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)") else { continue }
-            let frames = try decodeAnimationFrames(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)", firstFrame: decoded)
-
-            let type = c.int("type") ?? 0
-            let horizontalTile = [1, 3, 4, 6, 7].contains(type)
-            let verticalTile = [2, 3, 5, 6, 7].contains(type)
-            let alpha = c.int("a") ?? 255
-            let background = WzMapBackground(
-                rgba: decoded.rgba, width: decoded.width, height: decoded.height,
-                x: x, y: y, originX: decoded.originX, originY: decoded.originY,
-                rx: c.int("rx") ?? 0, ry: c.int("ry") ?? 0,
-                cx: c.int("cx") ?? 0, cy: c.int("cy") ?? 0,
-                horizontalTile: horizontalTile, verticalTile: verticalTile,
-                isForeground: (c.int("front") ?? 0) != 0,
-                opacity: Float(alpha) / 255,
-                flipped: (c.int("f") ?? 0) != 0,
-                frames: frames
-            )
-            if background.isForeground {
-                foregrounds.append(background)
-            } else {
-                backgrounds.append(background)
-            }
-        }
+        let (backgrounds, foregrounds) = try loadBackgrounds(from: props)
 
         // Tiles + objects per layer
         for layer in 0 ... 7 {
@@ -426,6 +418,48 @@ public final class WzMapLoader {
                            spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life,
                            portals: portals, ladders: ladders, bgm: props.string("info/bgm"),
                            minimap: minimap)
+    }
+
+    /// Parse a `back` node into background layers, resolving the referenced
+    /// `Back/{bS}.img` sprites from this loader's archive. `props` may come
+    /// from any image sharing the map format (e.g. UI.wz/MapLogin.img, whose
+    /// backgrounds live in Map.wz).
+    public func loadBackgrounds(from props: [WzNamedProperty]) throws -> (backgrounds: [WzMapBackground], foregrounds: [WzMapBackground]) {
+        var backgrounds: [WzMapBackground] = []
+        var foregrounds: [WzMapBackground] = []
+        for entry in props["back"]?.children ?? [] {
+            let c = entry.value.children
+            guard let bS = c.string("bS"), bS.isEmpty == false else { continue }
+            let no = c.int("no") ?? 0
+            let x = c.int("x") ?? 0
+            let y = c.int("y") ?? 0
+            let ani = c.int("ani") ?? 0
+            let folder = ani == 1 ? "ani" : "back"
+            guard let decoded = try decodeSprite(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)") else { continue }
+            let frames = try decodeAnimationFrames(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)", firstFrame: decoded)
+
+            let type = c.int("type") ?? 0
+            let horizontalTile = [1, 3, 4, 6, 7].contains(type)
+            let verticalTile = [2, 3, 5, 6, 7].contains(type)
+            let alpha = c.int("a") ?? 255
+            let background = WzMapBackground(
+                rgba: decoded.rgba, width: decoded.width, height: decoded.height,
+                x: x, y: y, originX: decoded.originX, originY: decoded.originY,
+                rx: c.int("rx") ?? 0, ry: c.int("ry") ?? 0,
+                cx: c.int("cx") ?? 0, cy: c.int("cy") ?? 0,
+                horizontalTile: horizontalTile, verticalTile: verticalTile,
+                isForeground: (c.int("front") ?? 0) != 0,
+                opacity: Float(alpha) / 255,
+                flipped: (c.int("f") ?? 0) != 0,
+                frames: frames
+            )
+            if background.isForeground {
+                foregrounds.append(background)
+            } else {
+                backgrounds.append(background)
+            }
+        }
+        return (backgrounds, foregrounds)
     }
 
     /// Decode the animated portal swirl from `MapHelper.img/portal/game/pv`.

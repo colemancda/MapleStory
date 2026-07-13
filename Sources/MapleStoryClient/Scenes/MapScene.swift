@@ -271,9 +271,9 @@ public final class MapScene: Scene {
         self.character = character
         self.lifeSprites = lifeSprites
         self.portalFrames = portalFrames
-        self.cameraX = Float(map.left + map.right) / 2
-        self.cameraY = Float(map.top + map.bottom) / 2
         let start = playerStart ?? (map.spawnX, map.spawnY)
+        self.cameraX = Float(start.x)
+        self.cameraY = Float(start.y)
         self.playerX = Float(start.x)
         self.playerY = Float(start.y)
     }
