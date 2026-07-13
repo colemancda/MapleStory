@@ -27,6 +27,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Path to Mob.wz. If provided, renders the map's mob spawns.")
     var mobWz: String?
 
+    @Option(name: .long, help: "Path to String.wz. If provided, shows NPC/mob name tags.")
+    var stringWz: String?
+
     @Option(name: .long, help: "Map ID to render.")
     var id: Int = 100000000
 
@@ -76,6 +79,11 @@ struct MapCommand: ParsableCommand {
             print("Loading \(mobWz) ...")
             mobLoader = WzLifeSpriteLoader(archive: try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: mobWz)), mapleVersion: version))
         }
+        var stringLoader: WzStringLoader?
+        if let stringWz {
+            print("Loading \(stringWz) ...")
+            stringLoader = WzStringLoader(archive: try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: stringWz)), mapleVersion: version))
+        }
 
         let game = try Game(title: "MapleStory", width: 1024, height: 768)
         let environment = MapEnvironment(
@@ -83,6 +91,7 @@ struct MapCommand: ParsableCommand {
             character: character,
             npcLoader: npcLoader,
             mobLoader: mobLoader,
+            stringLoader: stringLoader,
             showFootholds: showFootholds,
             game: game
         )
@@ -111,6 +120,7 @@ final class MapEnvironment {
     private let character: WzLoadedCharacter?
     private let npcLoader: WzLifeSpriteLoader?
     private let mobLoader: WzLifeSpriteLoader?
+    private let stringLoader: WzStringLoader?
     private let showFootholds: Bool
     private weak var game: Game?
     private lazy var portalFrames: [WzSpriteFrame] = (try? mapLoader.loadPortalAnimation()) ?? []
@@ -120,6 +130,7 @@ final class MapEnvironment {
         character: WzLoadedCharacter?,
         npcLoader: WzLifeSpriteLoader?,
         mobLoader: WzLifeSpriteLoader?,
+        stringLoader: WzStringLoader?,
         showFootholds: Bool,
         game: Game
     ) {
@@ -127,6 +138,7 @@ final class MapEnvironment {
         self.character = character
         self.npcLoader = npcLoader
         self.mobLoader = mobLoader
+        self.stringLoader = stringLoader
         self.showFootholds = showFootholds
         self.game = game
     }
@@ -135,7 +147,7 @@ final class MapEnvironment {
         let map = try mapLoader.load(mapID: mapID)
         print("Map \(mapID): \(map.backgrounds.count) backgrounds, \(map.tiles.count) tiles, \(map.objects.count) objects, \(map.portals.count) portals")
 
-        var lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])] = []
+        var lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)] = []
         appendLife(type: "n", loader: npcLoader, map: map, into: &lifeSprites)
         appendLife(type: "m", loader: mobLoader, map: map, into: &lifeSprites)
 
@@ -169,7 +181,7 @@ final class MapEnvironment {
         type: String,
         loader: WzLifeSpriteLoader?,
         map: WzLoadedMap,
-        into lifeSprites: inout [(life: WzMapLife, frames: [WzSpriteFrame])]
+        into lifeSprites: inout [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)]
     ) {
         guard let loader else { return }
         var frameCache: [Int: [WzSpriteFrame]] = [:]
@@ -183,7 +195,8 @@ final class MapEnvironment {
                 frameCache[life.id] = frames
             }
             if frames.isEmpty == false {
-                lifeSprites.append((life, frames))
+                let name = type == "n" ? stringLoader?.npcName(id: life.id) : stringLoader?.mobName(id: life.id)
+                lifeSprites.append((life, frames, name))
                 count += 1
             }
         }
