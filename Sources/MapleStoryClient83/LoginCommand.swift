@@ -24,6 +24,9 @@ struct LoginCommand: ParsableCommand {
     @Flag(name: .shortAndLong, help: "Log network traffic to stdout.")
     var verbose = false
 
+    @Option(name: .long, help: "Capture a screenshot to this PNG path and exit.")
+    var screenshot: String?
+
     func run() throws {
         guard let destination = MapleStoryAddress(address: host, port: port) else {
             throw ValidationError("Invalid server address \(host):\(port)")
@@ -33,6 +36,13 @@ struct LoginCommand: ParsableCommand {
         let scene = LoginScene(configuration: configuration, verbose: verbose)
         game.setScene(scene)
         scene.start()
+        if let screenshot {
+            game.capturePath = screenshot
+            game.captureAfterFrames = 10
+        }
         try game.run()
+        if let screenshot {
+            print("Saved screenshot to \(screenshot)")
+        }
     }
 }
