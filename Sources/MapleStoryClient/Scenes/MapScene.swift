@@ -216,11 +216,8 @@ public final class MapScene: Scene {
 
     private struct CharacterFrameTextures {
         var delayMilliseconds: Int
-        var body: CharacterPartTexture?
-        var arm: CharacterPartTexture?
-        var head: CharacterPartTexture?
-        var face: CharacterPartTexture?
-        var showFace: Bool
+        /// Parts already z-sorted back-to-front by the loader.
+        var parts: [CharacterPartTexture]
     }
 
     /// Upload sprite pixels to GL textures (must run with a current GL context).
@@ -317,17 +314,13 @@ public final class MapScene: Scene {
         animation.frames.map { frame in
             CharacterFrameTextures(
                 delayMilliseconds: frame.delayMilliseconds,
-                body: partTexture(frame.body),
-                arm: partTexture(frame.arm),
-                head: partTexture(frame.head),
-                face: partTexture(frame.face),
-                showFace: frame.showFace
+                parts: frame.parts.compactMap(partTexture)
             )
         }
     }
 
-    private static func partTexture(_ part: WzCharacterPart?) -> CharacterPartTexture? {
-        guard let part, part.width > 0, part.height > 0,
+    private static func partTexture(_ part: WzCharacterPart) -> CharacterPartTexture? {
+        guard part.width > 0, part.height > 0,
               let texture = try? Texture(width: part.width, height: part.height, rgba: part.rgba) else {
             return nil
         }
@@ -720,38 +713,46 @@ public final class MapScene: Scene {
         return isWalking ? walkFrames : standFrames
     }
 
+    /// Assemble and draw the layered character. Each part's world position comes
+    /// from aligning its anchor point to the body skeleton; the whole assembly is
+    /// mirrored horizontally around the body pivot when facing left.
     private func drawPlayer(camera: Camera, context: RenderContext) {
         let frames = currentPlayerFrames()
         guard frames.isEmpty == false else { return }
         let frame = frames[frameIndex % frames.count]
-        guard let body = frame.body else { return }
+        guard let body = frame.parts.first(where: { $0.part.anchor == .root }) else { return }
 
         let flip = facingRight == false && isClimbing == false
         let bodyOrigin = (x: Double(playerX), y: Double(playerY))
-        drawPart(body, atOrigin: bodyOrigin, flip: flip, camera: camera, context: context)
+        let bodyNavel = add(bodyOrigin, body.part.point("navel"))
+        let bodyNeck = add(bodyOrigin, body.part.point("neck"))
 
-        if let arm = frame.arm {
-            let bodyNavel = add(bodyOrigin, body.part.point("navel"))
-            let armOrigin = subtract(bodyNavel, arm.part.point("navel"))
-            drawPart(arm, atOrigin: armOrigin, flip: flip, camera: camera, context: context)
-        }
-        if let head = frame.head {
-            let bodyNeck = add(bodyOrigin, body.part.point("neck"))
+        // Head defines the "brow" reference for hair/face/cap.
+        var headBrow = bodyNeck
+        if let head = frame.parts.first(where: { $0.part.zLayer == "head" }) {
             let headOrigin = subtract(bodyNeck, head.part.point("neck"))
-            drawPart(head, atOrigin: headOrigin, flip: flip, camera: camera, context: context)
+            headBrow = add(headOrigin, head.part.point("brow"))
+        }
 
-            if let face = frame.face, frame.showFace {
-                let headBrow = add(headOrigin, head.part.point("brow"))
-                let faceOrigin = subtract(headBrow, face.part.point("brow"))
-                drawPart(face, atOrigin: faceOrigin, flip: flip, camera: camera, context: context)
+        for part in frame.parts {
+            let anchorPoint: (x: Double, y: Double)
+            switch part.part.anchor {
+            case .root:  anchorPoint = bodyOrigin
+            case .navel: anchorPoint = subtract(bodyNavel, part.part.point("navel"))
+            case .neck:  anchorPoint = subtract(bodyNeck, part.part.point("neck"))
+            case .brow:  anchorPoint = subtract(headBrow, part.part.point("brow"))
             }
+            drawPart(part, atOrigin: anchorPoint, pivotX: Double(playerX), flip: flip, camera: camera, context: context)
         }
     }
 
-    private func drawPart(_ part: CharacterPartTexture, atOrigin origin: (x: Double, y: Double), flip: Bool, camera: Camera, context: RenderContext) {
-        let effectiveOriginX = flip ? (part.part.width - part.part.originX) : part.part.originX
-        let topLeftX = origin.x - Double(effectiveOriginX)
+    private func drawPart(_ part: CharacterPartTexture, atOrigin origin: (x: Double, y: Double), pivotX: Double, flip: Bool, camera: Camera, context: RenderContext) {
+        // Facing-right top-left, then mirror the whole part around the body pivot.
         let topLeftY = origin.y - Double(part.part.originY)
+        var topLeftX = origin.x - Double(part.part.originX)
+        if flip {
+            topLeftX = 2 * pivotX - topLeftX - Double(part.part.width)
+        }
         let screen = camera.screen(forWorldX: Float(topLeftX), worldY: Float(topLeftY))
         let rect = Rectangle(x: screen.x, y: screen.y, width: Float(part.part.width), height: Float(part.part.height))
         let uv = flip ? Rectangle(x: 1, y: 0, width: -1, height: 1) : Rectangle(x: 0, y: 0, width: 1, height: 1)
