@@ -81,6 +81,17 @@ final class LoginScene: Scene {
     private var loginButtonPressedUntil: Double = 0
     private var time: Double = 0
 
+    // Click targets recorded while drawing (screen coordinates).
+    private var worldButtonRects: [Rectangle] = []
+    private var goWorldRect: Rectangle?
+    private var characterRects: [Rectangle] = []
+    private var selectCharacterRect: Rectangle?
+
+    private static func contains(_ rect: Rectangle?, _ x: Float, _ y: Float) -> Bool {
+        guard let rect else { return false }
+        return x >= rect.x && x <= rect.x + rect.width && y >= rect.y && y <= rect.y + rect.height
+    }
+
     // The backdrop is a tall scene: the login art occupies world y -600...0
     // and the world-select art y 0...600. The camera scrolls between the two
     // bands like the original client. `scroll` is the current band offset
@@ -401,6 +412,7 @@ final class LoginScene: Scene {
         let spacing: Float = 28
         let rowWidth = Float(buttonCount) * spacing
         let rowX = centerX - rowWidth / 2
+        worldButtonRects.removeAll(keepingCapacity: true)
         for index in 0 ..< buttonCount {
             let selected = index == snapshot.selectedWorld
             let pressed = index < worldButtonPressedTextures.count ? worldButtonPressedTextures[index] : nil
@@ -409,6 +421,7 @@ final class LoginScene: Scene {
             let rect = Rectangle(x: rowX + Float(index) * spacing, y: centerY - 195,
                                  width: Float(frame.width), height: Float(frame.height))
             renderer.draw(texture, in: rect)
+            worldButtonRects.append(rect)
             // The server's world name under its tower button.
             if selected {
                 let name = snapshot.worlds[index]
@@ -448,6 +461,7 @@ final class LoginScene: Scene {
             let rect = Rectangle(x: centerX + 122, y: centerY + 152,
                                  width: Float(go.width), height: Float(go.height))
             renderer.draw(goWorldTexture, in: rect)
+            goWorldRect = rect
         }
     }
 
@@ -464,10 +478,12 @@ final class LoginScene: Scene {
             avatars.removeAll()
         }
 
+        characterRects.removeAll(keepingCapacity: true)
         for (index, name) in snapshot.characters.enumerated() {
             let x = centerX - 300 + Float(index) * 130
             let y = centerY + 40
             let selected = index == snapshot.selectedCharacter
+            characterRects.append(Rectangle(x: x - 10, y: y - 96, width: 90, height: 120))
             if selected {
                 renderer.fill(Rectangle(x: x - 10, y: y - 96, width: 90, height: 120),
                               color: RGBAColor(red: 1, green: 0.9, blue: 0.4, alpha: 0.22))
@@ -522,13 +538,14 @@ final class LoginScene: Scene {
             }
         }
         var buttonY = centerY - 40
-        for (frame, texture) in [(assets.selectButton, selectButtonTexture),
-                                 (assets.newCharButton, newCharButtonTexture),
-                                 (assets.deleteCharButton, deleteCharButtonTexture)] {
-            guard let frame, let texture else { continue }
+        for (index, entry) in [(assets.selectButton, selectButtonTexture),
+                               (assets.newCharButton, newCharButtonTexture),
+                               (assets.deleteCharButton, deleteCharButtonTexture)].enumerated() {
+            guard let frame = entry.0, let texture = entry.1 else { continue }
             let rect = Rectangle(x: centerX + 200, y: buttonY,
                                  width: Float(frame.width), height: Float(frame.height))
             renderer.draw(texture, in: rect)
+            if index == 0 { selectCharacterRect = rect }
             buttonY += Float(frame.height) + 8
         }
     }
@@ -629,12 +646,23 @@ final class LoginScene: Scene {
 
     private func handleCharacterSelect(_ event: InputEvent) {
         switch event {
-        case .control(.up):
+        case .control(.up), .control(.left):
             model.moveCharacterSelection(by: -1)
-        case .control(.down):
+        case .control(.down), .control(.right):
             model.moveCharacterSelection(by: 1)
         case .control(.enter):
             selectCharacter()
+        case let .mouseDown(x, y):
+            if let index = characterRects.firstIndex(where: { LoginScene.contains($0, x, y) }) {
+                let current = model.snapshot().selectedCharacter
+                if index == current {
+                    selectCharacter()
+                } else {
+                    model.moveCharacterSelection(by: index - current)
+                }
+            } else if LoginScene.contains(selectCharacterRect, x, y) {
+                selectCharacter()
+            }
         default:
             break
         }
@@ -684,6 +712,12 @@ final class LoginScene: Scene {
             model.moveWorldSelection(by: 1)
         case .control(.enter):
             requestCharacters()
+        case let .mouseDown(x, y):
+            if let index = worldButtonRects.firstIndex(where: { LoginScene.contains($0, x, y) }) {
+                model.moveWorldSelection(by: index - model.selectedWorldIndex())
+            } else if LoginScene.contains(goWorldRect, x, y) {
+                requestCharacters()
+            }
         default:
             break
         }
