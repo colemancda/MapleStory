@@ -189,6 +189,9 @@ public final class MapScene: Scene {
     /// Scale for name-tag text.
     public var nameTagScale: Float = 0.4
 
+    /// Movement keys always treated as held (for headless/debug capture).
+    public var debugHeldKeys: Set<ControlKey> = []
+
     public init(
         map: WzLoadedMap,
         character: WzLoadedCharacter? = nil,
@@ -339,6 +342,7 @@ public final class MapScene: Scene {
         // which uploads every texture) can't teleport the player or break the
         // ground-crossing check.
         let deltaTime = min(deltaTime, 0.05)
+        heldKeys.formUnion(debugHeldKeys)
         updateMobs(deltaTime: deltaTime)
         guard character != nil else {
             // No player: arrows pan the camera directly.
@@ -722,7 +726,9 @@ public final class MapScene: Scene {
         let frame = frames[frameIndex % frames.count]
         guard let body = frame.parts.first(where: { $0.part.anchor == .root }) else { return }
 
-        let flip = facingRight == false && isClimbing == false
+        // The base character art faces left, so mirror it to face right (matching
+        // the mob convention). Climbing poses are drawn unflipped.
+        let flip = facingRight && isClimbing == false
         let bodyOrigin = (x: Double(playerX), y: Double(playerY))
         let bodyNavel = add(bodyOrigin, body.part.point("navel"))
         let bodyNeck = add(bodyOrigin, body.part.point("neck"))
