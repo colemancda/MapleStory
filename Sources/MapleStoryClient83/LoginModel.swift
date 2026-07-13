@@ -141,6 +141,12 @@ final class LoginModel: @unchecked Sendable {
         return characterIDs[selectedCharacter]
     }
 
+    func selectedCharacterLook() -> CharacterLook? {
+        lock.lock(); defer { lock.unlock() }
+        guard characterLooks.indices.contains(selectedCharacter) else { return nil }
+        return characterLooks[selectedCharacter]
+    }
+
     func setClient(_ newClient: V83Client) {
         lock.lock(); defer { lock.unlock() }
         client = newClient

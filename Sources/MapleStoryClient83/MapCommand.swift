@@ -132,7 +132,7 @@ struct MapCommand: ParsableCommand {
 final class MapEnvironment: @unchecked Sendable {
 
     private let mapLoader: WzMapLoader
-    private let character: WzLoadedCharacter?
+    private var character: WzLoadedCharacter?
     private let npcLoader: WzLifeSpriteLoader?
     private let mobLoader: WzLifeSpriteLoader?
     private let stringLoader: WzStringLoader?
@@ -167,6 +167,12 @@ final class MapEnvironment: @unchecked Sendable {
         self.showFootholds = showFootholds
         self.game = game
         self.audioPlayer = audioPlayer
+    }
+
+    /// Replace the rendered player (e.g. with the look of the character the
+    /// user actually selected) before the next scene build.
+    func setCharacter(_ newCharacter: WzLoadedCharacter?) {
+        character = newCharacter
     }
 
     func makeScene(mapID: Int, spawnPortal: String? = nil, playerStart: (x: Int, y: Int)? = nil) throws -> MapScene {

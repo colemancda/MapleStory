@@ -102,10 +102,14 @@ public struct WzEquipItem: Sendable {
     var imagePath: String { "\(category)/" + String(format: "%08d.img", id) }
 }
 
-public final class WzCharacterLoader {
+/// `@unchecked Sendable`: loads are serialized by a recursive lock (the shared
+/// archive reader and AES keystream are stateful) so avatars (main thread) and
+/// the game hand-off (network tasks) can share one loader.
+public final class WzCharacterLoader: @unchecked Sendable {
 
     private let archive: WzArchive
     private let zmap: WzZmap
+    private let lock = NSRecursiveLock()
     private var imageCache: [String: [WzNamedProperty]] = [:]
 
     public init(archive: WzArchive, zmap: WzZmap = WzZmap(order: [:])) {
@@ -139,6 +143,8 @@ public final class WzCharacterLoader {
     /// Load the given body actions for a skin/face/equipment combination.
     public func loadAnimations(_ actions: [String], skin: Int = 0, faceID: Int = 20000,
                                equipment: [WzEquipItem] = []) throws -> [WzCharacterAnimation] {
+        lock.lock()
+        defer { lock.unlock() }
         let bodyPath = String(format: "%08d.img", 2000 + skin)
         let headPath = String(format: "%08d.img", 12000 + skin)
         let facePath = "Face/" + String(format: "%08d.img", faceID)
@@ -316,6 +322,8 @@ public final class WzCharacterLoader {
     // MARK: - Image cache
 
     private func imageProperties(_ path: String) throws -> [WzNamedProperty]? {
+        lock.lock()
+        defer { lock.unlock() }
         if let cached = imageCache[path] { return cached }
         guard let image = archive.root[path] else { return nil }
         let props = try archive.properties(of: image)
