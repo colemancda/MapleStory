@@ -291,7 +291,8 @@ let package = Package(
             dependencies: [
                 "MapleStory",
                 "MapleStory83",
-                "MapleStoryClient"
+                "MapleStoryClient",
+                "MapleStoryFile"
             ]
         ),
         .testTarget(

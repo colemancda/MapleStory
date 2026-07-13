@@ -33,6 +33,14 @@ final class WzMapLoaderTests: XCTestCase {
             XCTAssertEqual(layer.rgba.count, layer.width * layer.height * 4)
         }
 
+        // Portals: Henesys's east00 leads to Henesys Hunting Ground I.
+        let east = map.portals.first { $0.name == "east00" }
+        XCTAssertNotNil(east)
+        XCTAssertEqual(east?.targetMap, 100010000)
+        XCTAssertEqual(east?.targetName, "west00")
+        XCTAssertEqual(east?.isVisible, true)
+        XCTAssertEqual(east?.isUsable, true)
+
         // Life: Henesys has 25 NPCs (and no mobs).
         let npcLife = map.life.filter { $0.type == "n" }
         print("  life: \(map.life.count) entries, \(npcLife.count) NPCs")
@@ -66,7 +74,8 @@ final class WzMapLoaderTests: XCTestCase {
 
         let map = WzLoadedMap(id: 0, backgrounds: [], foregrounds: [], tiles: [], objects: [],
                               left: 0, top: 0, right: 200, bottom: 200,
-                              spawnX: 0, spawnY: 0, footholds: [flat, slope, wall], life: [])
+                              spawnX: 0, spawnY: 0, footholds: [flat, slope, wall], life: [],
+                              portals: [])
         XCTAssertEqual(map.groundY(atX: 50, below: 0), 100)
         XCTAssertEqual(map.groundY(atX: 150, below: 0), 75)
         // Standing slightly under the ground still finds it within tolerance.

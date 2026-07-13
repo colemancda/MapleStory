@@ -134,6 +134,30 @@ public struct WzLoadedMap: Sendable {
     public var footholds: [WzFoothold]
     /// NPC / mob placements from the map's `life` node.
     public var life: [WzMapLife]
+    /// Portals (spawn points, map transitions).
+    public var portals: [WzMapPortal]
+}
+
+/// A portal from the map's `portal` node.
+public struct WzMapPortal: Sendable {
+    /// Portal name (`pn`), e.g. "sp", "east00".
+    public var name: String
+    /// Portal type (`pt`): 0 = spawn point, 1 = invisible, 2 = visible, ...
+    public var type: Int
+    public var x: Int
+    public var y: Int
+    /// Target map id (`tm`); 999999999 means none.
+    public var targetMap: Int
+    /// Target portal name in the target map (`tn`).
+    public var targetName: String
+
+    /// Whether this portal transports somewhere.
+    public var isUsable: Bool {
+        targetMap != 999_999_999 && targetMap >= 0 && type != 0
+    }
+
+    /// Whether the client draws the portal swirl for it.
+    public var isVisible: Bool { type == 2 }
 }
 
 /// An NPC or mob placement from the map's `life` node.
@@ -297,15 +321,52 @@ public final class WzMapLoader {
             ))
         }
 
+        // Portals
+        var portals: [WzMapPortal] = []
+        for entry in props["portal"]?.children ?? [] {
+            let c = entry.value.children
+            portals.append(WzMapPortal(
+                name: c.string("pn") ?? "",
+                type: c.int("pt") ?? 0,
+                x: c.int("x") ?? 0,
+                y: c.int("y") ?? 0,
+                targetMap: c.int("tm") ?? 999_999_999,
+                targetName: c.string("tn") ?? ""
+            ))
+        }
+
         let bounds = computeBounds(props: props, tiles: tiles, objects: objects)
-        let spawn = props.property(at: "portal/0")?.children
-        let spawnX = spawn?.int("x") ?? (bounds.left + bounds.right) / 2
-        let spawnY = spawn?.int("y") ?? bounds.bottom
+        let spawn = portals.first
+        let spawnX = spawn?.x ?? (bounds.left + bounds.right) / 2
+        let spawnY = spawn?.y ?? bounds.bottom
 
         return WzLoadedMap(id: mapID, backgrounds: backgrounds, foregrounds: foregrounds,
                            tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
-                           spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life)
+                           spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life,
+                           portals: portals)
+    }
+
+    /// Decode the animated portal swirl from `MapHelper.img/portal/game/pv`.
+    public func loadPortalAnimation() throws -> [WzSpriteFrame] {
+        guard let container = try imageProperties("MapHelper.img")?.property(at: "portal/game/pv")?.children else {
+            return []
+        }
+        let indices = container.map(\.name).compactMap(Int.init).sorted()
+        var frames: [WzSpriteFrame] = []
+        for index in indices {
+            guard let node = container["\(index)"],
+                  let canvas = presentationCanvas(of: node, depth: 0),
+                  let pixels = try pixelCanvas(for: canvas, imagePath: "MapHelper.img", depth: 0),
+                  pixels.dataLength > 0,
+                  let bitmap = try? archive.decodeCanvas(pixels) else { continue }
+            let origin = canvas.properties.vector("origin") ?? (0, 0)
+            let delay = canvas.properties.int("delay") ?? 100
+            frames.append(WzSpriteFrame(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
+                                        originX: origin.x, originY: origin.y,
+                                        delayMilliseconds: max(delay, 1)))
+        }
+        return frames
     }
 
     // MARK: - Sprite resolution

@@ -94,15 +94,25 @@ public final class MapScene: Scene {
     /// Draw foothold segments as red dotted lines (debug).
     public var showFootholds = false
 
+    /// Portal swirl animation frames (from `WzMapLoader.loadPortalAnimation`).
+    private let portalFrames: [WzSpriteFrame]
+    private var portalSprites: [AnimatedSprite] = []
+
+    /// Called when the player enters a usable portal (up arrow while standing
+    /// on it). The host decides whether/how to load the target map.
+    public var onEnterPortal: ((WzMapPortal) -> Void)?
+
     public init(
         map: WzLoadedMap,
         character: WzLoadedCharacter? = nil,
         lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])] = [],
+        portalFrames: [WzSpriteFrame] = [],
         playerStart: (x: Int, y: Int)? = nil
     ) {
         self.map = map
         self.character = character
         self.lifeSprites = lifeSprites
+        self.portalFrames = portalFrames
         self.cameraX = Float(map.left + map.right) / 2
         self.cameraY = Float(map.top + map.bottom) / 2
         let start = playerStart ?? (map.spawnX, map.spawnY)
@@ -152,6 +162,16 @@ public final class MapScene: Scene {
         let npcTextures = MapScene.animatedSprites(for: npcSprites)
         layerNpcs = (0 ... 7).map { layer in
             npcTextures.filter { $0.sprite.layer == layer }
+        }
+        // Visible portals: the shared swirl animation at each portal's position.
+        if portalFrames.isEmpty == false, let first = portalFrames.first {
+            let sprites = map.portals.filter(\.isVisible).map { portal in
+                WzMapSprite(rgba: first.rgba, width: first.width, height: first.height,
+                            x: portal.x, y: portal.y,
+                            originX: first.originX, originY: first.originY,
+                            layer: 7, z: 0, flipped: false, frames: portalFrames)
+            }
+            portalSprites = MapScene.animatedSprites(for: sprites)
         }
         if let character {
             standFrames = MapScene.characterTextures(for: character.stand)
@@ -219,6 +239,10 @@ public final class MapScene: Scene {
 
     public func update(deltaTime: Double) {
         sceneTime += deltaTime
+        // Clamp the simulation step so frame-time spikes (e.g. the first frame,
+        // which uploads every texture) can't teleport the player or break the
+        // ground-crossing check.
+        let deltaTime = min(deltaTime, 0.05)
         guard character != nil else {
             // No player: arrows pan the camera directly.
             let step = walkSpeed * Float(deltaTime)
@@ -285,9 +309,11 @@ public final class MapScene: Scene {
         if onGround == false {
             velocityY += gravity * Float(deltaTime)
             let newY = playerY + velocityY * Float(deltaTime)
-            // Land on the first foothold crossed while falling.
+            // Land on the first foothold crossed while falling. The small
+            // tolerance keeps ground reachable when float drift leaves the feet
+            // fractionally past it.
             if velocityY > 0,
-               let ground = map.ground(atX: playerX, below: playerY),
+               let ground = map.ground(atX: playerX, below: playerY, tolerance: 2),
                ground.y <= newY {
                 playerY = ground.y
                 velocityY = 0
@@ -321,6 +347,10 @@ public final class MapScene: Scene {
             if character != nil && layer == min(playerLayer, layerSprites.count - 1) {
                 drawPlayer(camera: camera, context: context)
             }
+        }
+        for animated in portalSprites {
+            let (texture, frame) = animated.frame(at: sceneTime)
+            drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
         }
         for (texture, layer) in foregroundTextures {
             draw(layer, texture: texture, camera: camera, context: context)
@@ -447,6 +477,19 @@ public final class MapScene: Scene {
         if case .character(" ") = event, character != nil, onGround {
             velocityY = -jumpSpeed
             onGround = false
+        }
+        // Up enters a portal the player is standing on.
+        if case .control(.up) = event, let portal = portalAtPlayer() {
+            onEnterPortal?(portal)
+        }
+    }
+
+    /// The usable portal the player currently overlaps, if any.
+    public func portalAtPlayer() -> WzMapPortal? {
+        map.portals.first { portal in
+            portal.isUsable &&
+            abs(Float(portal.x) - playerX) <= 30 &&
+            abs(Float(portal.y) - playerY) <= 60
         }
     }
 
