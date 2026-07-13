@@ -175,7 +175,9 @@ struct MapCommand: ParsableCommand {
 
 /// Keeps the WZ archives/loaders alive across map transitions and builds a
 /// scene per map, wiring portal entry to load the target map.
-final class MapEnvironment {
+/// `@unchecked Sendable`: reached from network-handler tasks (login hand-off)
+/// but never concurrently - scene builds happen one at a time.
+final class MapEnvironment: @unchecked Sendable {
 
     private let mapLoader: WzMapLoader
     private let character: WzLoadedCharacter?

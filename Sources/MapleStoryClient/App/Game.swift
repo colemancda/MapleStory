@@ -18,7 +18,10 @@ import ImageIO
 /// forwarding input and drawing to the active ``Scene``.
 ///
 /// Must be created and run on the main thread (SDL / OpenGL requirement).
-public final class Game {
+/// `@unchecked Sendable` so background tasks (network handlers) can hold a
+/// reference; only ``enqueueScene(_:)`` and ``stop()`` may be called off the
+/// main thread.
+public final class Game: @unchecked Sendable {
 
     public let window: SDLWindow
     private let glContext: SDLGLContext
@@ -68,6 +71,27 @@ public final class Game {
         self.scene = scene
     }
 
+    // Scene swaps requested off the main thread (e.g. network handlers) are
+    // queued and applied at the top of the next frame, since scenes create GL
+    // resources that must live on the main thread.
+    private let pendingSceneLock = NSLock()
+    private var pendingScene: Scene?
+
+    /// Thread-safe scene swap: takes effect at the start of the next frame.
+    public func enqueueScene(_ scene: Scene) {
+        pendingSceneLock.lock()
+        pendingScene = scene
+        pendingSceneLock.unlock()
+    }
+
+    private func takePendingScene() -> Scene? {
+        pendingSceneLock.lock()
+        defer { pendingSceneLock.unlock() }
+        let scene = pendingScene
+        pendingScene = nil
+        return scene
+    }
+
     public func stop() {
         isRunning = false
     }
@@ -76,6 +100,9 @@ public final class Game {
     public func run() throws {
         var last = SDL.ticks
         while isRunning {
+            if let pending = takePendingScene() {
+                scene = pending
+            }
             while let event = SDL.pollEvent() {
                 translate(event)
             }
