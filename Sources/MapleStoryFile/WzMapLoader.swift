@@ -86,6 +86,9 @@ public struct WzMapBackground: Sendable {
     public var isForeground: Bool
     public var opacity: Float
     public var flipped: Bool
+    /// All animation frames (a single entry for static backdrops; multiple for
+    /// `ani` backgrounds like water). Top-level bitmap fields mirror `frames[0]`.
+    public var frames: [WzSpriteFrame]
 }
 
 /// A foothold segment: a piece of walkable ground (or a vertical wall) from the
@@ -230,6 +233,7 @@ public final class WzMapLoader {
             let ani = c.int("ani") ?? 0
             let folder = ani == 1 ? "ani" : "back"
             guard let decoded = try decodeSprite(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)") else { continue }
+            let frames = try decodeAnimationFrames(imagePath: "Back/\(bS).img", inner: "\(folder)/\(no)", firstFrame: decoded)
 
             let type = c.int("type") ?? 0
             let horizontalTile = [1, 3, 4, 6, 7].contains(type)
@@ -243,7 +247,8 @@ public final class WzMapLoader {
                 horizontalTile: horizontalTile, verticalTile: verticalTile,
                 isForeground: (c.int("front") ?? 0) != 0,
                 opacity: Float(alpha) / 255,
-                flipped: (c.int("f") ?? 0) != 0
+                flipped: (c.int("f") ?? 0) != 0,
+                frames: frames
             )
             if background.isForeground {
                 foregrounds.append(background)
