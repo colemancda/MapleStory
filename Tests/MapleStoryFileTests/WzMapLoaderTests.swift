@@ -75,7 +75,7 @@ final class WzMapLoaderTests: XCTestCase {
         let map = WzLoadedMap(id: 0, backgrounds: [], foregrounds: [], tiles: [], objects: [],
                               left: 0, top: 0, right: 200, bottom: 200,
                               spawnX: 0, spawnY: 0, footholds: [flat, slope, wall], life: [],
-                              portals: [])
+                              portals: [], ladders: [])
         XCTAssertEqual(map.groundY(atX: 50, below: 0), 100)
         XCTAssertEqual(map.groundY(atX: 150, below: 0), 75)
         // Standing slightly under the ground still finds it within tolerance.

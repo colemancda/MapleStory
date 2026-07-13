@@ -139,6 +139,27 @@ public struct WzLoadedMap: Sendable {
     public var life: [WzMapLife]
     /// Portals (spawn points, map transitions).
     public var portals: [WzMapPortal]
+    /// Climbable ladders and ropes.
+    public var ladders: [WzMapLadder]
+}
+
+/// A ladder or rope from the map's `ladderRope` node.
+public struct WzMapLadder: Sendable {
+    public var x: Int
+    /// Top y (smaller value).
+    public var y1: Int
+    /// Bottom y.
+    public var y2: Int
+    /// `l` flag: true = ladder, false = rope.
+    public var isLadder: Bool
+    /// Whether it can be entered from the platform above (`uf`).
+    public var usableFromTop: Bool
+    public var layer: Int
+
+    /// Whether a foot point is close enough to grab on.
+    public func contains(x footX: Float, y footY: Float, xTolerance: Float = 12) -> Bool {
+        abs(Float(x) - footX) <= xTolerance && footY > Float(y1) && footY <= Float(y2) + 5
+    }
 }
 
 /// A portal from the map's `portal` node.
@@ -340,6 +361,19 @@ public final class WzMapLoader {
             ))
         }
 
+        // Ladders / ropes
+        var ladders: [WzMapLadder] = []
+        for entry in props["ladderRope"]?.children ?? [] {
+            let c = entry.value.children
+            guard let x = c.int("x"), let y1 = c.int("y1"), let y2 = c.int("y2") else { continue }
+            ladders.append(WzMapLadder(
+                x: x, y1: min(y1, y2), y2: max(y1, y2),
+                isLadder: (c.int("l") ?? 1) != 0,
+                usableFromTop: (c.int("uf") ?? 1) != 0,
+                layer: c.int("page") ?? 0
+            ))
+        }
+
         let bounds = computeBounds(props: props, tiles: tiles, objects: objects)
         let spawn = portals.first
         let spawnX = spawn?.x ?? (bounds.left + bounds.right) / 2
@@ -349,7 +383,7 @@ public final class WzMapLoader {
                            tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
                            spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life,
-                           portals: portals)
+                           portals: portals, ladders: ladders)
     }
 
     /// Decode the animated portal swirl from `MapHelper.img/portal/game/pv`.
