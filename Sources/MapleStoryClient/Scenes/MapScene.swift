@@ -85,7 +85,7 @@ public final class MapScene: Scene {
     private var layerNpcs: [[AnimatedSprite]] = []
 
     /// A mob that patrols its foothold chain between its spawn bounds.
-    enum MobState { case patrol, hurt, dying }
+    enum MobState { case patrol, hurt, dying, dead }
 
     struct MobEntity {
         var x: Float
@@ -109,18 +109,26 @@ public final class MapScene: Scene {
         var maxHP: Int
         var touchDamage: Int = 0
         var state: MobState = .patrol
-        /// Seconds remaining in the current hurt/dying state.
+        /// Seconds remaining in the current hurt/dying/dead state.
         var stateTimer: Double = 0
-        var isDead = false
+        /// Where the mob revives after its respawn delay.
+        var spawnX: Float = 0
+        var spawnY: Float = 0
+
+        var isAlive: Bool { state == .patrol || state == .hurt }
 
         var currentAnimation: FrameAnimation? {
             switch state {
             case .dying: return die ?? stand
             case .hurt:  return hit ?? stand
             case .patrol: return walking ? (move ?? stand) : (stand ?? move)
+            case .dead:  return nil
             }
         }
     }
+
+    /// Seconds after a mob's death animation before it revives at its spawn.
+    public var mobRespawnDelay: Double = 7
 
     var mobs: [MobEntity] = []
     private var mobRandom = SystemRandomNumberGenerator()
@@ -335,7 +343,9 @@ public final class MapScene: Scene {
                 die: FrameAnimation(entry.dieFrames),
                 hp: max(entry.maxHP, 1),
                 maxHP: max(entry.maxHP, 1),
-                touchDamage: entry.touchDamage
+                touchDamage: entry.touchDamage,
+                spawnX: Float(entry.life.x),
+                spawnY: Float(entry.life.y)
             )
         }
         nameTags = lifeSprites.compactMap { entry in
@@ -531,7 +541,7 @@ public final class MapScene: Scene {
             return
         }
         guard isClimbing == false else { return }
-        for mob in mobs where mob.state != .dying && mob.touchDamage > 0 {
+        for mob in mobs where mob.isAlive && mob.touchDamage > 0 {
             guard abs(mob.x - playerX) < 30, abs(mob.y - playerY) < 50 else { continue }
             let damage = max(Int(Double(mob.touchDamage) * Double.random(in: 0.8 ... 1.2, using: &mobRandom)), 1)
             playerHP -= damage
@@ -574,7 +584,23 @@ public final class MapScene: Scene {
             case .dying:
                 mob.stateTimer -= deltaTime
                 advanceAnimation(&mob, deltaTime: deltaTime, loop: false)
-                if mob.stateTimer <= 0 { mob.isDead = true }
+                if mob.stateTimer <= 0 {
+                    mob.state = .dead
+                    mob.stateTimer = mobRespawnDelay
+                }
+            case .dead:
+                mob.stateTimer -= deltaTime
+                if mob.stateTimer <= 0 {
+                    mob.hp = mob.maxHP
+                    mob.x = mob.spawnX
+                    mob.y = mob.spawnY
+                    mob.state = .patrol
+                    mob.walking = true
+                    mob.facingRight = Bool.random(using: &mobRandom)
+                    mob.decisionTimer = Double.random(in: 1 ... 4, using: &mobRandom)
+                    mob.frameIndex = 0
+                    mob.frameTimer = 0
+                }
             case .hurt:
                 mob.stateTimer -= deltaTime
                 advanceAnimation(&mob, deltaTime: deltaTime, loop: true)
@@ -610,7 +636,6 @@ public final class MapScene: Scene {
             }
             mobs[index] = mob
         }
-        mobs.removeAll { $0.isDead }
     }
 
     /// Advance a mob's current animation; when `loop` is false it holds on the
@@ -634,7 +659,7 @@ public final class MapScene: Scene {
         let range: Float = 100
         let minX = facingRight ? playerX : playerX - range
         let maxX = facingRight ? playerX + range : playerX
-        for index in mobs.indices where mobs[index].state != .dying {
+        for index in mobs.indices where mobs[index].isAlive {
             let mob = mobs[index]
             guard mob.x >= minX, mob.x <= maxX, abs(mob.y - playerY) < 80 else { continue }
             let damage = Int.random(in: 6 ... 14, using: &mobRandom)
@@ -831,7 +856,7 @@ public final class MapScene: Scene {
         for tag in nameTags {
             drawNameTag(tag.name, x: tag.x, y: tag.y, camera: camera, context: context)
         }
-        for mob in mobs {
+        for mob in mobs where mob.state != .dead {
             if let name = mob.name {
                 drawNameTag(name, x: mob.x, y: mob.y, camera: camera, context: context)
             }

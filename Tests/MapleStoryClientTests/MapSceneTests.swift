@@ -65,6 +65,42 @@ final class MapSceneTests: XCTestCase {
         XCTAssertEqual(scene.playerPosition.y, 50, accuracy: 1)
     }
 
+    func testMobRespawnsAtSpawnPointAfterDelay() {
+        let scene = MapScene(map: makeMap(portals: []), playerStart: (0, 100))
+        scene.mobRespawnDelay = 5
+        // Speed 0 so the respawned mob stays at its spawn point for the assert.
+        var mob = MapScene.MobEntity(
+            x: 250, y: 100, decisionTimer: 1, speed: 0,
+            minX: -400, maxX: 400, layer: 0, name: "Test",
+            stand: nil, move: nil, hit: nil, die: nil,
+            hp: 0, maxHP: 10, spawnX: 100, spawnY: 100
+        )
+        mob.state = .dying
+        mob.stateTimer = 0.1
+        scene.mobs = [mob]
+
+        // deltaTime is clamped to 0.05s per tick, so advance in steps.
+        func advance(seconds: Double) {
+            for _ in 0 ..< Int(seconds / 0.05) { scene.update(deltaTime: 0.05) }
+        }
+
+        // Death animation finishes -> dead, waiting to respawn.
+        advance(seconds: 0.2)
+        XCTAssertEqual(scene.mobs[0].state, .dead)
+        XCTAssertFalse(scene.mobs[0].isAlive)
+
+        // Not yet: still dead mid-delay.
+        advance(seconds: 3)
+        XCTAssertEqual(scene.mobs[0].state, .dead)
+
+        // Delay elapses -> alive again at its spawn point with full HP.
+        advance(seconds: 3)
+        XCTAssertEqual(scene.mobs[0].state, .patrol)
+        XCTAssertEqual(scene.mobs[0].hp, 10)
+        XCTAssertEqual(scene.mobs[0].x, 100)
+        XCTAssertEqual(scene.mobs[0].y, 100)
+    }
+
     func testUpArrowIgnoresDistantAndSpawnPortals() {
         let distant = WzMapPortal(name: "far", type: 2, x: 400, y: 100,
                                   targetMap: 100010000, targetName: "west00")
