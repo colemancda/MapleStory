@@ -160,7 +160,7 @@ final class MapEnvironment {
         let map = try mapLoader.load(mapID: mapID)
         print("Map \(mapID): \(map.backgrounds.count) backgrounds, \(map.tiles.count) tiles, \(map.objects.count) objects, \(map.portals.count) portals")
 
-        var lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)] = []
+        var lifeSprites: [WzLifeSprite] = []
         appendLife(type: "n", loader: npcLoader, map: map, into: &lifeSprites)
         appendLife(type: "m", loader: mobLoader, map: map, into: &lifeSprites)
 
@@ -211,22 +211,26 @@ final class MapEnvironment {
         type: String,
         loader: WzLifeSpriteLoader?,
         map: WzLoadedMap,
-        into lifeSprites: inout [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)]
+        into lifeSprites: inout [WzLifeSprite]
     ) {
         guard let loader else { return }
-        var frameCache: [Int: [WzSpriteFrame]] = [:]
+        var cache: [Int: (stand: [WzSpriteFrame], move: [WzSpriteFrame], speed: Int)] = [:]
         var count = 0
         for life in map.life where life.type == type && life.hidden == false {
-            let frames: [WzSpriteFrame]
-            if let cached = frameCache[life.id] {
-                frames = cached
+            let loaded: (stand: [WzSpriteFrame], move: [WzSpriteFrame], speed: Int)
+            if let cached = cache[life.id] {
+                loaded = cached
             } else {
-                frames = (try? loader.loadStandFrames(id: life.id)) ?? []
-                frameCache[life.id] = frames
+                let stand = (try? loader.loadStandFrames(id: life.id)) ?? []
+                let move = type == "m" ? ((try? loader.loadFrames(action: "move", id: life.id)) ?? []) : []
+                loaded = (stand, move, loader.speedPercent(id: life.id))
+                cache[life.id] = loaded
             }
-            if frames.isEmpty == false {
+            if loaded.stand.isEmpty == false || loaded.move.isEmpty == false {
                 let name = type == "n" ? stringLoader?.npcName(id: life.id) : stringLoader?.mobName(id: life.id)
-                lifeSprites.append((life, frames, name))
+                lifeSprites.append(WzLifeSprite(life: life, standFrames: loaded.stand,
+                                                moveFrames: loaded.move, name: name,
+                                                speedPercent: loaded.speed))
                 count += 1
             }
         }

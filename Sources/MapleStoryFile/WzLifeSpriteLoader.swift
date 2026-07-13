@@ -10,6 +10,26 @@
 
 import Foundation
 
+/// A fully loaded life sprite: placement plus its animations.
+public struct WzLifeSprite: Sendable {
+    public var life: WzMapLife
+    public var standFrames: [WzSpriteFrame]
+    /// Walking animation (mobs); empty for NPCs.
+    public var moveFrames: [WzSpriteFrame]
+    public var name: String?
+    /// Mob speed modifier percent (`info/speed`, e.g. -50 = half speed).
+    public var speedPercent: Int
+
+    public init(life: WzMapLife, standFrames: [WzSpriteFrame], moveFrames: [WzSpriteFrame] = [],
+                name: String? = nil, speedPercent: Int = 0) {
+        self.life = life
+        self.standFrames = standFrames
+        self.moveFrames = moveFrames
+        self.name = name
+        self.speedPercent = speedPercent
+    }
+}
+
 public final class WzLifeSpriteLoader {
 
     private let archive: WzArchive
@@ -21,17 +41,33 @@ public final class WzLifeSpriteLoader {
 
     /// Decode a life sprite's standing animation, following `info/link` aliases.
     public func loadStandFrames(id spriteID: Int) throws -> [WzSpriteFrame] {
+        try loadFrames(action: "stand", id: spriteID)
+    }
+
+    /// Decode an animation by action name, following `info/link` aliases.
+    public func loadFrames(action: String, id spriteID: Int) throws -> [WzSpriteFrame] {
+        guard let props = try resolvedProperties(id: spriteID) else { return [] }
+        return try decodeFrames(action: action, props: props)
+    }
+
+    /// The sprite's `info/speed` percent modifier (0 when absent).
+    public func speedPercent(id spriteID: Int) -> Int {
+        (try? resolvedProperties(id: spriteID))??.int("info/speed") ?? 0
+    }
+
+    /// Image properties with `info/link` aliases resolved.
+    private func resolvedProperties(id spriteID: Int) throws -> [WzNamedProperty]? {
         var id = spriteID
         var visited = Set<Int>()
         while visited.insert(id).inserted {
-            guard let props = try imageProperties(String(format: "%07d.img", id)) else { return [] }
+            guard let props = try imageProperties(String(format: "%07d.img", id)) else { return nil }
             if let link = props.string("info/link").flatMap(Int.init), link != id {
                 id = link
                 continue
             }
-            return try decodeFrames(action: "stand", props: props)
+            return props
         }
-        return []
+        return nil
     }
 
     private func decodeFrames(action: String, props: [WzNamedProperty]) throws -> [WzSpriteFrame] {
