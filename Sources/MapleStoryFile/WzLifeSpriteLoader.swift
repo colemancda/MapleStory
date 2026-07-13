@@ -1,15 +1,16 @@
 //
-//  WzNpcLoader.swift
+//  WzLifeSpriteLoader.swift
 //  MapleStoryFile
 //
-//  Loads NPC stand animations from Npc.wz:
-//    Npc/{id:07}.img/stand/{frame}  (canvases with origin/z/delay)
-//  An NPC whose `info/link` names another id is an alias for that NPC's image.
+//  Loads stand animations for life sprites - NPCs from Npc.wz and mobs from
+//  Mob.wz, which share the same layout:
+//    {id:07}.img/stand/{frame}  (canvases with origin/delay)
+//  An entry whose `info/link` names another id is an alias for that image.
 //
 
 import Foundation
 
-public final class WzNpcLoader {
+public final class WzLifeSpriteLoader {
 
     private let archive: WzArchive
     private var imageCache: [String: [WzNamedProperty]] = [:]
@@ -18,9 +19,9 @@ public final class WzNpcLoader {
         self.archive = archive
     }
 
-    /// Decode an NPC's standing animation, following `info/link` aliases.
-    public func loadStandFrames(npcID: Int) throws -> [WzSpriteFrame] {
-        var id = npcID
+    /// Decode a life sprite's standing animation, following `info/link` aliases.
+    public func loadStandFrames(id spriteID: Int) throws -> [WzSpriteFrame] {
+        var id = spriteID
         var visited = Set<Int>()
         while visited.insert(id).inserted {
             guard let props = try imageProperties(String(format: "%07d.img", id)) else { return [] }
@@ -28,12 +29,12 @@ public final class WzNpcLoader {
                 id = link
                 continue
             }
-            return try decodeFrames(action: "stand", props: props, imagePath: String(format: "%07d.img", id))
+            return try decodeFrames(action: "stand", props: props)
         }
         return []
     }
 
-    private func decodeFrames(action: String, props: [WzNamedProperty], imagePath: String) throws -> [WzSpriteFrame] {
+    private func decodeFrames(action: String, props: [WzNamedProperty]) throws -> [WzSpriteFrame] {
         guard let container = props[action]?.children else { return [] }
         let indices = container.map(\.name).compactMap(Int.init).sorted()
         var frames: [WzSpriteFrame] = []
