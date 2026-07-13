@@ -18,6 +18,10 @@ final class LoginScene: Scene {
     private let configuration: ClientConfiguration
     private let verbose: Bool
 
+    /// Called (from a network task) when the channel server warps the client
+    /// into a map — the hand-off point to the real map renderer.
+    var onEnterField: (@Sendable (_ mapID: Int, _ spawnPoint: Int) -> Void)?
+
     init(configuration: ClientConfiguration, verbose: Bool) {
         self.configuration = configuration
         self.verbose = verbose
@@ -28,6 +32,7 @@ final class LoginScene: Scene {
         let model = self.model
         let configuration = self.configuration
         let verbose = self.verbose
+        let onEnterField = self.onEnterField
         Task.detached {
             let log: (@Sendable (String) -> Void)?
             if verbose {
@@ -47,7 +52,8 @@ final class LoginScene: Scene {
                     LoginScene.handle(characterList: characters, model: model)
                 }
                 await client.register { (serverIP: MapleStory83.ServerIPResponse) in
-                    LoginScene.handle(serverIP: serverIP, model: model, verbose: verbose)
+                    LoginScene.handle(serverIP: serverIP, model: model, verbose: verbose,
+                                      onEnterField: onEnterField)
                 }
                 model.setClient(client)
                 model.setStatus(.ready, message: "Connected to \(configuration.destination.rawValue)")
@@ -93,7 +99,12 @@ final class LoginScene: Scene {
     }
 
     /// The login server hands off to a channel server: connect there and enter the game.
-    private static func handle(serverIP: MapleStory83.ServerIPResponse, model: LoginModel, verbose: Bool) {
+    private static func handle(
+        serverIP: MapleStory83.ServerIPResponse,
+        model: LoginModel,
+        verbose: Bool,
+        onEnterField: (@Sendable (Int, Int) -> Void)?
+    ) {
         let address = serverIP.address
         let character = serverIP.character
         model.setPhase(.enteringGame)
@@ -111,6 +122,9 @@ final class LoginScene: Scene {
                 }
                 let configuration = ClientConfiguration(destination: address)
                 let client = try await V83Client.connect(configuration: configuration, log: log)
+                await client.register { (field: MapleStory83.SetFieldNotification) in
+                    LoginScene.handle(setField: field, model: model, onEnterField: onEnterField)
+                }
                 model.setClient(client)
                 try await client.send(MapleStory83.PlayerLoginRequest(character: character))
                 model.setStatus(.loggedIn, message: "In game as character \(character)")
@@ -119,6 +133,17 @@ final class LoginScene: Scene {
                 model.setStatus(.failed, message: "Channel connect failed: \(error)")
             }
         }
+    }
+
+    /// The channel server warped us into a map: hand off to the map renderer.
+    static func handle(
+        setField: MapleStory83.SetFieldNotification,
+        model: LoginModel,
+        onEnterField: (@Sendable (Int, Int) -> Void)?
+    ) {
+        model.setPhase(.inGame)
+        model.setStatus(.loggedIn, message: "Entered map \(setField.mapID)")
+        onEnterField?(Int(setField.mapID), Int(setField.spawnPoint))
     }
 
     // MARK: - Scene
