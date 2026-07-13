@@ -144,6 +144,26 @@ public struct WzLoadedMap: Sendable {
     /// Background-music path (`info/bgm`), e.g. "Bgm00/FloralLife" - resolves
     /// to Sound.wz/{first}.img/{second}.
     public var bgm: String?
+    /// Pre-rendered minimap (the map's `miniMap` node), when present.
+    public var minimap: WzMapMinimap? = nil
+}
+
+/// A map's pre-rendered minimap bitmap plus the transform from world
+/// coordinates: minimapX = (worldX + centerX) >> mag.
+public struct WzMapMinimap: Sendable {
+    public var rgba: [UInt8]
+    public var width: Int
+    public var height: Int
+    public var centerX: Int
+    public var centerY: Int
+    /// Power-of-two scale exponent.
+    public var mag: Int
+
+    /// The minimap pixel for a world position.
+    public func point(worldX: Float, worldY: Float) -> (x: Float, y: Float) {
+        let scale = Float(1 << max(mag, 0))
+        return ((worldX + Float(centerX)) / scale, (worldY + Float(centerY)) / scale)
+    }
 }
 
 /// A ladder or rope from the map's `ladderRope` node.
@@ -387,11 +407,25 @@ public final class WzMapLoader {
         let spawnX = spawn?.x ?? (bounds.left + bounds.right) / 2
         let spawnY = spawn?.y ?? bounds.bottom
 
+        // Minimap: a pre-rendered bitmap plus the world-coordinate transform.
+        var minimap: WzMapMinimap?
+        if let node = props["miniMap"]?.children,
+           let canvas = node["canvas"]?.canvasValue, canvas.dataLength > 0,
+           let bitmap = try? archive.decodeCanvas(canvas) {
+            minimap = WzMapMinimap(
+                rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
+                centerX: node.int("centerX") ?? 0,
+                centerY: node.int("centerY") ?? 0,
+                mag: node.int("mag") ?? 0
+            )
+        }
+
         return WzLoadedMap(id: mapID, backgrounds: backgrounds, foregrounds: foregrounds,
                            tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
                            spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life,
-                           portals: portals, ladders: ladders, bgm: props.string("info/bgm"))
+                           portals: portals, ladders: ladders, bgm: props.string("info/bgm"),
+                           minimap: minimap)
     }
 
     /// Decode the animated portal swirl from `MapHelper.img/portal/game/pv`.

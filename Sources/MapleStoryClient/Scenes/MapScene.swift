@@ -226,6 +226,7 @@ public final class MapScene: Scene {
     /// Portal swirl animation frames (from `WzMapLoader.loadPortalAnimation`).
     private let portalFrames: [WzSpriteFrame]
     private var portalSprites: [AnimatedSprite] = []
+    private var minimapTexture: Texture?
 
     /// Called when the player enters a usable portal (up arrow while standing
     /// on it). The host decides whether/how to load the target map.
@@ -361,6 +362,9 @@ public final class MapScene: Scene {
             proneFrames = MapScene.characterTextures(for: character.prone)
             ladderFrames = MapScene.characterTextures(for: character.ladder)
             ropeFrames = MapScene.characterTextures(for: character.rope)
+        }
+        if let minimap = map.minimap {
+            minimapTexture = try? Texture(width: minimap.width, height: minimap.height, rgba: minimap.rgba)
         }
         built = true
     }
@@ -795,6 +799,7 @@ public final class MapScene: Scene {
         if showFootholds {
             drawFootholds(camera: camera, context: context)
         }
+        drawMinimap(context: context)
         if character != nil {
             drawHPBar(context: context)
         }
@@ -830,6 +835,44 @@ public final class MapScene: Scene {
             if let name = mob.name {
                 drawNameTag(name, x: mob.x, y: mob.y, camera: camera, context: context)
             }
+        }
+    }
+
+    /// The minimap, top-left: the map's pre-rendered bitmap on a dark backing,
+    /// with a yellow dot for the player and cyan dots for usable portals.
+    private func drawMinimap(context: RenderContext) {
+        guard let minimapTexture, let minimap = map.minimap else { return }
+        let originX: Float = 10
+        let originY: Float = 34  // below the FPS counter
+        let padding: Float = 4
+        context.renderer.fill(
+            Rectangle(x: originX - padding, y: originY - padding,
+                      width: Float(minimap.width) + padding * 2,
+                      height: Float(minimap.height) + padding * 2),
+            color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 0.55)
+        )
+        context.renderer.draw(
+            minimapTexture,
+            in: Rectangle(x: originX, y: originY,
+                          width: Float(minimap.width), height: Float(minimap.height))
+        )
+        func dot(worldX: Float, worldY: Float, color: RGBAColor, size: Float) {
+            let point = minimap.point(worldX: worldX, worldY: worldY)
+            guard point.x >= 0, point.x <= Float(minimap.width),
+                  point.y >= 0, point.y <= Float(minimap.height) else { return }
+            context.renderer.fill(
+                Rectangle(x: originX + point.x - size / 2, y: originY + point.y - size / 2,
+                          width: size, height: size),
+                color: color
+            )
+        }
+        for portal in map.portals where portal.isUsable {
+            dot(worldX: Float(portal.x), worldY: Float(portal.y),
+                color: RGBAColor(red: 0.2, green: 0.9, blue: 1, alpha: 1), size: 3)
+        }
+        if character != nil {
+            dot(worldX: playerX, worldY: playerY,
+                color: RGBAColor(red: 1, green: 0.9, blue: 0.1, alpha: 1), size: 4)
         }
     }
 
