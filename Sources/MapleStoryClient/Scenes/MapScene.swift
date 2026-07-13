@@ -88,6 +88,9 @@ public final class MapScene: Scene {
     private var sceneTime: Double = 0
     private var standFrames: [CharacterFrameTextures] = []
     private var walkFrames: [CharacterFrameTextures] = []
+    private var jumpFrames: [CharacterFrameTextures] = []
+    private var ladderFrames: [CharacterFrameTextures] = []
+    private var ropeFrames: [CharacterFrameTextures] = []
 
     private var cameraX: Float
     private var cameraY: Float
@@ -104,6 +107,23 @@ public final class MapScene: Scene {
     // Vertical physics: the player position is the foot point; footholds are ground.
     private var velocityY: Float = 0
     private var onGround = false
+
+    // Climbing: while attached to a ladder/rope, gravity is suspended and
+    // up/down move along it.
+    private var isClimbing = false
+    private var currentLadder: WzMapLadder?
+
+    /// Climb speed in world units per second.
+    public var climbSpeed: Float = 120
+
+    /// Fade-in duration when the scene starts (masks map-load transitions).
+    public var fadeInDuration: Double = 0.4
+
+    /// The player's foot position in world coordinates (read-only; for tests/UI).
+    public var playerPosition: (x: Float, y: Float) { (playerX, playerY) }
+
+    /// Whether the player is attached to a ladder/rope.
+    public var isPlayerClimbing: Bool { isClimbing }
 
     /// The map layer of the foothold the player stands on; the player draws
     /// after this layer's content (drawn on top of everything until known).
@@ -170,6 +190,7 @@ public final class MapScene: Scene {
         var arm: CharacterPartTexture?
         var head: CharacterPartTexture?
         var face: CharacterPartTexture?
+        var showFace: Bool
     }
 
     /// Upload sprite pixels to GL textures (must run with a current GL context).
@@ -218,6 +239,9 @@ public final class MapScene: Scene {
         if let character {
             standFrames = MapScene.characterTextures(for: character.stand)
             walkFrames = MapScene.characterTextures(for: character.walk)
+            jumpFrames = MapScene.characterTextures(for: character.jump)
+            ladderFrames = MapScene.characterTextures(for: character.ladder)
+            ropeFrames = MapScene.characterTextures(for: character.rope)
         }
         built = true
     }
@@ -243,7 +267,8 @@ public final class MapScene: Scene {
                 body: partTexture(frame.body),
                 arm: partTexture(frame.arm),
                 head: partTexture(frame.head),
-                face: partTexture(frame.face)
+                face: partTexture(frame.face),
+                showFace: frame.showFace
             )
         }
     }
@@ -278,6 +303,13 @@ public final class MapScene: Scene {
             return
         }
 
+        if isClimbing {
+            updateClimbing(deltaTime: deltaTime)
+            cameraX = playerX
+            cameraY = playerY
+            return
+        }
+
         let movingLeft = heldKeys.contains(.left)
         let movingRight = heldKeys.contains(.right)
         let wasWalking = isWalking
@@ -292,6 +324,12 @@ public final class MapScene: Scene {
             facingRight = false
         }
         playerX = min(max(playerX, Float(map.left)), Float(map.right))
+
+        // Holding up mid-air grabs a passing ladder/rope (classic MS behavior).
+        if onGround == false, heldKeys.contains(.up), let ladder = ladderAtPlayer() {
+            attach(to: ladder)
+            return
+        }
 
         updateVerticalPhysics(deltaTime: deltaTime)
 
@@ -311,6 +349,69 @@ public final class MapScene: Scene {
             frameTimer -= delay
             frameIndex = (frameIndex + 1) % frames.count
         }
+    }
+
+    // MARK: - Climbing
+
+    private func ladderAtPlayer() -> WzMapLadder? {
+        map.ladders.first { $0.contains(x: playerX, y: playerY) }
+    }
+
+    private func attach(to ladder: WzMapLadder) {
+        isClimbing = true
+        currentLadder = ladder
+        playerX = Float(ladder.x)
+        playerY = min(max(playerY, Float(ladder.y1)), Float(ladder.y2))
+        velocityY = 0
+        onGround = false
+        frameIndex = 0
+        frameTimer = 0
+        cameraX = playerX
+        cameraY = playerY
+    }
+
+    private func updateClimbing(deltaTime: Double) {
+        guard let ladder = currentLadder else {
+            isClimbing = false
+            return
+        }
+        let up = heldKeys.contains(.up)
+        let down = heldKeys.contains(.down)
+        let moving = up != down
+
+        if moving {
+            let step = climbSpeed * Float(deltaTime)
+            playerY += up ? -step : step
+            // Advance the climb animation only while moving.
+            let frames = ladder.isLadder ? ladderFrames : ropeFrames
+            if frames.isEmpty == false {
+                frameTimer += deltaTime * 1000
+                let delay = Double(max(frames[frameIndex % frames.count].delayMilliseconds, 1))
+                if frameTimer >= delay {
+                    frameTimer -= delay
+                    frameIndex = (frameIndex + 1) % frames.count
+                }
+            }
+        }
+
+        if playerY <= Float(ladder.y1) {
+            // Climbed off the top: step onto the platform above.
+            playerY = Float(ladder.y1) - 2
+            detachFromLadder()
+        } else if playerY >= Float(ladder.y2) {
+            // Slid off the bottom: fall.
+            playerY = Float(ladder.y2)
+            detachFromLadder()
+        }
+    }
+
+    private func detachFromLadder() {
+        isClimbing = false
+        currentLadder = nil
+        velocityY = 0
+        onGround = false
+        frameIndex = 0
+        frameTimer = 0
     }
 
     /// Keep the player's feet on foothold geometry: follow slopes/steps while
@@ -385,6 +486,14 @@ public final class MapScene: Scene {
         }
         if showFootholds {
             drawFootholds(camera: camera, context: context)
+        }
+        // Fade in from black when the scene starts (masks map transitions).
+        if fadeInDuration > 0, sceneTime < fadeInDuration {
+            let alpha = Float(1 - sceneTime / fadeInDuration)
+            context.renderer.fill(
+                Rectangle(x: 0, y: 0, width: Float(context.width), height: Float(context.height)),
+                color: RGBAColor(red: 0, green: 0, blue: 0, alpha: alpha)
+            )
         }
     }
 
@@ -479,13 +588,25 @@ public final class MapScene: Scene {
 
     /// Draw the player character by attaching parts via matching anchor points:
     /// arm/body via "navel", head/body via "neck", face/head via "brow".
+    /// The animation for the player's current pose.
+    private func currentPlayerFrames() -> [CharacterFrameTextures] {
+        if isClimbing {
+            let frames = (currentLadder?.isLadder ?? true) ? ladderFrames : ropeFrames
+            if frames.isEmpty == false { return frames }
+        }
+        if onGround == false && isClimbing == false && jumpFrames.isEmpty == false {
+            return jumpFrames
+        }
+        return isWalking ? walkFrames : standFrames
+    }
+
     private func drawPlayer(camera: Camera, context: RenderContext) {
-        let frames = isWalking ? walkFrames : standFrames
+        let frames = currentPlayerFrames()
         guard frames.isEmpty == false else { return }
         let frame = frames[frameIndex % frames.count]
         guard let body = frame.body else { return }
 
-        let flip = facingRight == false
+        let flip = facingRight == false && isClimbing == false
         let bodyOrigin = (x: Double(playerX), y: Double(playerY))
         drawPart(body, atOrigin: bodyOrigin, flip: flip, camera: camera, context: context)
 
@@ -499,7 +620,7 @@ public final class MapScene: Scene {
             let headOrigin = subtract(bodyNeck, head.part.point("neck"))
             drawPart(head, atOrigin: headOrigin, flip: flip, camera: camera, context: context)
 
-            if let face = frame.face {
+            if let face = frame.face, frame.showFace {
                 let headBrow = add(headOrigin, head.part.point("brow"))
                 let faceOrigin = subtract(headBrow, face.part.point("brow"))
                 drawPart(face, atOrigin: faceOrigin, flip: flip, camera: camera, context: context)
@@ -520,13 +641,23 @@ public final class MapScene: Scene {
     public func handle(_ event: InputEvent) {
         // Continuous movement is driven by `updateInput(held:)`; jumping is a
         // discrete key press (space, matching common private-server bindings).
-        if case .character(" ") = event, character != nil, onGround {
-            velocityY = -jumpSpeed
-            onGround = false
+        if case .character(" ") = event, character != nil {
+            if isClimbing {
+                // Jump off the ladder/rope.
+                detachFromLadder()
+                velocityY = -jumpSpeed * 0.6
+            } else if onGround {
+                velocityY = -jumpSpeed
+                onGround = false
+            }
         }
-        // Up enters a portal the player is standing on.
-        if case .control(.up) = event, let portal = portalAtPlayer() {
-            onEnterPortal?(portal)
+        // Up enters a portal the player stands on, or grabs a ladder/rope.
+        if case .control(.up) = event, isClimbing == false {
+            if let portal = portalAtPlayer() {
+                onEnterPortal?(portal)
+            } else if character != nil, let ladder = ladderAtPlayer() {
+                attach(to: ladder)
+            }
         }
     }
 

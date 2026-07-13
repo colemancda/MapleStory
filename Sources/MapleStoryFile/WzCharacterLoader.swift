@@ -41,6 +41,9 @@ public struct WzCharacterFrame: Sendable {
     public var arm: WzCharacterPart?
     public var head: WzCharacterPart?
     public var face: WzCharacterPart?
+    /// Whether the face is visible this frame (climbing poses show the
+    /// character from behind, flagged by the frame's `face` int being 0).
+    public var showFace: Bool = true
 }
 
 public struct WzCharacterAnimation: Sendable {
@@ -51,6 +54,9 @@ public struct WzCharacterAnimation: Sendable {
 public struct WzLoadedCharacter: Sendable {
     public var stand: WzCharacterAnimation
     public var walk: WzCharacterAnimation
+    public var jump: WzCharacterAnimation
+    public var ladder: WzCharacterAnimation
+    public var rope: WzCharacterAnimation
 }
 
 public final class WzCharacterLoader {
@@ -84,7 +90,10 @@ public final class WzCharacterLoader {
 
         let stand = try loadAnimation(action: "stand1", bodyProps: bodyProps, headProps: headProps, face: face)
         let walk = try loadAnimation(action: "walk1", bodyProps: bodyProps, headProps: headProps, face: face)
-        return WzLoadedCharacter(stand: stand, walk: walk)
+        let jump = try loadAnimation(action: "jump", bodyProps: bodyProps, headProps: headProps, face: face)
+        let ladder = try loadAnimation(action: "ladder", bodyProps: bodyProps, headProps: headProps, face: face)
+        let rope = try loadAnimation(action: "rope", bodyProps: bodyProps, headProps: headProps, face: face)
+        return WzLoadedCharacter(stand: stand, walk: walk, jump: jump, ladder: ladder, rope: rope)
     }
 
     private func loadAnimation(
@@ -117,7 +126,10 @@ public final class WzCharacterLoader {
                 head = decodePart(node: headNode, currentPath: [action, "\(index)", "head"], rootProps: headProps)
             }
 
-            frames.append(WzCharacterFrame(delayMilliseconds: delay, body: body, arm: arm, head: head, face: face))
+            // The frame's `face` int flags visibility (0 = seen from behind).
+            let showFace = (frameChildren.int("face") ?? 1) != 0
+            frames.append(WzCharacterFrame(delayMilliseconds: delay, body: body, arm: arm, head: head,
+                                           face: face, showFace: showFace))
         }
         return WzCharacterAnimation(frames: frames)
     }
