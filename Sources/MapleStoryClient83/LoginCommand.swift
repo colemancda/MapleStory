@@ -40,6 +40,9 @@ struct LoginCommand: ParsableCommand {
     @Option(name: .long, help: "Debug: skip the server and enter this map id directly, exercising the same hand-off as a real SetField warp.")
     var simulateField: Int?
 
+    @Option(name: .long, help: "Debug: start on a phase (world/char) with sample data, without a server.")
+    var phase: String?
+
     func run() throws {
         guard let destination = MapleStoryAddress(address: host, port: port) else {
             throw ValidationError("Invalid server address \(host):\(port)")
@@ -70,6 +73,16 @@ struct LoginCommand: ParsableCommand {
                 }
             }
         }
+        switch phase?.lowercased() {
+        case "world":
+            for world in ["Scania", "Bera", "Broa", "Windia"] { scene.model.addWorld(world) }
+            scene.model.setPhase(.worldSelect)
+        case "char":
+            scene.model.setCharacters([(1, "Coleman"), (2, "MapleFan"), (3, "Slime")])
+            scene.model.setPhase(.characterSelect)
+        default:
+            break
+        }
         game.setScene(scene)
         scene.start()
         if let screenshot {
@@ -95,26 +108,16 @@ struct LoginCommand: ParsableCommand {
            let loginProps = try uiLoader.properties(image: "MapLogin.img") {
             let mapLoader = WzMapLoader(archive: mapArchive)
             let (backgrounds, foregrounds) = try mapLoader.loadBackgrounds(from: loginProps)
-            // The login backdrop is a static scene: its layers all use
-            // rx/ry -100 and the login band occupies world y -600...0 (the
-            // world-select art sits below). Pin the layers to the screen and
-            // center the band on the camera origin.
-            func pinned(_ layers: [WzMapBackground]) -> [WzMapBackground] {
-                layers.map { layer in
-                    var pinnedLayer = layer
-                    pinnedLayer.rx = 0
-                    pinnedLayer.ry = 0
-                    pinnedLayer.y += 300
-                    return pinnedLayer
-                }
-            }
             let loginMap = WzLoadedMap(
-                id: 0, backgrounds: pinned(backgrounds), foregrounds: pinned(foregrounds),
+                id: 0, backgrounds: backgrounds, foregrounds: foregrounds,
                 tiles: [], objects: [],
                 left: -512, top: -1500, right: 512, bottom: 1500,
                 spawnX: 0, spawnY: 0, footholds: [], life: [],
                 portals: [], ladders: [], bgm: loginProps.string("info/bgm")
             )
+            // The scene camera is driven by LoginScene, which scrolls between
+            // the login band (world y -600...0) and the world-select band
+            // (y 0...600) like the original client.
             background = MapScene(map: loginMap)
 
             // Title BGM (info/bgm = "BgmUI/Title" -> Sound.wz/BgmUI.img/Title).
@@ -130,12 +133,39 @@ struct LoginCommand: ParsableCommand {
             }
         }
 
+        // World tower buttons + logos: numbered entries until one is missing.
+        var worldButtonNormal: [WzSpriteFrame] = []
+        var worldButtonPressed: [WzSpriteFrame] = []
+        var worldLogos: [WzSpriteFrame] = []
+        var worldIndex = 0
+        while let normal = try uiLoader.sprite(image: "Login.img", path: "WorldSelect/BtWorld/\(worldIndex)/normal") {
+            worldButtonNormal.append(normal)
+            if let pressed = try uiLoader.sprite(image: "Login.img", path: "WorldSelect/BtWorld/\(worldIndex)/pressed") {
+                worldButtonPressed.append(pressed)
+            }
+            if let logo = try uiLoader.sprite(image: "Login.img", path: "WorldSelect/world/\(worldIndex)") {
+                worldLogos.append(logo)
+            }
+            worldIndex += 1
+        }
+
         return LoginAssets(
             background: background,
             frame: try uiLoader.sprite(image: "Login.img", path: "Common/frame"),
             logo: try uiLoader.sprite(image: "Login.img", path: "Title/MSTitle"),
             buttonNormal: try uiLoader.sprite(image: "Login.img", path: "Title/BtLogin/normal"),
-            buttonPressed: try uiLoader.sprite(image: "Login.img", path: "Title/BtLogin/pressed")
+            buttonPressed: try uiLoader.sprite(image: "Login.img", path: "Title/BtLogin/pressed"),
+            worldScroll: try uiLoader.frames(image: "Login.img", path: "WorldSelect/scroll/0").last,
+            worldButtonNormal: worldButtonNormal,
+            worldButtonPressed: worldButtonPressed,
+            worldLogos: worldLogos,
+            channelBoard: try uiLoader.sprite(image: "Login.img", path: "WorldSelect/chBackgrn"),
+            channelButtons: try (0 ..< 20).compactMap { try uiLoader.sprite(image: "Login.img", path: "WorldSelect/channel/\($0)/normal") },
+            goWorldButton: try uiLoader.sprite(image: "Login.img", path: "WorldSelect/BtGoworld/normal"),
+            charInfoCard: try uiLoader.sprite(image: "Login.img", path: "CharSelect/charInfo"),
+            selectButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtSelect/normal"),
+            newCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtNew/normal"),
+            deleteCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtDelete/normal")
         )
     }
 
