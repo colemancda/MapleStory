@@ -141,6 +141,9 @@ public struct WzLoadedMap: Sendable {
     public var portals: [WzMapPortal]
     /// Climbable ladders and ropes.
     public var ladders: [WzMapLadder]
+    /// Background-music path (`info/bgm`), e.g. "Bgm00/FloralLife" - resolves
+    /// to Sound.wz/{first}.img/{second}.
+    public var bgm: String?
 }
 
 /// A ladder or rope from the map's `ladderRope` node.
@@ -383,7 +386,7 @@ public final class WzMapLoader {
                            tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
                            spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life,
-                           portals: portals, ladders: ladders)
+                           portals: portals, ladders: ladders, bgm: props.string("info/bgm"))
     }
 
     /// Decode the animated portal swirl from `MapHelper.img/portal/game/pv`.
