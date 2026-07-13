@@ -24,6 +24,22 @@ struct LoginAssets {
     /// Login.img/Title/BtLogin button states.
     var buttonNormal: WzSpriteFrame?
     var buttonPressed: WzSpriteFrame?
+
+    // World select: the unrolled paper scroll, per-world tower buttons,
+    // world logos, the channel board, and the "go world" button.
+    var worldScroll: WzSpriteFrame?
+    var worldButtonNormal: [WzSpriteFrame] = []
+    var worldButtonPressed: [WzSpriteFrame] = []
+    var worldLogos: [WzSpriteFrame] = []
+    var channelBoard: WzSpriteFrame?
+    var channelButtons: [WzSpriteFrame] = []
+    var goWorldButton: WzSpriteFrame?
+
+    // Character select: the stat card and action buttons.
+    var charInfoCard: WzSpriteFrame?
+    var selectButton: WzSpriteFrame?
+    var newCharButton: WzSpriteFrame?
+    var deleteCharButton: WzSpriteFrame?
 }
 
 final class LoginScene: Scene {
@@ -42,10 +58,35 @@ final class LoginScene: Scene {
     private var logoTexture: Texture?
     private var buttonNormalTexture: Texture?
     private var buttonPressedTexture: Texture?
+    private var worldScrollTexture: Texture?
+    private var worldButtonNormalTextures: [Texture?] = []
+    private var worldButtonPressedTextures: [Texture?] = []
+    private var worldLogoTextures: [Texture?] = []
+    private var channelBoardTexture: Texture?
+    private var channelButtonTextures: [Texture?] = []
+    private var goWorldTexture: Texture?
+    private var charInfoTexture: Texture?
+    private var selectButtonTexture: Texture?
+    private var newCharButtonTexture: Texture?
+    private var deleteCharButtonTexture: Texture?
     /// Login button screen rectangle (for click hit-testing), updated per frame.
     private var loginButtonRect: Rectangle?
     private var loginButtonPressedUntil: Double = 0
     private var time: Double = 0
+
+    // The backdrop is a tall scene: the login art occupies world y -600...0
+    // and the world-select art y 0...600. The camera scrolls between the two
+    // bands like the original client. `scroll` is the current band offset
+    // (+300 = login, -300 = world select).
+    private var scroll: Float = 300
+    private var scrollTarget: Float {
+        switch model.currentPhase() {
+        case .login: return 300
+        case .worldSelect, .characterSelect, .enteringGame, .inGame: return -60
+        }
+    }
+    /// True while the camera is still travelling between bands.
+    private var isScrolling: Bool { abs(scroll - scrollTarget) > 1 }
 
     /// Called (from a network task) when the channel server warps the client
     /// into a map — the hand-off point to the real map renderer.
@@ -180,6 +221,13 @@ final class LoginScene: Scene {
     func update(deltaTime: Double) {
         time += deltaTime
         assets?.background?.update(deltaTime: deltaTime)
+        // Ease the backdrop toward the current phase's band.
+        let step = Float(deltaTime) * 900
+        if scroll < scrollTarget {
+            scroll = min(scroll + step, scrollTarget)
+        } else if scroll > scrollTarget {
+            scroll = max(scroll - step, scrollTarget)
+        }
     }
 
     func render(_ context: RenderContext) {
@@ -224,6 +272,17 @@ final class LoginScene: Scene {
         logoTexture = texture(assets.logo)
         buttonNormalTexture = texture(assets.buttonNormal)
         buttonPressedTexture = texture(assets.buttonPressed)
+        worldScrollTexture = texture(assets.worldScroll)
+        worldButtonNormalTextures = assets.worldButtonNormal.map(texture)
+        worldButtonPressedTextures = assets.worldButtonPressed.map(texture)
+        worldLogoTextures = assets.worldLogos.map(texture)
+        channelBoardTexture = texture(assets.channelBoard)
+        channelButtonTextures = assets.channelButtons.map(texture)
+        goWorldTexture = texture(assets.goWorldButton)
+        charInfoTexture = texture(assets.charInfoCard)
+        selectButtonTexture = texture(assets.selectButton)
+        newCharButtonTexture = texture(assets.newCharButton)
+        deleteCharButtonTexture = texture(assets.deleteCharButton)
         uiBuilt = true
     }
 
@@ -231,26 +290,28 @@ final class LoginScene: Scene {
     /// logo, sign-in fields, and the real login button.
     private func renderWZ(_ assets: LoginAssets, snapshot: LoginModel.Snapshot, context: RenderContext) {
         if uiBuilt == false { buildUITextures(assets) }
+        // The backdrop layers are screen-anchored (rx/ry -100), so the camera
+        // value directly offsets the art: center the current band.
+        assets.background?.setCamera(x: Float(context.width) / 2,
+                                     y: Float(context.height) / 2 + scroll)
         assets.background?.render(context)
 
         // Positions are in the original 800x600 design space, centered on screen.
         let centerX = Float(context.width) / 2
         let centerY = Float(context.height) / 2
         switch snapshot.phase {
-        case .login, .enteringGame:
+        case .login:
             if let logo = assets.logo, let logoTexture {
                 let rect = Rectangle(x: centerX - Float(logo.width) / 2, y: centerY - 270,
                                      width: Float(logo.width), height: Float(logo.height))
                 context.renderer.draw(logoTexture, in: rect)
             }
             drawLoginForm(assets, snapshot: snapshot, centerX: centerX, centerY: centerY, context: context)
-        case .worldSelect:
-            drawPhaseList(title: "Select World", items: snapshot.worlds,
-                          selected: snapshot.selectedWorld, centerX: centerX, centerY: centerY, context: context)
-        case .characterSelect:
-            drawPhaseList(title: "Select Character", items: snapshot.characters,
-                          selected: snapshot.selectedCharacter, centerX: centerX, centerY: centerY, context: context)
-        case .inGame:
+        case .worldSelect where isScrolling == false:
+            drawWorldSelect(assets, snapshot: snapshot, centerX: centerX, centerY: centerY, context: context)
+        case .characterSelect where isScrolling == false:
+            drawCharacterSelect(assets, snapshot: snapshot, centerX: centerX, centerY: centerY, context: context)
+        case .worldSelect, .characterSelect, .enteringGame, .inGame:
             break
         }
 
@@ -306,23 +367,119 @@ final class LoginScene: Scene {
         }
     }
 
-    /// World/character lists drawn over the backdrop.
-    private func drawPhaseList(title: String, items: [String], selected: Int,
-                               centerX: Float, centerY: Float, context: RenderContext) {
+    /// World select: the unrolled paper scroll with the world tower buttons,
+    /// the selected world's logo, and the channel board.
+    private func drawWorldSelect(_ assets: LoginAssets, snapshot: LoginModel.Snapshot,
+                                 centerX: Float, centerY: Float, context: RenderContext) {
         let renderer = context.renderer
         let text = context.text
-        let panel = Rectangle(x: centerX - 170, y: centerY - 160, width: 340, height: 320)
-        renderer.fill(panel, color: RGBAColor(red: 0.08, green: 0.1, blue: 0.2, alpha: 0.82))
-        let titleWidth = text.width(of: title, scale: 0.6)
-        text.draw(title, x: centerX - titleWidth / 2, y: panel.y + 14, scale: 0.6, color: .white, using: renderer)
-        var y = panel.y + 56
-        for (index, item) in items.enumerated() {
-            if index == selected {
-                renderer.fill(Rectangle(x: panel.x + 12, y: y - 4, width: panel.width - 24, height: 28),
-                              color: RGBAColor(red: 1, green: 0.85, blue: 0.3, alpha: 0.35))
+
+        if let scroll = assets.worldScroll, let worldScrollTexture {
+            let rect = Rectangle(x: centerX - Float(scroll.width) / 2, y: centerY - 235,
+                                 width: Float(scroll.width), height: Float(scroll.height))
+            renderer.draw(worldScrollTexture, in: rect)
+        }
+
+        // One tower button per world reported by the server.
+        let buttonCount = min(snapshot.worlds.count, worldButtonNormalTextures.count)
+        let spacing: Float = 28
+        let rowWidth = Float(buttonCount) * spacing
+        let rowX = centerX - rowWidth / 2
+        for index in 0 ..< buttonCount {
+            let selected = index == snapshot.selectedWorld
+            let pressed = index < worldButtonPressedTextures.count ? worldButtonPressedTextures[index] : nil
+            guard let texture = (selected ? pressed : nil) ?? worldButtonNormalTextures[index] else { continue }
+            let frame = assets.worldButtonNormal[index]
+            let rect = Rectangle(x: rowX + Float(index) * spacing, y: centerY - 195,
+                                 width: Float(frame.width), height: Float(frame.height))
+            renderer.draw(texture, in: rect)
+            // The server's world name under its tower button.
+            if selected {
+                let name = snapshot.worlds[index]
+                let nameWidth = text.width(of: name, scale: 0.4)
+                text.draw(name, x: rect.x + rect.width / 2 - nameWidth / 2, y: rect.y + rect.height + 4,
+                          scale: 0.4, color: RGBAColor(red: 0.35, green: 0.2, blue: 0.05, alpha: 1), using: renderer)
             }
-            text.draw(item, x: panel.x + 24, y: y, scale: 0.5, color: .white, using: renderer)
-            y += 30
+        }
+
+        // Selected world logo beside the tower row.
+        if snapshot.selectedWorld < worldLogoTextures.count,
+           let logoTexture = worldLogoTextures[snapshot.selectedWorld] {
+            let frame = assets.worldLogos[snapshot.selectedWorld]
+            let rect = Rectangle(x: rowX + rowWidth + 16, y: centerY - 185,
+                                 width: Float(frame.width), height: Float(frame.height))
+            renderer.draw(logoTexture, in: rect)
+        }
+
+        // Channel board with its channel-number grid (channel 0 is joined
+        // automatically for now).
+        if let board = assets.channelBoard, let channelBoardTexture {
+            let boardRect = Rectangle(x: centerX - Float(board.width) / 2, y: centerY - 55,
+                                      width: Float(board.width), height: Float(board.height))
+            renderer.draw(channelBoardTexture, in: boardRect)
+            for (index, texture) in channelButtonTextures.enumerated() {
+                guard let texture, index < assets.channelButtons.count else { continue }
+                let frame = assets.channelButtons[index]
+                let column = index % 4
+                let row = index / 4
+                let rect = Rectangle(x: boardRect.x + 40 + Float(column) * 96,
+                                     y: boardRect.y + 55 + Float(row) * 36,
+                                     width: Float(frame.width), height: Float(frame.height))
+                renderer.draw(texture, in: rect)
+            }
+        }
+        if let go = assets.goWorldButton, let goWorldTexture {
+            let rect = Rectangle(x: centerX + 122, y: centerY + 152,
+                                 width: Float(go.width), height: Float(go.height))
+            renderer.draw(goWorldTexture, in: rect)
+        }
+    }
+
+    /// Character select: name plates on the forest floor plus the stat card
+    /// and action buttons on the right, from CharSelect art.
+    private func drawCharacterSelect(_ assets: LoginAssets, snapshot: LoginModel.Snapshot,
+                                     centerX: Float, centerY: Float, context: RenderContext) {
+        let renderer = context.renderer
+        let text = context.text
+
+        for (index, name) in snapshot.characters.enumerated() {
+            let x = centerX - 300 + Float(index) * 130
+            let y = centerY + 40
+            let selected = index == snapshot.selectedCharacter
+            if selected {
+                renderer.fill(Rectangle(x: x - 10, y: y - 96, width: 90, height: 120),
+                              color: RGBAColor(red: 1, green: 0.9, blue: 0.4, alpha: 0.22))
+            }
+            let nameWidth = text.width(of: name, scale: 0.45)
+            let plate = Rectangle(x: x + 35 - nameWidth / 2 - 4, y: y, width: nameWidth + 8, height: 20)
+            renderer.fill(plate, color: RGBAColor(red: 0, green: 0, blue: 0,
+                                                  alpha: selected ? 0.85 : 0.55))
+            text.draw(name, x: plate.x + 4, y: plate.y + 3, scale: 0.45,
+                      color: selected ? RGBAColor(red: 1, green: 0.9, blue: 0.4, alpha: 1) : .white,
+                      using: renderer)
+        }
+
+        // Stat card + buttons column, right side like the original.
+        if let card = assets.charInfoCard, let charInfoTexture {
+            let rect = Rectangle(x: centerX + 195 - Float(card.originX), y: centerY - 130 - Float(card.originY),
+                                 width: Float(card.width), height: Float(card.height))
+            renderer.draw(charInfoTexture, in: rect)
+            if snapshot.selectedCharacter < snapshot.characters.count {
+                let name = snapshot.characters[snapshot.selectedCharacter]
+                let nameWidth = text.width(of: name, scale: 0.4)
+                text.draw(name, x: rect.x + Float(card.width) / 2 - nameWidth / 2,
+                          y: rect.y - 16, scale: 0.4, color: .white, using: renderer)
+            }
+        }
+        var buttonY = centerY - 40
+        for (frame, texture) in [(assets.selectButton, selectButtonTexture),
+                                 (assets.newCharButton, newCharButtonTexture),
+                                 (assets.deleteCharButton, deleteCharButtonTexture)] {
+            guard let frame, let texture else { continue }
+            let rect = Rectangle(x: centerX + 200, y: buttonY,
+                                 width: Float(frame.width), height: Float(frame.height))
+            renderer.draw(texture, in: rect)
+            buttonY += Float(frame.height) + 8
         }
     }
 

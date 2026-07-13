@@ -249,6 +249,13 @@ public final class MapScene: Scene {
     /// Movement keys always treated as held (for headless/debug capture).
     public var debugHeldKeys: Set<ControlKey> = []
 
+    /// Point the camera directly (used by hosts embedding the scene as a
+    /// backdrop, e.g. the login screen's scrolling background).
+    public func setCamera(x: Float, y: Float) {
+        cameraX = x
+        cameraY = y
+    }
+
     /// Continuously re-trigger the attack (for headless/debug capture).
     public var debugAttack = false
 
