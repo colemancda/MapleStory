@@ -22,6 +22,7 @@ public enum WzCharacterAnchor: Sendable {
     case navel  // align the part's "navel" to the body's "navel"
     case neck   // align the part's "neck" to the body's "neck" (the head)
     case brow   // align the part's "brow" to the head's "brow"
+    case hand   // align the part's "hand" to the arm's "hand" (weapons, gloves)
 }
 
 /// A single decoded part, positioned via anchor-point matching and z-ordered.
@@ -96,7 +97,16 @@ public final class WzCharacterLoader {
         }
         let headProps = try imageProperties(headPath)
         let faceProps = try imageProperties(facePath)
-        let equipProps: [[WzNamedProperty]] = try equipment.compactMap { try imageProperties($0.imagePath) }
+        let equipData: [(category: String, props: [WzNamedProperty])] = try equipment.compactMap { item in
+            try imageProperties(item.imagePath).map { (item.category, $0) }
+        }
+        let equipProps = equipData.map(\.props)
+
+        // A non-hair item (cap/helmet) whose `vslot` covers front hair ("H1")
+        // hides the hair. The hair's own vslot lists "H1" too, so exclude it.
+        let hideHair = equipData.contains { entry in
+            entry.category != "Hair" && (entry.props.string("info/vslot") ?? "").contains("H1")
+        }
 
         // Face has one static pose, reused across every (front-facing) frame.
         let face: WzCharacterPart?
@@ -108,7 +118,7 @@ public final class WzCharacterLoader {
 
         func animation(_ action: String) throws -> WzCharacterAnimation {
             try loadAnimation(action: action, bodyProps: bodyProps, headProps: headProps,
-                              face: face, equipProps: equipProps)
+                              face: face, equipProps: equipProps, hideHair: hideHair)
         }
         return WzLoadedCharacter(
             stand: try animation("stand1"),
@@ -124,7 +134,8 @@ public final class WzCharacterLoader {
         bodyProps: [WzNamedProperty],
         headProps: [WzNamedProperty]?,
         face: WzCharacterPart?,
-        equipProps: [[WzNamedProperty]]
+        equipProps: [[WzNamedProperty]],
+        hideHair: Bool
     ) throws -> WzCharacterAnimation {
         guard let bodyFrames = bodyProps[action]?.children else {
             return WzCharacterAnimation(frames: [])
@@ -157,6 +168,11 @@ public final class WzCharacterLoader {
             for equip in equipProps {
                 guard let equipFrame = equip[action]?.children["\(index)"]?.children else { continue }
                 addParts(from: equipFrame, action: action, index: index, rootProps: equip, into: &parts)
+            }
+
+            // A hair-covering cap hides every hair layer.
+            if hideHair {
+                parts.removeAll { $0.zLayer.lowercased().contains("hair") }
             }
 
             // Back-to-front: higher zmap index draws first.
@@ -202,7 +218,9 @@ public final class WzCharacterLoader {
     private static func inferAnchor(zLayer: String, mapKeys: Set<String>) -> WzCharacterAnchor {
         if zLayer == "body" { return .root }
         if zLayer == "head" { return .neck }
+        // Navel wins over hand: the arm carries both but is body-attached.
         if mapKeys.contains("navel") { return .navel }
+        if mapKeys.contains("hand") { return .hand }
         if mapKeys.contains("brow") { return .brow }
         return .navel
     }

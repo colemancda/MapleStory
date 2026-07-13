@@ -32,6 +32,10 @@ struct MapCommand: ParsableCommand {
     var pants: Int = 1060002
     @Option(name: .long, help: "Shoes item id (0 = none).")
     var shoes: Int = 1072001
+    @Option(name: .long, help: "Cap item id (0 = none).")
+    var cap: Int = 0
+    @Option(name: .long, help: "Weapon item id (0 = none).")
+    var weapon: Int = 0
 
     @Option(name: .long, help: "Path to Npc.wz. If provided, renders the map's NPCs.")
     var npcWz: String?
@@ -92,6 +96,8 @@ struct MapCommand: ParsableCommand {
             if coat != 0 { equipment.append(WzEquipItem(category: "Coat", id: coat)) }
             if pants != 0 { equipment.append(WzEquipItem(category: "Pants", id: pants)) }
             if shoes != 0 { equipment.append(WzEquipItem(category: "Shoes", id: shoes)) }
+            if cap != 0 { equipment.append(WzEquipItem(category: "Cap", id: cap)) }
+            if weapon != 0 { equipment.append(WzEquipItem(category: "Weapon", id: weapon)) }
             character = try WzCharacterLoader(archive: characterArchive, zmap: zmap).load(equipment: equipment)
         }
         var npcLoader: WzLifeSpriteLoader?

@@ -734,6 +734,13 @@ public final class MapScene: Scene {
             headBrow = add(headOrigin, head.part.point("brow"))
         }
 
+        // Arm defines the "hand" reference for weapons/gloves.
+        var armHand = bodyNavel
+        if let arm = frame.parts.first(where: { $0.part.zLayer == "arm" }) {
+            let armOrigin = subtract(bodyNavel, arm.part.point("navel"))
+            armHand = add(armOrigin, arm.part.point("hand"))
+        }
+
         for part in frame.parts {
             let anchorPoint: (x: Double, y: Double)
             switch part.part.anchor {
@@ -741,6 +748,7 @@ public final class MapScene: Scene {
             case .navel: anchorPoint = subtract(bodyNavel, part.part.point("navel"))
             case .neck:  anchorPoint = subtract(bodyNeck, part.part.point("neck"))
             case .brow:  anchorPoint = subtract(headBrow, part.part.point("brow"))
+            case .hand:  anchorPoint = subtract(armHand, part.part.point("hand"))
             }
             drawPart(part, atOrigin: anchorPoint, pivotX: Double(playerX), flip: flip, camera: camera, context: context)
         }

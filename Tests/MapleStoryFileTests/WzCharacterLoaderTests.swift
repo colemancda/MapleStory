@@ -94,4 +94,34 @@ final class WzCharacterLoaderTests: XCTestCase {
         let priorities = frame0.parts.map { zmap.priority(of: $0.zLayer) }
         XCTAssertEqual(priorities, priorities.sorted(by: >), "parts should be z-sorted back-to-front")
     }
+
+    func testWeaponAnchorsToHandAndCapHidesHair() throws {
+        guard FileManager.default.fileExists(atPath: charPath) else { throw XCTSkip("Character.wz not mounted") }
+        let basePath = "/Volumes/[C] Windows 11/Nexon/MapleStory62/Base.wz"
+        guard FileManager.default.fileExists(atPath: basePath) else { throw XCTSkip("Base.wz not mounted") }
+
+        let wz = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: charPath)), mapleVersion: .gms)
+        let baseWz = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: basePath)), mapleVersion: .gms)
+        let loader = WzCharacterLoader(archive: wz, zmap: try WzZmap.load(from: baseWz))
+
+        // Sword anchors to the hand.
+        let armed = try loader.load(equipment: [
+            WzEquipItem(category: "Hair", id: 30030),
+            WzEquipItem(category: "Weapon", id: 1302000),
+        ])
+        let weapon = try XCTUnwrap(armed.stand.frames[0].parts.first { $0.zLayer == "weapon" })
+        XCTAssertEqual(weapon.anchor, .hand)
+        XCTAssertNotNil(weapon.mapPoints["hand"])
+        XCTAssertTrue(armed.stand.frames[0].parts.contains { $0.zLayer == "hair" }, "hair shows without a covering cap")
+
+        // A full helmet (vslot covers front hair) hides every hair layer.
+        let helmeted = try loader.load(equipment: [
+            WzEquipItem(category: "Hair", id: 30030),
+            WzEquipItem(category: "Cap", id: 1002005),
+        ])
+        let layers = helmeted.stand.frames[0].parts.map(\.zLayer)
+        print("helmeted layers: \(layers)")
+        XCTAssertTrue(layers.contains { $0 == "cap" || $0.hasPrefix("cap") }, "expected a cap layer")
+        XCTAssertFalse(layers.contains { $0.lowercased().contains("hair") }, "the helmet should hide hair")
+    }
 }
