@@ -61,7 +61,7 @@ final class MapScenePerformanceTests: XCTestCase {
     private func makeCharacter() -> WzLoadedCharacter {
         let empty = WzCharacterAnimation(frames: [])
         return WzLoadedCharacter(stand: empty, walk: empty, jump: empty,
-                                 ladder: empty, rope: empty, attack: empty)
+                                 ladder: empty, rope: empty, attack: empty, prone: empty)
     }
 
     /// Full simulation at hunting-ground scale: 300 footholds, 100 patrolling

@@ -64,6 +64,8 @@ public struct WzLoadedCharacter: Sendable {
     public var rope: WzCharacterAnimation
     /// One-handed swing attack (`swingO1`).
     public var attack: WzCharacterAnimation
+    /// Lying down (holding the down arrow).
+    public var prone: WzCharacterAnimation
 }
 
 /// An equipped item: its Character.wz subdirectory and item id.
@@ -128,7 +130,8 @@ public final class WzCharacterLoader {
             jump: try animation("jump"),
             ladder: try animation("ladder"),
             rope: try animation("rope"),
-            attack: try animation("swingO1")
+            attack: try animation("swingO1"),
+            prone: try animation("prone")
         )
     }
 
