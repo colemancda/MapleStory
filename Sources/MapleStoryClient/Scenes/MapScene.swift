@@ -21,7 +21,7 @@ public final class MapScene: Scene {
 
     private let map: WzLoadedMap
     private let character: WzLoadedCharacter?
-    private let npcs: [(life: WzMapLife, frames: [WzSpriteFrame])]
+    private let lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])]
     private var built = false
     private var backgroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
     private var foregroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
@@ -97,12 +97,12 @@ public final class MapScene: Scene {
     public init(
         map: WzLoadedMap,
         character: WzLoadedCharacter? = nil,
-        npcs: [(life: WzMapLife, frames: [WzSpriteFrame])] = [],
+        lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])] = [],
         playerStart: (x: Int, y: Int)? = nil
     ) {
         self.map = map
         self.character = character
-        self.npcs = npcs
+        self.lifeSprites = lifeSprites
         self.cameraX = Float(map.left + map.right) / 2
         self.cameraY = Float(map.top + map.bottom) / 2
         let start = playerStart ?? (map.spawnX, map.spawnY)
@@ -138,7 +138,7 @@ public final class MapScene: Scene {
 
         // NPCs: synthesize positioned sprites, assigned to their foothold's layer.
         let footholdLayers = Dictionary(map.footholds.map { ($0.id, $0.layer) }, uniquingKeysWith: { first, _ in first })
-        let npcSprites = npcs.compactMap { npc -> WzMapSprite? in
+        let npcSprites = lifeSprites.compactMap { npc -> WzMapSprite? in
             guard npc.life.hidden == false, npc.frames.isEmpty == false, let first = npc.frames.first else { return nil }
             return WzMapSprite(
                 rgba: first.rgba, width: first.width, height: first.height,

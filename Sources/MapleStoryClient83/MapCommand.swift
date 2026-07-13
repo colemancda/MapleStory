@@ -24,6 +24,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Path to Npc.wz. If provided, renders the map's NPCs.")
     var npcWz: String?
 
+    @Option(name: .long, help: "Path to Mob.wz. If provided, renders the map's mob spawns.")
+    var mobWz: String?
+
     @Option(name: .long, help: "Map ID to render.")
     var id: Int = 100000000
 
@@ -71,24 +74,21 @@ struct MapCommand: ParsableCommand {
         }
 
         let game = try Game(title: "MapleStory Map \(id)", width: 1024, height: 768)
-        var npcs: [(life: WzMapLife, frames: [WzSpriteFrame])] = []
+        var lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])] = []
         if let npcWz {
             print("Loading \(npcWz) ...")
-            let npcData = try Data(contentsOf: URL(fileURLWithPath: npcWz))
-            let npcArchive = try WzArchive(data: npcData, mapleVersion: version)
-            let npcLoader = WzNpcLoader(archive: npcArchive)
-            for life in map.life where life.type == "n" && life.hidden == false {
-                let frames = (try? npcLoader.loadStandFrames(npcID: life.id)) ?? []
-                if frames.isEmpty == false {
-                    npcs.append((life, frames))
-                }
-            }
-            print("NPCs loaded: \(npcs.count) of \(map.life.filter { $0.type == "n" }.count)")
+            let count = try Self.appendLife(type: "n", wzPath: npcWz, version: version, map: map, into: &lifeSprites)
+            print("NPCs loaded: \(count) of \(map.life.filter { $0.type == "n" }.count)")
+        }
+        if let mobWz {
+            print("Loading \(mobWz) ...")
+            let count = try Self.appendLife(type: "m", wzPath: mobWz, version: version, map: map, into: &lifeSprites)
+            print("Mobs loaded: \(count) of \(map.life.filter { $0.type == "m" }.count)")
         }
 
         var playerStart: (x: Int, y: Int)?
         if let startX, let startY { playerStart = (startX, startY) }
-        let scene = MapScene(map: map, character: character, npcs: npcs, playerStart: playerStart)
+        let scene = MapScene(map: map, character: character, lifeSprites: lifeSprites, playerStart: playerStart)
         scene.showFootholds = showFootholds
         game.setScene(scene)
         if let screenshot {
@@ -100,5 +100,35 @@ struct MapCommand: ParsableCommand {
         if let screenshot {
             print("Saved screenshot to \(screenshot)")
         }
+    }
+
+    /// Load stand animations for every visible life entry of `type` from the
+    /// given sprite archive (Npc.wz / Mob.wz), appending to `lifeSprites`.
+    private static func appendLife(
+        type: String,
+        wzPath: String,
+        version: WzMapleVersion,
+        map: WzLoadedMap,
+        into lifeSprites: inout [(life: WzMapLife, frames: [WzSpriteFrame])]
+    ) throws -> Int {
+        let data = try Data(contentsOf: URL(fileURLWithPath: wzPath))
+        let archive = try WzArchive(data: data, mapleVersion: version)
+        let loader = WzLifeSpriteLoader(archive: archive)
+        var frameCache: [Int: [WzSpriteFrame]] = [:]
+        var count = 0
+        for life in map.life where life.type == type && life.hidden == false {
+            let frames: [WzSpriteFrame]
+            if let cached = frameCache[life.id] {
+                frames = cached
+            } else {
+                frames = (try? loader.loadStandFrames(id: life.id)) ?? []
+                frameCache[life.id] = frames
+            }
+            if frames.isEmpty == false {
+                lifeSprites.append((life, frames))
+                count += 1
+            }
+        }
+        return count
     }
 }
