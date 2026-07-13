@@ -21,6 +21,18 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Path to Character.wz. If provided, spawns a walking player (arrow keys move; camera follows; up enters portals).")
     var characterWz: String?
 
+    @Option(name: .long, help: "Path to Base.wz (for the character layer z-order). Recommended with --character-wz.")
+    var baseWz: String?
+
+    @Option(name: .long, help: "Hair item id (0 = none).")
+    var hair: Int = 30030
+    @Option(name: .long, help: "Coat item id (0 = none).")
+    var coat: Int = 1040002
+    @Option(name: .long, help: "Pants item id (0 = none).")
+    var pants: Int = 1060002
+    @Option(name: .long, help: "Shoes item id (0 = none).")
+    var shoes: Int = 1072001
+
     @Option(name: .long, help: "Path to Npc.wz. If provided, renders the map's NPCs.")
     var npcWz: String?
 
@@ -70,7 +82,17 @@ struct MapCommand: ParsableCommand {
         if let characterWz {
             print("Loading \(characterWz) ...")
             let characterArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: characterWz)), mapleVersion: version)
-            character = try WzCharacterLoader(archive: characterArchive).load()
+            var zmap = WzZmap(order: [:])
+            if let baseWz {
+                let baseArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: baseWz)), mapleVersion: version)
+                zmap = try WzZmap.load(from: baseArchive)
+            }
+            var equipment: [WzEquipItem] = []
+            if hair != 0 { equipment.append(WzEquipItem(category: "Hair", id: hair)) }
+            if coat != 0 { equipment.append(WzEquipItem(category: "Coat", id: coat)) }
+            if pants != 0 { equipment.append(WzEquipItem(category: "Pants", id: pants)) }
+            if shoes != 0 { equipment.append(WzEquipItem(category: "Shoes", id: shoes)) }
+            character = try WzCharacterLoader(archive: characterArchive, zmap: zmap).load(equipment: equipment)
         }
         var npcLoader: WzLifeSpriteLoader?
         if let npcWz {

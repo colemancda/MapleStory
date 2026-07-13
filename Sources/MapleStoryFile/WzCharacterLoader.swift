@@ -2,23 +2,29 @@
 //  WzCharacterLoader.swift
 //  MapleStoryFile
 //
-//  Loads a layered MapleStory character (body/arm/head/face) from Character.wz,
-//  following the node layout MapleNecrocer/the reference client use:
-//    body: Character/{2000+skin:08}.img/{action}/{frame}/body|arm  (canvas, each
-//          with "map" anchor points, e.g. body has "navel"/"neck", arm has "navel"/"hand")
-//    head: Character/{12000+skin:08}.img/{action}/{frame}/head  (a UOL alias
-//          into that same image's "front"/"head" canvas, which has "map" points
-//          "neck"/"brow"/...)
-//    face: Character/Face/{faceID:08}.img/default/face  (a static canvas with
-//          its own "map" "brow" point)
+//  Loads a layered MapleStory character from Character.wz: the base body/head/face
+//  plus equipment (hair, coat, pants, shoes, cap, ...). Every part is a canvas
+//  carrying a `z` layer name and `map` anchor points; parts attach to each other
+//  by matching same-named points (e.g. a coat's "navel" to the body's "navel",
+//  hair's "brow" to the head's "brow") and draw in the global zmap order.
 //
-//  Parts are attached to each other by matching same-named anchor points, which
-//  are defined relative to each canvas's own "origin" (not its top-left corner).
+//    body: Character/{2000+skin:08}.img/{action}/{frame}/{body,arm,...}
+//    head: Character/{12000+skin:08}.img/{action}/{frame}/head  (UOL to front/head)
+//    face: Character/Face/{faceID:08}.img/default/face
+//    equip: Character/{Category}/{id:08}.img/{action}/{frame}/{part...}
 //
 
 import Foundation
 
-/// A single decoded body part, ready to be positioned via anchor-point matching.
+/// How a part attaches to the body skeleton.
+public enum WzCharacterAnchor: Sendable {
+    case root   // the body itself
+    case navel  // align the part's "navel" to the body's "navel"
+    case neck   // align the part's "neck" to the body's "neck" (the head)
+    case brow   // align the part's "brow" to the head's "brow"
+}
+
+/// A single decoded part, positioned via anchor-point matching and z-ordered.
 public struct WzCharacterPart: Sendable {
     public var rgba: [UInt8]
     public var width: Int
@@ -28,22 +34,20 @@ public struct WzCharacterPart: Sendable {
     public var originY: Int
     /// Named anchor points, relative to (originX, originY).
     public var mapPoints: [String: (x: Int, y: Int)]
+    /// The zmap layer name (`z`), deciding draw order.
+    public var zLayer: String
+    public var anchor: WzCharacterAnchor
 
     public func point(_ name: String) -> (x: Int, y: Int) {
         mapPoints[name] ?? (0, 0)
     }
 }
 
-/// One frame of a character animation: its parts and how long to hold it.
+/// One frame of a character animation: its z-sorted parts and hold duration.
 public struct WzCharacterFrame: Sendable {
     public var delayMilliseconds: Int
-    public var body: WzCharacterPart?
-    public var arm: WzCharacterPart?
-    public var head: WzCharacterPart?
-    public var face: WzCharacterPart?
-    /// Whether the face is visible this frame (climbing poses show the
-    /// character from behind, flagged by the frame's `face` int being 0).
-    public var showFace: Bool = true
+    /// Parts sorted back-to-front (draw in order).
+    public var parts: [WzCharacterPart]
 }
 
 public struct WzCharacterAnimation: Sendable {
@@ -59,17 +63,30 @@ public struct WzLoadedCharacter: Sendable {
     public var rope: WzCharacterAnimation
 }
 
+/// An equipped item: its Character.wz subdirectory and item id.
+public struct WzEquipItem: Sendable {
+    public var category: String
+    public var id: Int
+    public init(category: String, id: Int) {
+        self.category = category
+        self.id = id
+    }
+    var imagePath: String { "\(category)/" + String(format: "%08d.img", id) }
+}
+
 public final class WzCharacterLoader {
 
     private let archive: WzArchive
+    private let zmap: WzZmap
     private var imageCache: [String: [WzNamedProperty]] = [:]
 
-    public init(archive: WzArchive) {
+    public init(archive: WzArchive, zmap: WzZmap = WzZmap(order: [:])) {
         self.archive = archive
+        self.zmap = zmap
     }
 
-    /// Load a character by skin ID (0 = default) and face ID (e.g. 20000).
-    public func load(skin: Int = 0, faceID: Int = 20000) throws -> WzLoadedCharacter {
+    /// Load a character by skin/face plus optional equipment.
+    public func load(skin: Int = 0, faceID: Int = 20000, equipment: [WzEquipItem] = []) throws -> WzLoadedCharacter {
         let bodyPath = String(format: "%08d.img", 2000 + skin)
         let headPath = String(format: "%08d.img", 12000 + skin)
         let facePath = "Face/" + String(format: "%08d.img", faceID)
@@ -79,34 +96,39 @@ public final class WzCharacterLoader {
         }
         let headProps = try imageProperties(headPath)
         let faceProps = try imageProperties(facePath)
+        let equipProps: [[WzNamedProperty]] = try equipment.compactMap { try imageProperties($0.imagePath) }
 
-        // Face has one static pose, reused across every frame.
+        // Face has one static pose, reused across every (front-facing) frame.
         let face: WzCharacterPart?
         if let faceProps, let faceNode = faceProps["default"]?.children["face"] {
-            face = decodePart(node: faceNode, currentPath: ["default", "face"], rootProps: faceProps)
+            face = decodePart(node: faceNode, name: "face", currentPath: ["default", "face"], rootProps: faceProps)
         } else {
             face = nil
         }
 
-        let stand = try loadAnimation(action: "stand1", bodyProps: bodyProps, headProps: headProps, face: face)
-        let walk = try loadAnimation(action: "walk1", bodyProps: bodyProps, headProps: headProps, face: face)
-        let jump = try loadAnimation(action: "jump", bodyProps: bodyProps, headProps: headProps, face: face)
-        let ladder = try loadAnimation(action: "ladder", bodyProps: bodyProps, headProps: headProps, face: face)
-        let rope = try loadAnimation(action: "rope", bodyProps: bodyProps, headProps: headProps, face: face)
-        return WzLoadedCharacter(stand: stand, walk: walk, jump: jump, ladder: ladder, rope: rope)
+        func animation(_ action: String) throws -> WzCharacterAnimation {
+            try loadAnimation(action: action, bodyProps: bodyProps, headProps: headProps,
+                              face: face, equipProps: equipProps)
+        }
+        return WzLoadedCharacter(
+            stand: try animation("stand1"),
+            walk: try animation("walk1"),
+            jump: try animation("jump"),
+            ladder: try animation("ladder"),
+            rope: try animation("rope")
+        )
     }
 
     private func loadAnimation(
         action: String,
         bodyProps: [WzNamedProperty],
         headProps: [WzNamedProperty]?,
-        face: WzCharacterPart?
+        face: WzCharacterPart?,
+        equipProps: [[WzNamedProperty]]
     ) throws -> WzCharacterAnimation {
         guard let bodyFrames = bodyProps[action]?.children else {
             return WzCharacterAnimation(frames: [])
         }
-        let headFrames = headProps?[action]?.children
-
         let indices = bodyFrames.map(\.name).compactMap(Int.init).sorted()
         var frames: [WzCharacterFrame] = []
         frames.reserveCapacity(indices.count)
@@ -114,30 +136,51 @@ public final class WzCharacterLoader {
         for index in indices {
             guard let frameChildren = bodyFrames["\(index)"]?.children else { continue }
             let delay = frameChildren.int("delay") ?? 100
-
-            let body = frameChildren["body"].flatMap {
-                decodePart(node: $0, currentPath: [action, "\(index)", "body"], rootProps: bodyProps)
-            }
-            let arm = frameChildren["arm"].flatMap {
-                decodePart(node: $0, currentPath: [action, "\(index)", "arm"], rootProps: bodyProps)
-            }
-            var head: WzCharacterPart?
-            if let headProps, let headFrames, let headNode = headFrames["\(index)"]?.children["head"] {
-                head = decodePart(node: headNode, currentPath: [action, "\(index)", "head"], rootProps: headProps)
-            }
-
-            // The frame's `face` int flags visibility (0 = seen from behind).
             let showFace = (frameChildren.int("face") ?? 1) != 0
-            frames.append(WzCharacterFrame(delayMilliseconds: delay, body: body, arm: arm, head: head,
-                                           face: face, showFace: showFace))
+
+            var parts: [WzCharacterPart] = []
+
+            // Body parts (body, arm, lHand, rHand, ...): every canvas child.
+            addParts(from: frameChildren, action: action, index: index, rootProps: bodyProps, into: &parts)
+
+            // Head (UOL to front/head).
+            if let headProps, let headFrames = headProps[action]?.children,
+               let headNode = headFrames["\(index)"]?.children["head"],
+               let head = decodePart(node: headNode, name: "head", currentPath: [action, "\(index)", "head"], rootProps: headProps) {
+                parts.append(head)
+            }
+
+            // Face (shared static pose), when visible.
+            if showFace, let face { parts.append(face) }
+
+            // Equipment parts for this action/frame.
+            for equip in equipProps {
+                guard let equipFrame = equip[action]?.children["\(index)"]?.children else { continue }
+                addParts(from: equipFrame, action: action, index: index, rootProps: equip, into: &parts)
+            }
+
+            // Back-to-front: higher zmap index draws first.
+            parts.sort { zmap.priority(of: $0.zLayer) > zmap.priority(of: $1.zLayer) }
+            frames.append(WzCharacterFrame(delayMilliseconds: delay, parts: parts))
         }
         return WzCharacterAnimation(frames: frames)
+    }
+
+    /// Decode every canvas child of a frame node into parts.
+    private func addParts(from frame: [WzNamedProperty], action: String, index: Int,
+                          rootProps: [WzNamedProperty], into parts: inout [WzCharacterPart]) {
+        for entry in frame {
+            if let part = decodePart(node: entry.value, name: entry.name,
+                                     currentPath: [action, "\(index)", entry.name], rootProps: rootProps) {
+                parts.append(part)
+            }
+        }
     }
 
     // MARK: - Node resolution
 
     /// Resolve `node` (following UOL aliases and canvas `_inlink`s) and decode it.
-    private func decodePart(node: WzProperty, currentPath: [String], rootProps: [WzNamedProperty]) -> WzCharacterPart? {
+    private func decodePart(node: WzProperty, name: String, currentPath: [String], rootProps: [WzNamedProperty]) -> WzCharacterPart? {
         guard let (resolved, _) = resolve(node, currentPath: currentPath, rootProps: rootProps) else { return nil }
         guard case let .canvas(canvas) = resolved, canvas.dataLength > 0 else { return nil }
         guard let bitmap = try? archive.decodeCanvas(canvas) else { return nil }
@@ -149,8 +192,19 @@ public final class WzCharacterLoader {
                 mapPoints[entry.name] = vector
             }
         }
+        let zLayer = canvas.properties.string("z") ?? name
+        let anchor = WzCharacterLoader.inferAnchor(zLayer: zLayer, mapKeys: Set(mapPoints.keys))
         return WzCharacterPart(rgba: bitmap.rgba, width: bitmap.width, height: bitmap.height,
-                               originX: origin.x, originY: origin.y, mapPoints: mapPoints)
+                               originX: origin.x, originY: origin.y, mapPoints: mapPoints,
+                               zLayer: zLayer, anchor: anchor)
+    }
+
+    private static func inferAnchor(zLayer: String, mapKeys: Set<String>) -> WzCharacterAnchor {
+        if zLayer == "body" { return .root }
+        if zLayer == "head" { return .neck }
+        if mapKeys.contains("navel") { return .navel }
+        if mapKeys.contains("brow") { return .brow }
+        return .navel
     }
 
     private func resolve(_ node: WzProperty, currentPath: [String], rootProps: [WzNamedProperty]) -> (WzProperty, [String])? {
