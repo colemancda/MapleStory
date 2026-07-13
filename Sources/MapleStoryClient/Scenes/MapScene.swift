@@ -23,16 +23,34 @@ public final class MapScene: Scene {
     private let character: WzLoadedCharacter?
     private let lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])]
     private var built = false
-    private var backgroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
-    private var foregroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
-
-    /// A map sprite with one texture per animation frame and precomputed timing.
-    private struct AnimatedSprite {
-        var sprite: WzMapSprite
+    /// Uploaded animation frames with precomputed timing.
+    private struct FrameAnimation {
         var frames: [(texture: Texture, frame: WzSpriteFrame)]
         /// Cumulative end time of each frame, in milliseconds.
         var frameEnds: [Double]
         var totalMilliseconds: Double
+
+        /// Upload one texture per frame; `nil` when no frame is usable.
+        init?(_ source: [WzSpriteFrame]) {
+            var frames: [(texture: Texture, frame: WzSpriteFrame)] = []
+            for frame in source {
+                guard frame.width > 0, frame.height > 0,
+                      let texture = try? Texture(width: frame.width, height: frame.height, rgba: frame.rgba) else {
+                    continue
+                }
+                frames.append((texture, frame))
+            }
+            guard frames.isEmpty == false else { return nil }
+            var frameEnds: [Double] = []
+            var total: Double = 0
+            for (_, frame) in frames {
+                total += Double(frame.delayMilliseconds)
+                frameEnds.append(total)
+            }
+            self.frames = frames
+            self.frameEnds = frameEnds
+            self.totalMilliseconds = total
+        }
 
         /// The frame to show at `time` (seconds since scene start).
         func frame(at time: Double) -> (texture: Texture, frame: WzSpriteFrame) {
@@ -44,6 +62,19 @@ public final class MapScene: Scene {
             return frames[frames.count - 1]
         }
     }
+
+    /// A positioned map sprite with its animation.
+    private struct AnimatedSprite {
+        var sprite: WzMapSprite
+        var animation: FrameAnimation
+
+        func frame(at time: Double) -> (texture: Texture, frame: WzSpriteFrame) {
+            animation.frame(at: time)
+        }
+    }
+
+    private var backgroundTextures: [(animation: FrameAnimation, layer: WzMapBackground)] = []
+    private var foregroundTextures: [(animation: FrameAnimation, layer: WzMapBackground)] = []
 
     /// Per map layer (0...7): that layer's objects (z-sorted) followed by its
     /// tiles (z-sorted) - the reference client's `TilesObjs::draw` order.
@@ -182,32 +213,15 @@ public final class MapScene: Scene {
 
     private static func animatedSprites(for sprites: [WzMapSprite]) -> [AnimatedSprite] {
         sprites.compactMap { sprite in
-            var frames: [(texture: Texture, frame: WzSpriteFrame)] = []
-            for frame in sprite.frames {
-                guard frame.width > 0, frame.height > 0,
-                      let texture = try? Texture(width: frame.width, height: frame.height, rgba: frame.rgba) else {
-                    continue
-                }
-                frames.append((texture, frame))
-            }
-            guard frames.isEmpty == false else { return nil }
-            var frameEnds: [Double] = []
-            var total: Double = 0
-            for (_, frame) in frames {
-                total += Double(frame.delayMilliseconds)
-                frameEnds.append(total)
-            }
-            return AnimatedSprite(sprite: sprite, frames: frames, frameEnds: frameEnds, totalMilliseconds: total)
+            guard let animation = FrameAnimation(sprite.frames) else { return nil }
+            return AnimatedSprite(sprite: sprite, animation: animation)
         }
     }
 
-    private static func backgroundTextures(for layers: [WzMapBackground]) -> [(Texture, WzMapBackground)] {
+    private static func backgroundTextures(for layers: [WzMapBackground]) -> [(FrameAnimation, WzMapBackground)] {
         layers.compactMap { layer in
-            guard layer.width > 0, layer.height > 0,
-                  let texture = try? Texture(width: layer.width, height: layer.height, rgba: layer.rgba) else {
-                return nil
-            }
-            return (texture, layer)
+            guard let animation = FrameAnimation(layer.frames) else { return nil }
+            return (animation, layer)
         }
     }
 
@@ -331,8 +345,9 @@ public final class MapScene: Scene {
         if built == false { buildTextures() }
         let camera = Camera(x: cameraX, y: cameraY, viewportWidth: Float(context.width), viewportHeight: Float(context.height))
 
-        for (texture, layer) in backgroundTextures {
-            draw(layer, texture: texture, camera: camera, context: context)
+        for (animation, layer) in backgroundTextures {
+            let (texture, frame) = animation.frame(at: sceneTime)
+            draw(layer, frame: frame, texture: texture, camera: camera, context: context)
         }
         for (layer, sprites) in layerSprites.enumerated() {
             for animated in sprites {
@@ -352,8 +367,9 @@ public final class MapScene: Scene {
             let (texture, frame) = animated.frame(at: sceneTime)
             drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
         }
-        for (texture, layer) in foregroundTextures {
-            draw(layer, texture: texture, camera: camera, context: context)
+        for (animation, layer) in foregroundTextures {
+            let (texture, frame) = animation.frame(at: sceneTime)
+            draw(layer, frame: frame, texture: texture, camera: camera, context: context)
         }
         if showFootholds {
             drawFootholds(camera: camera, context: context)
@@ -390,7 +406,7 @@ public final class MapScene: Scene {
     }
 
     /// Draw a background/foreground layer with parallax scrolling and tiling.
-    private func draw(_ layer: WzMapBackground, texture: Texture, camera: Camera, context: RenderContext) {
+    private func draw(_ layer: WzMapBackground, frame: WzSpriteFrame, texture: Texture, camera: Camera, context: RenderContext) {
         let viewX = Double(camera.x)
         let viewY = Double(camera.y)
         let wOffset = Double(camera.viewportWidth) / 2
@@ -399,11 +415,11 @@ public final class MapScene: Scene {
         let shiftX = Double(layer.rx) * (wOffset - viewX) / 100 + wOffset
         let shiftY = Double(layer.ry) * (hOffset - viewY) / 100 + hOffset
 
-        var x = Double(layer.x - layer.originX) + shiftX
-        var y = Double(layer.y - layer.originY) + shiftY
+        var x = Double(layer.x - frame.originX) + shiftX
+        var y = Double(layer.y - frame.originY) + shiftY
 
-        let cx = layer.cx > 0 ? layer.cx : max(layer.width, 1)
-        let cy = layer.cy > 0 ? layer.cy : max(layer.height, 1)
+        let cx = layer.cx > 0 ? layer.cx : max(frame.width, 1)
+        let cy = layer.cy > 0 ? layer.cy : max(frame.height, 1)
 
         if layer.horizontalTile {
             while x > 0 { x -= Double(cx) }
@@ -423,7 +439,7 @@ public final class MapScene: Scene {
             var ty = 0
             while ty < cy * verticalTiles {
                 let rect = Rectangle(x: Float(x) + Float(tx), y: Float(y) + Float(ty),
-                                     width: Float(layer.width), height: Float(layer.height))
+                                     width: Float(frame.width), height: Float(frame.height))
                 context.renderer.draw(texture, in: rect, tint: tint)
                 ty += cy
             }
