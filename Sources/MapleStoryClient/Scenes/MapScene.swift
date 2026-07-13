@@ -24,7 +24,7 @@ public final class MapScene: Scene {
     private let lifeSprites: [WzLifeSprite]
     private var built = false
     /// Uploaded animation frames with precomputed timing.
-    private struct FrameAnimation {
+    struct FrameAnimation {
         var frames: [(texture: Texture, frame: WzSpriteFrame)]
         /// Cumulative end time of each frame, in milliseconds.
         var frameEnds: [Double]
@@ -85,9 +85,9 @@ public final class MapScene: Scene {
     private var layerNpcs: [[AnimatedSprite]] = []
 
     /// A mob that patrols its foothold chain between its spawn bounds.
-    private enum MobState { case patrol, hurt, dying }
+    enum MobState { case patrol, hurt, dying }
 
-    private struct MobEntity {
+    struct MobEntity {
         var x: Float
         var y: Float
         var facingRight = false
@@ -121,7 +121,7 @@ public final class MapScene: Scene {
         }
     }
 
-    private var mobs: [MobEntity] = []
+    var mobs: [MobEntity] = []
     private var mobRandom = SystemRandomNumberGenerator()
 
     /// Base mob walking speed in world units per second (scaled by each mob's
@@ -173,7 +173,7 @@ public final class MapScene: Scene {
     private var damageNumbers: [DamageNumber] = []
     private let damageNumberLifetime: Double = 0.8
 
-    private func spawnDamageNumber(_ amount: Int, x: Float, y: Float) {
+    func spawnDamageNumber(_ amount: Int, x: Float, y: Float) {
         damageNumbers.append(DamageNumber(x: x, y: y, text: "\(amount)"))
     }
 
