@@ -55,10 +55,11 @@ struct FontAtlas {
         }
 
         // Transparent background, white glyphs (tinted at draw time).
+        //
+        // Draw in the context's default y-up coordinates: CTFontDrawGlyphs
+        // assumes y-up outlines, and the bitmap's memory row 0 is already the
+        // image top. (A y-flip transform here renders every glyph upside-down.)
         context.setFillColor(red: 1, green: 1, blue: 1, alpha: 1)
-        // Flip to a top-down coordinate space so atlas memory row 0 is the top.
-        context.translateBy(x: 0, y: CGFloat(height))
-        context.scaleBy(x: 1, y: -1)
 
         for index in 0 ..< FontAtlas.characterCount {
             let scalar = UnicodeScalar(UInt32(FontAtlas.firstCharacter) + UInt32(index))!

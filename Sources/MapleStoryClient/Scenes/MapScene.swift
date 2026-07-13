@@ -21,7 +21,7 @@ public final class MapScene: Scene {
 
     private let map: WzLoadedMap
     private let character: WzLoadedCharacter?
-    private let lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])]
+    private let lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)]
     private var built = false
     /// Uploaded animation frames with precomputed timing.
     private struct FrameAnimation {
@@ -133,10 +133,16 @@ public final class MapScene: Scene {
     /// on it). The host decides whether/how to load the target map.
     public var onEnterPortal: ((WzMapPortal) -> Void)?
 
+    /// Name tags (world foot position + display name) for named life sprites.
+    private var nameTags: [(x: Float, y: Float, name: String)] = []
+
+    /// Scale for name-tag text.
+    public var nameTagScale: Float = 0.4
+
     public init(
         map: WzLoadedMap,
         character: WzLoadedCharacter? = nil,
-        lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame])] = [],
+        lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)] = [],
         portalFrames: [WzSpriteFrame] = [],
         playerStart: (x: Int, y: Int)? = nil
     ) {
@@ -194,6 +200,11 @@ public final class MapScene: Scene {
         layerNpcs = (0 ... 7).map { layer in
             npcTextures.filter { $0.sprite.layer == layer }
         }
+        nameTags = lifeSprites.compactMap { entry in
+            guard let name = entry.name, name.isEmpty == false, entry.life.hidden == false else { return nil }
+            return (Float(entry.life.x), Float(entry.life.y), name)
+        }
+
         // Visible portals: the shared swirl animation at each portal's position.
         if portalFrames.isEmpty == false, let first = portalFrames.first {
             let sprites = map.portals.filter(\.isVisible).map { portal in
@@ -367,12 +378,31 @@ public final class MapScene: Scene {
             let (texture, frame) = animated.frame(at: sceneTime)
             drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
         }
+        drawNameTags(camera: camera, context: context)
         for (animation, layer) in foregroundTextures {
             let (texture, frame) = animation.frame(at: sceneTime)
             draw(layer, frame: frame, texture: texture, camera: camera, context: context)
         }
         if showFootholds {
             drawFootholds(camera: camera, context: context)
+        }
+    }
+
+    /// Name tags: a dark pill under each named life sprite's feet, like the
+    /// real client's NPC/mob labels.
+    private func drawNameTags(camera: Camera, context: RenderContext) {
+        for tag in nameTags {
+            let screen = camera.screen(forWorldX: tag.x, worldY: tag.y)
+            let textWidth = context.text.width(of: tag.name, scale: nameTagScale)
+            let textHeight = context.text.lineHeight * nameTagScale
+            let padding: Float = 3
+            let rect = Rectangle(x: screen.x - textWidth / 2 - padding,
+                                 y: screen.y + 3,
+                                 width: textWidth + padding * 2,
+                                 height: textHeight + padding * 2)
+            context.renderer.fill(rect, color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 0.6))
+            context.text.draw(tag.name, x: screen.x - textWidth / 2, y: screen.y + 3 + padding,
+                              scale: nameTagScale, color: .white, using: context.renderer)
         }
     }
 
