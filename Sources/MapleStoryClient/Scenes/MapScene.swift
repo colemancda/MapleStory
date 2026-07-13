@@ -135,6 +135,7 @@ public final class MapScene: Scene {
     private var walkFrames: [CharacterFrameTextures] = []
     private var jumpFrames: [CharacterFrameTextures] = []
     private var attackFrames: [CharacterFrameTextures] = []
+    private var proneFrames: [CharacterFrameTextures] = []
     private var ladderFrames: [CharacterFrameTextures] = []
     private var ropeFrames: [CharacterFrameTextures] = []
 
@@ -163,6 +164,9 @@ public final class MapScene: Scene {
     // hit frame.
     private var isAttacking = false
     private var attackHitApplied = false
+
+    // Prone: lying down while the down arrow is held on the ground.
+    private var isProne = false
 
     /// A floating damage number rising above a struck mob (yellow) or the
     /// player (red).
@@ -354,6 +358,7 @@ public final class MapScene: Scene {
             walkFrames = MapScene.characterTextures(for: character.walk)
             jumpFrames = MapScene.characterTextures(for: character.jump)
             attackFrames = MapScene.characterTextures(for: character.attack)
+            proneFrames = MapScene.characterTextures(for: character.prone)
             ladderFrames = MapScene.characterTextures(for: character.ladder)
             ropeFrames = MapScene.characterTextures(for: character.rope)
         }
@@ -441,8 +446,16 @@ public final class MapScene: Scene {
             return
         }
 
-        let movingLeft = heldKeys.contains(.left)
-        let movingRight = heldKeys.contains(.right)
+        // Holding down on the ground lies prone; movement is suspended.
+        let wasProne = isProne
+        isProne = heldKeys.contains(.down) && onGround && proneFrames.isEmpty == false
+        if isProne != wasProne {
+            frameIndex = 0
+            frameTimer = 0
+        }
+
+        let movingLeft = heldKeys.contains(.left) && isProne == false
+        let movingRight = heldKeys.contains(.right) && isProne == false
         let wasWalking = isWalking
         isWalking = movingLeft != movingRight
 
@@ -472,7 +485,7 @@ public final class MapScene: Scene {
             frameTimer = 0
         }
 
-        let frames = isWalking ? walkFrames : standFrames
+        let frames = isProne ? proneFrames : (isWalking ? walkFrames : standFrames)
         guard frames.isEmpty == false else { return }
         frameTimer += deltaTime * 1000
         let delay = Double(max(frames[frameIndex % frames.count].delayMilliseconds, 1))
@@ -953,6 +966,9 @@ public final class MapScene: Scene {
         if isAttacking && attackFrames.isEmpty == false {
             return attackFrames
         }
+        if isProne && proneFrames.isEmpty == false {
+            return proneFrames
+        }
         if isClimbing {
             let frames = (currentLadder?.isLadder ?? true) ? ladderFrames : ropeFrames
             if frames.isEmpty == false { return frames }
@@ -1033,7 +1049,7 @@ public final class MapScene: Scene {
                 detachFromLadder()
                 velocityY = -jumpSpeed * 0.6
                 onSoundEvent?(.jump)
-            } else if onGround {
+            } else if onGround, isProne == false {
                 velocityY = -jumpSpeed
                 onGround = false
                 onSoundEvent?(.jump)
@@ -1041,7 +1057,7 @@ public final class MapScene: Scene {
         }
         // Control triggers a one-shot ground attack.
         if case .control(.attack) = event, character != nil,
-           isAttacking == false, isClimbing == false, onGround,
+           isAttacking == false, isClimbing == false, isProne == false, onGround,
            attackFrames.isEmpty == false {
             isAttacking = true
             attackHitApplied = false
