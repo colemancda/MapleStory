@@ -73,6 +73,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Debug: continuously hold a direction (left/right/up/down).")
     var walk: String?
 
+    @Flag(name: .long, help: "Debug: continuously attack (for capturing combat).")
+    var attack: Bool = false
+
     func run() throws {
         let version: WzMapleVersion
         switch region.lowercased() {
@@ -146,6 +149,7 @@ struct MapCommand: ParsableCommand {
         case "down": scene.debugHeldKeys = [.down]
         default: break
         }
+        scene.debugAttack = attack
         game.setScene(scene)
         if let screenshot {
             game.capturePath = screenshot
@@ -252,23 +256,30 @@ final class MapEnvironment {
         into lifeSprites: inout [WzLifeSprite]
     ) {
         guard let loader else { return }
-        var cache: [Int: (stand: [WzSpriteFrame], move: [WzSpriteFrame], speed: Int)] = [:]
+        struct Loaded { var stand: [WzSpriteFrame]; var move: [WzSpriteFrame]; var hit: [WzSpriteFrame]; var die: [WzSpriteFrame]; var speed: Int; var maxHP: Int }
+        var cache: [Int: Loaded] = [:]
         var count = 0
         for life in map.life where life.type == type && life.hidden == false {
-            let loaded: (stand: [WzSpriteFrame], move: [WzSpriteFrame], speed: Int)
+            let loaded: Loaded
             if let cached = cache[life.id] {
                 loaded = cached
             } else {
                 let stand = (try? loader.loadStandFrames(id: life.id)) ?? []
-                let move = type == "m" ? ((try? loader.loadFrames(action: "move", id: life.id)) ?? []) : []
-                loaded = (stand, move, loader.speedPercent(id: life.id))
+                let isMob = type == "m"
+                let move = isMob ? ((try? loader.loadFrames(action: "move", id: life.id)) ?? []) : []
+                let hit = isMob ? ((try? loader.loadFrames(action: "hit1", id: life.id)) ?? []) : []
+                let die = isMob ? ((try? loader.loadFrames(action: "die1", id: life.id)) ?? []) : []
+                loaded = Loaded(stand: stand, move: move, hit: hit, die: die,
+                                speed: loader.speedPercent(id: life.id),
+                                maxHP: isMob ? loader.maxHP(id: life.id) : 1)
                 cache[life.id] = loaded
             }
             if loaded.stand.isEmpty == false || loaded.move.isEmpty == false {
                 let name = type == "n" ? stringLoader?.npcName(id: life.id) : stringLoader?.mobName(id: life.id)
                 lifeSprites.append(WzLifeSprite(life: life, standFrames: loaded.stand,
-                                                moveFrames: loaded.move, name: name,
-                                                speedPercent: loaded.speed))
+                                                moveFrames: loaded.move, hitFrames: loaded.hit,
+                                                dieFrames: loaded.die, name: name,
+                                                speedPercent: loaded.speed, maxHP: loaded.maxHP))
                 count += 1
             }
         }

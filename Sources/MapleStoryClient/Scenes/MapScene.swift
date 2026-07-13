@@ -85,6 +85,8 @@ public final class MapScene: Scene {
     private var layerNpcs: [[AnimatedSprite]] = []
 
     /// A mob that patrols its foothold chain between its spawn bounds.
+    private enum MobState { case patrol, hurt, dying }
+
     private struct MobEntity {
         var x: Float
         var y: Float
@@ -101,9 +103,21 @@ public final class MapScene: Scene {
         var name: String?
         var stand: FrameAnimation?
         var move: FrameAnimation?
+        var hit: FrameAnimation?
+        var die: FrameAnimation?
+        var hp: Int
+        var maxHP: Int
+        var state: MobState = .patrol
+        /// Seconds remaining in the current hurt/dying state.
+        var stateTimer: Double = 0
+        var isDead = false
 
         var currentAnimation: FrameAnimation? {
-            walking ? (move ?? stand) : (stand ?? move)
+            switch state {
+            case .dying: return die ?? stand
+            case .hurt:  return hit ?? stand
+            case .patrol: return walking ? (move ?? stand) : (stand ?? move)
+            }
         }
     }
 
@@ -119,6 +133,7 @@ public final class MapScene: Scene {
     private var standFrames: [CharacterFrameTextures] = []
     private var walkFrames: [CharacterFrameTextures] = []
     private var jumpFrames: [CharacterFrameTextures] = []
+    private var attackFrames: [CharacterFrameTextures] = []
     private var ladderFrames: [CharacterFrameTextures] = []
     private var ropeFrames: [CharacterFrameTextures] = []
 
@@ -142,6 +157,25 @@ public final class MapScene: Scene {
     // up/down move along it.
     private var isClimbing = false
     private var currentLadder: WzMapLadder?
+
+    // Attacking: plays the swing animation and damages mobs in front on its
+    // hit frame.
+    private var isAttacking = false
+    private var attackHitApplied = false
+
+    /// A floating damage number rising above a struck mob.
+    private struct DamageNumber {
+        var x: Float
+        var y: Float
+        var text: String
+        var age: Double = 0
+    }
+    private var damageNumbers: [DamageNumber] = []
+    private let damageNumberLifetime: Double = 0.8
+
+    private func spawnDamageNumber(_ amount: Int, x: Float, y: Float) {
+        damageNumbers.append(DamageNumber(x: x, y: y, text: "\(amount)"))
+    }
 
     /// Climb speed in world units per second.
     public var climbSpeed: Float = 120
@@ -191,6 +225,9 @@ public final class MapScene: Scene {
 
     /// Movement keys always treated as held (for headless/debug capture).
     public var debugHeldKeys: Set<ControlKey> = []
+
+    /// Continuously re-trigger the attack (for headless/debug capture).
+    public var debugAttack = false
 
     public init(
         map: WzLoadedMap,
@@ -270,7 +307,11 @@ public final class MapScene: Scene {
                 layer: footholdLayers[entry.life.footholdID] ?? 7,
                 name: entry.name,
                 stand: FrameAnimation(entry.standFrames),
-                move: FrameAnimation(entry.moveFrames)
+                move: FrameAnimation(entry.moveFrames),
+                hit: FrameAnimation(entry.hitFrames),
+                die: FrameAnimation(entry.dieFrames),
+                hp: max(entry.maxHP, 1),
+                maxHP: max(entry.maxHP, 1)
             )
         }
         nameTags = lifeSprites.compactMap { entry in
@@ -293,6 +334,7 @@ public final class MapScene: Scene {
             standFrames = MapScene.characterTextures(for: character.stand)
             walkFrames = MapScene.characterTextures(for: character.walk)
             jumpFrames = MapScene.characterTextures(for: character.jump)
+            attackFrames = MapScene.characterTextures(for: character.attack)
             ladderFrames = MapScene.characterTextures(for: character.ladder)
             ropeFrames = MapScene.characterTextures(for: character.rope)
         }
@@ -343,6 +385,12 @@ public final class MapScene: Scene {
         // ground-crossing check.
         let deltaTime = min(deltaTime, 0.05)
         heldKeys.formUnion(debugHeldKeys)
+        if debugAttack, isAttacking == false, onGround, isClimbing == false, attackFrames.isEmpty == false {
+            isAttacking = true
+            attackHitApplied = false
+            frameIndex = 0
+            frameTimer = 0
+        }
         updateMobs(deltaTime: deltaTime)
         guard character != nil else {
             // No player: arrows pan the camera directly.
@@ -354,10 +402,21 @@ public final class MapScene: Scene {
             return
         }
 
+        updateDamageNumbers(deltaTime: deltaTime)
+
         if isClimbing {
             updateClimbing(deltaTime: deltaTime)
             cameraX = playerX
             cameraY = playerY
+            return
+        }
+
+        // Attacking freezes horizontal movement; gravity still applies.
+        if isAttacking {
+            updateVerticalPhysics(deltaTime: deltaTime)
+            cameraX = playerX
+            cameraY = playerY
+            advanceAttack(deltaTime: deltaTime)
             return
         }
 
@@ -402,46 +461,128 @@ public final class MapScene: Scene {
         }
     }
 
+    /// Advance the one-shot attack animation; deal damage on its second frame,
+    /// end when it completes.
+    private func advanceAttack(deltaTime: Double) {
+        guard attackFrames.isEmpty == false else { isAttacking = false; return }
+        // Hit lands as the swing connects (frame 1 onward).
+        if frameIndex >= 1 && attackHitApplied == false {
+            performAttack()
+            attackHitApplied = true
+        }
+        frameTimer += deltaTime * 1000
+        let delay = Double(max(attackFrames[frameIndex % attackFrames.count].delayMilliseconds, 1))
+        if frameTimer >= delay {
+            frameTimer -= delay
+            frameIndex += 1
+            if frameIndex >= attackFrames.count {
+                isAttacking = false
+                frameIndex = 0
+                frameTimer = 0
+            }
+        }
+    }
+
+    private func updateDamageNumbers(deltaTime: Double) {
+        for index in damageNumbers.indices {
+            damageNumbers[index].age += deltaTime
+            damageNumbers[index].y -= Float(deltaTime) * 60  // rise
+        }
+        damageNumbers.removeAll { $0.age >= damageNumberLifetime }
+    }
+
     /// Patrol AI: walk along the foothold chain, reversing at patrol bounds or
     /// edges, pausing at random intervals.
     private func updateMobs(deltaTime: Double) {
         for index in mobs.indices {
             var mob = mobs[index]
-            mob.decisionTimer -= deltaTime
-            if mob.decisionTimer <= 0 {
-                mob.decisionTimer = Double.random(in: 1.5 ... 4, using: &mobRandom)
-                mob.walking.toggle()
+            switch mob.state {
+            case .dying:
+                mob.stateTimer -= deltaTime
+                advanceAnimation(&mob, deltaTime: deltaTime, loop: false)
+                if mob.stateTimer <= 0 { mob.isDead = true }
+            case .hurt:
+                mob.stateTimer -= deltaTime
+                advanceAnimation(&mob, deltaTime: deltaTime, loop: true)
+                if mob.stateTimer <= 0 {
+                    mob.state = .patrol
+                    mob.frameIndex = 0
+                    mob.frameTimer = 0
+                }
+            case .patrol:
+                mob.decisionTimer -= deltaTime
+                if mob.decisionTimer <= 0 {
+                    mob.decisionTimer = Double.random(in: 1.5 ... 4, using: &mobRandom)
+                    mob.walking.toggle()
+                    if mob.walking { mob.facingRight = Bool.random(using: &mobRandom) }
+                    mob.frameIndex = 0
+                    mob.frameTimer = 0
+                }
                 if mob.walking {
-                    mob.facingRight = Bool.random(using: &mobRandom)
+                    let step = mob.speed * Float(deltaTime)
+                    let newX = mob.x + (mob.facingRight ? step : -step)
+                    if newX < mob.minX || newX > mob.maxX {
+                        mob.facingRight.toggle()
+                    } else if let ground = map.ground(atX: newX, below: mob.y, tolerance: 40),
+                              abs(ground.y - mob.y) <= 40 {
+                        mob.x = newX
+                        mob.y = ground.y
+                        mob.layer = ground.foothold.layer
+                    } else {
+                        mob.facingRight.toggle()
+                    }
                 }
-                mob.frameIndex = 0
-                mob.frameTimer = 0
-            }
-            if mob.walking {
-                let step = mob.speed * Float(deltaTime)
-                let newX = mob.x + (mob.facingRight ? step : -step)
-                if newX < mob.minX || newX > mob.maxX {
-                    mob.facingRight.toggle()
-                } else if let ground = map.ground(atX: newX, below: mob.y, tolerance: 40),
-                          abs(ground.y - mob.y) <= 40 {
-                    mob.x = newX
-                    mob.y = ground.y
-                    mob.layer = ground.foothold.layer
-                } else {
-                    // Edge of the platform: turn around.
-                    mob.facingRight.toggle()
-                }
-            }
-            if let animation = mob.currentAnimation, animation.frames.count > 1 {
-                mob.frameTimer += deltaTime * 1000
-                let delay = Double(max(animation.frames[mob.frameIndex % animation.frames.count].frame.delayMilliseconds, 1))
-                if mob.frameTimer >= delay {
-                    mob.frameTimer -= delay
-                    mob.frameIndex = (mob.frameIndex + 1) % animation.frames.count
-                }
+                advanceAnimation(&mob, deltaTime: deltaTime, loop: true)
             }
             mobs[index] = mob
         }
+        mobs.removeAll { $0.isDead }
+    }
+
+    /// Advance a mob's current animation; when `loop` is false it holds on the
+    /// last frame.
+    private func advanceAnimation(_ mob: inout MobEntity, deltaTime: Double, loop: Bool) {
+        guard let animation = mob.currentAnimation, animation.frames.count > 1 else { return }
+        mob.frameTimer += deltaTime * 1000
+        let delay = Double(max(animation.frames[mob.frameIndex % animation.frames.count].frame.delayMilliseconds, 1))
+        if mob.frameTimer >= delay {
+            mob.frameTimer -= delay
+            if loop {
+                mob.frameIndex = (mob.frameIndex + 1) % animation.frames.count
+            } else {
+                mob.frameIndex = min(mob.frameIndex + 1, animation.frames.count - 1)
+            }
+        }
+    }
+
+    /// Damage all living mobs in the attack box in front of the player.
+    private func performAttack() {
+        let range: Float = 100
+        let minX = facingRight ? playerX : playerX - range
+        let maxX = facingRight ? playerX + range : playerX
+        for index in mobs.indices where mobs[index].state != .dying {
+            let mob = mobs[index]
+            guard mob.x >= minX, mob.x <= maxX, abs(mob.y - playerY) < 80 else { continue }
+            let damage = Int.random(in: 6 ... 14, using: &mobRandom)
+            mobs[index].hp -= damage
+            spawnDamageNumber(damage, x: mob.x, y: mob.y - 60)
+            mobs[index].frameIndex = 0
+            mobs[index].frameTimer = 0
+            if mobs[index].hp <= 0 {
+                mobs[index].state = .dying
+                mobs[index].stateTimer = animationDuration(mobs[index].die) + 0.1
+            } else {
+                mobs[index].state = .hurt
+                mobs[index].stateTimer = 0.35
+                // Knockback away from the player.
+                let knockback: Float = facingRight ? 14 : -14
+                mobs[index].x = min(max(mobs[index].x + knockback, mobs[index].minX), mobs[index].maxX)
+            }
+        }
+    }
+
+    private func animationDuration(_ animation: FrameAnimation?) -> Double {
+        (animation.map { $0.totalMilliseconds / 1000 }) ?? 0.5
     }
 
     // MARK: - Climbing
@@ -576,6 +717,7 @@ public final class MapScene: Scene {
             drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
         }
         drawNameTags(camera: camera, context: context)
+        drawDamageNumbers(camera: camera, context: context)
         for (animation, layer) in foregroundTextures {
             let (texture, frame) = animation.frame(at: sceneTime)
             draw(layer, frame: frame, texture: texture, camera: camera, context: context)
@@ -617,6 +759,21 @@ public final class MapScene: Scene {
             }
         }
     }
+
+    /// Floating damage numbers: rise and fade above struck mobs.
+    private func drawDamageNumbers(camera: Camera, context: RenderContext) {
+        for number in damageNumbers {
+            let alpha = Float(max(0, 1 - number.age / damageNumberLifetime))
+            let screen = camera.screen(forWorldX: number.x, worldY: number.y)
+            let textWidth = context.text.width(of: number.text, scale: damageNumberScale)
+            context.text.draw(number.text, x: screen.x - textWidth / 2, y: screen.y,
+                              scale: damageNumberScale,
+                              color: RGBAColor(red: 1, green: 0.85, blue: 0.1, alpha: alpha),
+                              using: context.renderer)
+        }
+    }
+
+    private let damageNumberScale: Float = 1.4
 
     private func drawNameTag(_ name: String, x: Float, y: Float, camera: Camera, context: RenderContext) {
         let screen = camera.screen(forWorldX: x, worldY: y)
@@ -707,6 +864,9 @@ public final class MapScene: Scene {
     /// arm/body via "navel", head/body via "neck", face/head via "brow".
     /// The animation for the player's current pose.
     private func currentPlayerFrames() -> [CharacterFrameTextures] {
+        if isAttacking && attackFrames.isEmpty == false {
+            return attackFrames
+        }
         if isClimbing {
             let frames = (currentLadder?.isLadder ?? true) ? ladderFrames : ropeFrames
             if frames.isEmpty == false { return frames }
@@ -785,6 +945,15 @@ public final class MapScene: Scene {
                 velocityY = -jumpSpeed
                 onGround = false
             }
+        }
+        // Control triggers a one-shot ground attack.
+        if case .control(.attack) = event, character != nil,
+           isAttacking == false, isClimbing == false, onGround,
+           attackFrames.isEmpty == false {
+            isAttacking = true
+            attackHitApplied = false
+            frameIndex = 0
+            frameTimer = 0
         }
         // Up enters a portal the player stands on, or grabs a ladder/rope.
         if case .control(.up) = event, isClimbing == false {

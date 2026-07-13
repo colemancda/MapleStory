@@ -189,6 +189,8 @@ public final class Game {
             return .control(.down)
         case 82: // up
             return .control(.up)
+        case 224, 228: // left/right control
+            return .control(.attack)
         default:
             return nil
         }

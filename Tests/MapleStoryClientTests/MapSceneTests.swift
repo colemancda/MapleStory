@@ -42,7 +42,7 @@ final class MapSceneTests: XCTestCase {
                               spawnX: 10, spawnY: 150, footholds: [ground, upper], life: [],
                               portals: [], ladders: [ladder], bgm: nil)
         let empty = WzCharacterAnimation(frames: [])
-        let character = WzLoadedCharacter(stand: empty, walk: empty, jump: empty, ladder: empty, rope: empty)
+        let character = WzLoadedCharacter(stand: empty, walk: empty, jump: empty, ladder: empty, rope: empty, attack: empty)
         let scene = MapScene(map: map, character: character, playerStart: (10, 150))
 
         // Settle on the ground, then grab the ladder.

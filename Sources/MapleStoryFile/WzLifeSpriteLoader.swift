@@ -16,17 +16,27 @@ public struct WzLifeSprite: Sendable {
     public var standFrames: [WzSpriteFrame]
     /// Walking animation (mobs); empty for NPCs.
     public var moveFrames: [WzSpriteFrame]
+    /// Hit-reaction animation (mobs).
+    public var hitFrames: [WzSpriteFrame]
+    /// Death animation (mobs).
+    public var dieFrames: [WzSpriteFrame]
     public var name: String?
     /// Mob speed modifier percent (`info/speed`, e.g. -50 = half speed).
     public var speedPercent: Int
+    /// Mob max HP (`info/maxHP`).
+    public var maxHP: Int
 
     public init(life: WzMapLife, standFrames: [WzSpriteFrame], moveFrames: [WzSpriteFrame] = [],
-                name: String? = nil, speedPercent: Int = 0) {
+                hitFrames: [WzSpriteFrame] = [], dieFrames: [WzSpriteFrame] = [],
+                name: String? = nil, speedPercent: Int = 0, maxHP: Int = 1) {
         self.life = life
         self.standFrames = standFrames
         self.moveFrames = moveFrames
+        self.hitFrames = hitFrames
+        self.dieFrames = dieFrames
         self.name = name
         self.speedPercent = speedPercent
+        self.maxHP = maxHP
     }
 }
 
@@ -53,6 +63,11 @@ public final class WzLifeSpriteLoader {
     /// The sprite's `info/speed` percent modifier (0 when absent).
     public func speedPercent(id spriteID: Int) -> Int {
         (try? resolvedProperties(id: spriteID))??.int("info/speed") ?? 0
+    }
+
+    /// The mob's `info/maxHP` (1 when absent).
+    public func maxHP(id spriteID: Int) -> Int {
+        max((try? resolvedProperties(id: spriteID))??.int("info/maxHP") ?? 1, 1)
     }
 
     /// Image properties with `info/link` aliases resolved.
