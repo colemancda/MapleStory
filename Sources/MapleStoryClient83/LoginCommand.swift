@@ -51,12 +51,21 @@ struct LoginCommand: ParsableCommand {
         let game = try Game(title: "MapleStory v83", width: 1024, height: 768)
         let audioPlayer = AudioPlayer()
         let assets = wz.map { WzAssets(directory: $0, region: region) }
+        let characterLoader = try assets.flatMap { try makeCharacterLoader(assets: $0) }
         let environment = try assets.flatMap { try makeMapEnvironment(assets: $0, game: game, audioPlayer: audioPlayer) }
         let scene = LoginScene(configuration: configuration, verbose: verbose)
-        scene.assets = try assets.flatMap { try makeLoginAssets(assets: $0, audioPlayer: audioPlayer) }
+        scene.assets = try assets.flatMap { try makeLoginAssets(assets: $0, characterLoader: characterLoader, audioPlayer: audioPlayer) }
         if let environment {
+            let model = scene.model
             let enterField: @Sendable (Int, Int) -> Void = { [weak game] mapID, _ in
                 do {
+                    // Enter the game as the selected character (default
+                    // starter look when no appearance is known).
+                    if let characterLoader {
+                        environment.setCharacter(try LoginCommand.loadCharacter(
+                            loader: characterLoader, look: model.selectedCharacterLook()
+                        ))
+                    }
                     let mapScene = try environment.makeScene(mapID: mapID)
                     game?.enqueueScene(mapScene)
                 } catch {
@@ -104,9 +113,26 @@ struct LoginCommand: ParsableCommand {
         }
     }
 
+    /// Build the character worn in game from the selected look, or the default
+    /// starter outfit when the server didn't report an appearance.
+    private static func loadCharacter(loader: WzCharacterLoader, look: LoginModel.CharacterLook?) throws -> WzLoadedCharacter {
+        if let look {
+            var equipment = look.equipment.compactMap(WzEquipItem.init(itemID:))
+            equipment.append(WzEquipItem(category: "Hair", id: look.hair))
+            return try loader.load(skin: look.skin, faceID: look.face, equipment: equipment)
+        }
+        let starter = [
+            WzEquipItem(category: "Hair", id: 30030),
+            WzEquipItem(category: "Coat", id: 1040002),
+            WzEquipItem(category: "Pants", id: 1060002),
+            WzEquipItem(category: "Shoes", id: 1072001),
+        ]
+        return try loader.load(equipment: starter)
+    }
+
     /// Load the original login-screen art from UI.wz (+ Map.wz for the backdrop,
     /// Sound.wz for the title BGM).
-    private func makeLoginAssets(assets: WzAssets, audioPlayer: AudioPlayer) throws -> LoginAssets? {
+    private func makeLoginAssets(assets: WzAssets, characterLoader: WzCharacterLoader?, audioPlayer: AudioPlayer) throws -> LoginAssets? {
         guard let uiArchive = try assets.archive("UI") else { return nil }
         let uiLoader = WzUILoader(archive: uiArchive)
 
@@ -175,7 +201,7 @@ struct LoginCommand: ParsableCommand {
             selectButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtSelect/normal"),
             newCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtNew/normal"),
             deleteCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtDelete/normal"),
-            characterLoader: try makeCharacterLoader(assets: assets)
+            characterLoader: characterLoader
         )
     }
 
@@ -189,28 +215,13 @@ struct LoginCommand: ParsableCommand {
         return WzCharacterLoader(archive: characterArchive, zmap: zmap)
     }
 
-    /// Build the WZ-backed map environment for the post-login hand-off.
+    /// Build the WZ-backed map environment for the post-login hand-off. The
+    /// player character is supplied at warp time from the selected look.
     private func makeMapEnvironment(assets: WzAssets, game: Game, audioPlayer: AudioPlayer) throws -> MapEnvironment? {
         guard let mapArchive = try assets.archive("Map") else { return nil }
-
-        var character: WzLoadedCharacter?
-        if let characterArchive = try assets.archive("Character") {
-            var zmap = WzZmap(order: [:])
-            if let baseArchive = try assets.archive("Base") {
-                zmap = try WzZmap.load(from: baseArchive)
-            }
-            // Default starter look; server-driven appearance comes later.
-            let equipment = [
-                WzEquipItem(category: "Hair", id: 30030),
-                WzEquipItem(category: "Coat", id: 1040002),
-                WzEquipItem(category: "Pants", id: 1060002),
-                WzEquipItem(category: "Shoes", id: 1072001),
-            ]
-            character = try WzCharacterLoader(archive: characterArchive, zmap: zmap).load(equipment: equipment)
-        }
         return MapEnvironment(
             mapLoader: WzMapLoader(archive: mapArchive),
-            character: character,
+            character: nil,
             npcLoader: try assets.archive("Npc").map { WzLifeSpriteLoader(archive: $0) },
             mobLoader: try assets.archive("Mob").map { WzLifeSpriteLoader(archive: $0) },
             stringLoader: try assets.archive("String").map { WzStringLoader(archive: $0) },
