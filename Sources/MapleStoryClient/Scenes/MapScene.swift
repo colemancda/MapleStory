@@ -107,6 +107,7 @@ public final class MapScene: Scene {
         var die: FrameAnimation?
         var hp: Int
         var maxHP: Int
+        var touchDamage: Int = 0
         var state: MobState = .patrol
         /// Seconds remaining in the current hurt/dying state.
         var stateTimer: Double = 0
@@ -163,12 +164,14 @@ public final class MapScene: Scene {
     private var isAttacking = false
     private var attackHitApplied = false
 
-    /// A floating damage number rising above a struck mob.
+    /// A floating damage number rising above a struck mob (yellow) or the
+    /// player (red).
     private struct DamageNumber {
         var x: Float
         var y: Float
         var text: String
         var age: Double = 0
+        var color: RGBAColor = RGBAColor(red: 1, green: 0.85, blue: 0.1, alpha: 1)
     }
     private var damageNumbers: [DamageNumber] = []
     private let damageNumberLifetime: Double = 0.8
@@ -176,6 +179,13 @@ public final class MapScene: Scene {
     func spawnDamageNumber(_ amount: Int, x: Float, y: Float) {
         damageNumbers.append(DamageNumber(x: x, y: y, text: "\(amount)"))
     }
+
+    // Player health: mobs deal their touch damage on contact, followed by a
+    // short invincibility window (the classic post-hit blink).
+    public var playerMaxHP = 50
+    public private(set) var playerHP = 50
+    private var invincibleTimer: Double = 0
+    private let invincibleDuration: Double = 1.5
 
     /// Climb speed in world units per second.
     public var climbSpeed: Float = 120
@@ -311,7 +321,8 @@ public final class MapScene: Scene {
                 hit: FrameAnimation(entry.hitFrames),
                 die: FrameAnimation(entry.dieFrames),
                 hp: max(entry.maxHP, 1),
-                maxHP: max(entry.maxHP, 1)
+                maxHP: max(entry.maxHP, 1),
+                touchDamage: entry.touchDamage
             )
         }
         nameTags = lifeSprites.compactMap { entry in
@@ -403,6 +414,7 @@ public final class MapScene: Scene {
         }
 
         updateDamageNumbers(deltaTime: deltaTime)
+        updateTouchDamage(deltaTime: deltaTime)
 
         if isClimbing {
             updateClimbing(deltaTime: deltaTime)
@@ -480,6 +492,42 @@ public final class MapScene: Scene {
                 frameIndex = 0
                 frameTimer = 0
             }
+        }
+    }
+
+    /// Contact with a living mob hurts the player: apply its touch damage,
+    /// knock the player back, and start the invincibility blink. At 0 HP the
+    /// player respawns at the map spawn point with full health.
+    private func updateTouchDamage(deltaTime: Double) {
+        guard character != nil else { return }
+        if invincibleTimer > 0 {
+            invincibleTimer -= deltaTime
+            return
+        }
+        guard isClimbing == false else { return }
+        for mob in mobs where mob.state != .dying && mob.touchDamage > 0 {
+            guard abs(mob.x - playerX) < 30, abs(mob.y - playerY) < 50 else { continue }
+            let damage = max(Int(Double(mob.touchDamage) * Double.random(in: 0.8 ... 1.2, using: &mobRandom)), 1)
+            playerHP -= damage
+            damageNumbers.append(DamageNumber(
+                x: playerX, y: playerY - 70, text: "\(damage)",
+                color: RGBAColor(red: 1, green: 0.25, blue: 0.2, alpha: 1)
+            ))
+            invincibleTimer = invincibleDuration
+            // Knock the player back away from the mob with a small hop.
+            let pushRight = playerX >= mob.x
+            playerX += pushRight ? 25 : -25
+            playerX = min(max(playerX, Float(map.left)), Float(map.right))
+            velocityY = min(velocityY, -jumpSpeed * 0.35)
+            onGround = false
+            if playerHP <= 0 {
+                playerHP = playerMaxHP
+                playerX = Float(map.spawnX)
+                playerY = Float(map.spawnY)
+                velocityY = 0
+                invincibleTimer = invincibleDuration
+            }
+            break
         }
     }
 
@@ -725,6 +773,9 @@ public final class MapScene: Scene {
         if showFootholds {
             drawFootholds(camera: camera, context: context)
         }
+        if character != nil {
+            drawHPBar(context: context)
+        }
         // Fade in from black when the scene starts (masks map transitions).
         if fadeInDuration > 0, sceneTime < fadeInDuration {
             let alpha = Float(1 - sceneTime / fadeInDuration)
@@ -760,15 +811,41 @@ public final class MapScene: Scene {
         }
     }
 
+    /// The player's HP bar, bottom-left: a dark pill with a red fill and
+    /// "HP current/max" label.
+    private func drawHPBar(context: RenderContext) {
+        let barWidth: Float = 160
+        let barHeight: Float = 14
+        let margin: Float = 12
+        let x = margin
+        let y = Float(context.height) - margin - barHeight
+        context.renderer.fill(
+            Rectangle(x: x - 2, y: y - 2, width: barWidth + 4, height: barHeight + 4),
+            color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 0.65)
+        )
+        let fraction = max(min(Float(playerHP) / Float(max(playerMaxHP, 1)), 1), 0)
+        context.renderer.fill(
+            Rectangle(x: x, y: y, width: barWidth * fraction, height: barHeight),
+            color: RGBAColor(red: 0.85, green: 0.15, blue: 0.15, alpha: 1)
+        )
+        let label = "HP \(playerHP)/\(playerMaxHP)"
+        let scale: Float = 0.4
+        let textWidth = context.text.width(of: label, scale: scale)
+        context.text.draw(label, x: x + (barWidth - textWidth) / 2,
+                          y: y + (barHeight - context.text.lineHeight * scale) / 2,
+                          scale: scale, color: .white, using: context.renderer)
+    }
+
     /// Floating damage numbers: rise and fade above struck mobs.
     private func drawDamageNumbers(camera: Camera, context: RenderContext) {
         for number in damageNumbers {
             let alpha = Float(max(0, 1 - number.age / damageNumberLifetime))
             let screen = camera.screen(forWorldX: number.x, worldY: number.y)
             let textWidth = context.text.width(of: number.text, scale: damageNumberScale)
+            var color = number.color
+            color.alpha = alpha
             context.text.draw(number.text, x: screen.x - textWidth / 2, y: screen.y,
-                              scale: damageNumberScale,
-                              color: RGBAColor(red: 1, green: 0.85, blue: 0.1, alpha: alpha),
+                              scale: damageNumberScale, color: color,
                               using: context.renderer)
         }
     }
@@ -881,6 +958,11 @@ public final class MapScene: Scene {
     /// from aligning its anchor point to the body skeleton; the whole assembly is
     /// mirrored horizontally around the body pivot when facing left.
     private func drawPlayer(camera: Camera, context: RenderContext) {
+        // Post-hit invincibility blink: skip every other draw interval.
+        if invincibleTimer > 0,
+           Int(sceneTime * 10).isMultiple(of: 2) {
+            return
+        }
         let frames = currentPlayerFrames()
         guard frames.isEmpty == false else { return }
         let frame = frames[frameIndex % frames.count]
