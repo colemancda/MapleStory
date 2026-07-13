@@ -76,6 +76,29 @@ public struct WzEquipItem: Sendable {
         self.category = category
         self.id = id
     }
+
+    /// Derive the Character.wz subdirectory from the item id's type prefix
+    /// (id / 10_000), e.g. 1302000 -> Weapon, 1040002 -> Coat. Returns nil
+    /// for item types without character sprites.
+    public init?(itemID: Int) {
+        let category: String?
+        switch itemID / 10_000 {
+        case 100: category = "Cap"
+        case 101, 102, 103: category = "Accessory"
+        case 104: category = "Coat"
+        case 105: category = "Longcoat"
+        case 106: category = "Pants"
+        case 107: category = "Shoes"
+        case 108: category = "Glove"
+        case 109: category = "Shield"
+        case 110: category = "Cape"
+        case 130 ... 170: category = "Weapon"
+        default: category = nil
+        }
+        guard let category else { return nil }
+        self.init(category: category, id: itemID)
+    }
+
     var imagePath: String { "\(category)/" + String(format: "%08d.img", id) }
 }
 
@@ -90,8 +113,32 @@ public final class WzCharacterLoader {
         self.zmap = zmap
     }
 
+    /// Load only the standing animation (for character-select previews).
+    public func loadStand(skin: Int = 0, faceID: Int = 20000, equipment: [WzEquipItem] = []) throws -> WzCharacterAnimation {
+        try loadAnimations(["stand1"], skin: skin, faceID: faceID, equipment: equipment)
+            .first ?? WzCharacterAnimation(frames: [])
+    }
+
     /// Load a character by skin/face plus optional equipment.
     public func load(skin: Int = 0, faceID: Int = 20000, equipment: [WzEquipItem] = []) throws -> WzLoadedCharacter {
+        let animations = try loadAnimations(
+            ["stand1", "walk1", "jump", "ladder", "rope", "swingO1", "prone"],
+            skin: skin, faceID: faceID, equipment: equipment
+        )
+        return WzLoadedCharacter(
+            stand: animations[0],
+            walk: animations[1],
+            jump: animations[2],
+            ladder: animations[3],
+            rope: animations[4],
+            attack: animations[5],
+            prone: animations[6]
+        )
+    }
+
+    /// Load the given body actions for a skin/face/equipment combination.
+    public func loadAnimations(_ actions: [String], skin: Int = 0, faceID: Int = 20000,
+                               equipment: [WzEquipItem] = []) throws -> [WzCharacterAnimation] {
         let bodyPath = String(format: "%08d.img", 2000 + skin)
         let headPath = String(format: "%08d.img", 12000 + skin)
         let facePath = "Face/" + String(format: "%08d.img", faceID)
@@ -120,19 +167,10 @@ public final class WzCharacterLoader {
             face = nil
         }
 
-        func animation(_ action: String) throws -> WzCharacterAnimation {
+        return try actions.map { action in
             try loadAnimation(action: action, bodyProps: bodyProps, headProps: headProps,
                               face: face, equipProps: equipProps, hideHair: hideHair)
         }
-        return WzLoadedCharacter(
-            stand: try animation("stand1"),
-            walk: try animation("walk1"),
-            jump: try animation("jump"),
-            ladder: try animation("ladder"),
-            rope: try animation("rope"),
-            attack: try animation("swingO1"),
-            prone: try animation("prone")
-        )
     }
 
     private func loadAnimation(

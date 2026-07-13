@@ -40,6 +40,8 @@ struct LoginAssets {
     var selectButton: WzSpriteFrame?
     var newCharButton: WzSpriteFrame?
     var deleteCharButton: WzSpriteFrame?
+    /// Loads character-select avatars from Character.wz.
+    var characterLoader: WzCharacterLoader?
 }
 
 final class LoginScene: Scene {
@@ -69,6 +71,11 @@ final class LoginScene: Scene {
     private var selectButtonTexture: Texture?
     private var newCharButtonTexture: Texture?
     private var deleteCharButtonTexture: Texture?
+
+    /// Stand-pose avatars for character select, keyed by list index; nil marks
+    /// a look that failed to load (so it isn't retried every frame).
+    private var avatars: [Int: CharacterSpriteView?] = [:]
+    private var avatarLooks: [LoginModel.CharacterLook?] = []
     /// Login button screen rectangle (for click hit-testing), updated per frame.
     private var loginButtonRect: Rectangle?
     private var loginButtonPressedUntil: Double = 0
@@ -163,7 +170,16 @@ final class LoginScene: Scene {
 
     private static func handle(characterList: MapleStory83.CharacterListResponse, model: LoginModel) {
         let list = characterList.characters.map { (id: $0.stats.id, name: "\($0.stats.name)") }
-        model.setCharacters(list)
+        let looks = characterList.characters.map { entry -> LoginModel.CharacterLook? in
+            let appearance = entry.appearance
+            return LoginModel.CharacterLook(
+                skin: Int(appearance.skinColor.rawValue),
+                face: Int(appearance.face),
+                hair: Int(appearance.hair.rawValue),
+                equipment: appearance.equipment.items.values.map(Int.init)
+            )
+        }
+        model.setCharacters(list, looks: looks)
         model.setStatus(.loggedIn, message: list.isEmpty ? "No characters on this world" : "Select a character")
         model.setPhase(.characterSelect)
     }
@@ -442,6 +458,12 @@ final class LoginScene: Scene {
         let renderer = context.renderer
         let text = context.text
 
+        // Rebuild avatar cache when the character list changes.
+        if avatarLooks != snapshot.characterLooks {
+            avatarLooks = snapshot.characterLooks
+            avatars.removeAll()
+        }
+
         for (index, name) in snapshot.characters.enumerated() {
             let x = centerX - 300 + Float(index) * 130
             let y = centerY + 40
@@ -449,6 +471,10 @@ final class LoginScene: Scene {
             if selected {
                 renderer.fill(Rectangle(x: x - 10, y: y - 96, width: 90, height: 120),
                               color: RGBAColor(red: 1, green: 0.9, blue: 0.4, alpha: 0.22))
+            }
+            // The character standing on the forest floor.
+            if let avatar = avatar(at: index) {
+                avatar.draw(x: x + 35, y: y - 4, time: time, renderer: renderer)
             }
             let nameWidth = text.width(of: name, scale: 0.45)
             let plate = Rectangle(x: x + 35 - nameWidth / 2 - 4, y: y, width: nameWidth + 8, height: 20)
@@ -458,6 +484,30 @@ final class LoginScene: Scene {
                       color: selected ? RGBAColor(red: 1, green: 0.9, blue: 0.4, alpha: 1) : .white,
                       using: renderer)
         }
+
+        drawCharacterCard(assets, snapshot: snapshot, centerX: centerX, centerY: centerY, context: context)
+    }
+
+    /// Build (once) and return the stand-pose avatar for a character.
+    private func avatar(at index: Int) -> CharacterSpriteView? {
+        if let cached = avatars[index] { return cached }
+        guard let loader = assets?.characterLoader,
+              index < avatarLooks.count, let look = avatarLooks[index] else {
+            avatars.updateValue(nil, forKey: index)
+            return nil
+        }
+        let equipment = look.equipment.compactMap(WzEquipItem.init(itemID:))
+            + [WzEquipItem(category: "Hair", id: look.hair)]
+        let view = (try? loader.loadStand(skin: look.skin, faceID: look.face, equipment: equipment))
+            .map(CharacterSpriteView.init)
+        avatars[index] = view
+        return view
+    }
+
+    private func drawCharacterCard(_ assets: LoginAssets, snapshot: LoginModel.Snapshot,
+                                   centerX: Float, centerY: Float, context: RenderContext) {
+        let renderer = context.renderer
+        let text = context.text
 
         // Stat card + buttons column, right side like the original.
         if let card = assets.charInfoCard, let charInfoTexture {

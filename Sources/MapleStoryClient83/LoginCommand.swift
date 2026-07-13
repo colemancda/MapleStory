@@ -78,7 +78,16 @@ struct LoginCommand: ParsableCommand {
             for world in ["Scania", "Bera", "Broa", "Windia"] { scene.model.addWorld(world) }
             scene.model.setPhase(.worldSelect)
         case "char":
-            scene.model.setCharacters([(1, "Coleman"), (2, "MapleFan"), (3, "Slime")])
+            // Sample looks exercising different equipment sets.
+            let looks: [LoginModel.CharacterLook?] = [
+                LoginModel.CharacterLook(skin: 0, face: 20000, hair: 30030,
+                                         equipment: [1040002, 1060002, 1072001, 1302000]),
+                LoginModel.CharacterLook(skin: 0, face: 20000, hair: 30030,
+                                         equipment: [1040002, 1060002, 1072001, 1102000, 1082002]),
+                LoginModel.CharacterLook(skin: 0, face: 20000, hair: 30030,
+                                         equipment: [1040002, 1060002, 1072001]),
+            ]
+            scene.model.setCharacters([(1, "Coleman"), (2, "MapleFan"), (3, "Slime")], looks: looks)
             scene.model.setPhase(.characterSelect)
         default:
             break
@@ -165,8 +174,19 @@ struct LoginCommand: ParsableCommand {
             charInfoCard: try uiLoader.sprite(image: "Login.img", path: "CharSelect/charInfo"),
             selectButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtSelect/normal"),
             newCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtNew/normal"),
-            deleteCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtDelete/normal")
+            deleteCharButton: try uiLoader.sprite(image: "Login.img", path: "CharSelect/BtDelete/normal"),
+            characterLoader: try makeCharacterLoader(assets: assets)
         )
+    }
+
+    /// A character loader for select-screen avatars, when Character.wz exists.
+    private func makeCharacterLoader(assets: WzAssets) throws -> WzCharacterLoader? {
+        guard let characterArchive = try assets.archive("Character") else { return nil }
+        var zmap = WzZmap(order: [:])
+        if let baseArchive = try assets.archive("Base") {
+            zmap = try WzZmap.load(from: baseArchive)
+        }
+        return WzCharacterLoader(archive: characterArchive, zmap: zmap)
     }
 
     /// Build the WZ-backed map environment for the post-login hand-off.
