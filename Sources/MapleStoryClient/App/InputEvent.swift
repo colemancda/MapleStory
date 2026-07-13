@@ -18,6 +18,7 @@ public enum ControlKey: Sendable, Equatable {
     case down
     case left
     case right
+    case attack
 }
 
 /// A translated input event delivered to the active ``Scene``.
