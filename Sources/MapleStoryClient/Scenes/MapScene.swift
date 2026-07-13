@@ -21,6 +21,7 @@ public final class MapScene: Scene {
 
     private let map: WzLoadedMap
     private let character: WzLoadedCharacter?
+    private let npcs: [(life: WzMapLife, frames: [WzSpriteFrame])]
     private var built = false
     private var backgroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
     private var foregroundTextures: [(texture: Texture, layer: WzMapBackground)] = []
@@ -47,6 +48,10 @@ public final class MapScene: Scene {
     /// Per map layer (0...7): that layer's objects (z-sorted) followed by its
     /// tiles (z-sorted) - the reference client's `TilesObjs::draw` order.
     private var layerSprites: [[AnimatedSprite]] = []
+
+    /// Per map layer: NPCs standing on that layer's footholds, drawn after the
+    /// layer's tiles/objects (the reference client's per-layer draw order).
+    private var layerNpcs: [[AnimatedSprite]] = []
 
     /// Scene clock driving map animations.
     private var sceneTime: Double = 0
@@ -89,9 +94,15 @@ public final class MapScene: Scene {
     /// Draw foothold segments as red dotted lines (debug).
     public var showFootholds = false
 
-    public init(map: WzLoadedMap, character: WzLoadedCharacter? = nil, playerStart: (x: Int, y: Int)? = nil) {
+    public init(
+        map: WzLoadedMap,
+        character: WzLoadedCharacter? = nil,
+        npcs: [(life: WzMapLife, frames: [WzSpriteFrame])] = [],
+        playerStart: (x: Int, y: Int)? = nil
+    ) {
         self.map = map
         self.character = character
+        self.npcs = npcs
         self.cameraX = Float(map.left + map.right) / 2
         self.cameraY = Float(map.top + map.bottom) / 2
         let start = playerStart ?? (map.spawnX, map.spawnY)
@@ -123,6 +134,24 @@ public final class MapScene: Scene {
         let tileTextures = MapScene.animatedSprites(for: map.tiles)
         layerSprites = (0 ... 7).map { layer in
             objectTextures.filter { $0.sprite.layer == layer } + tileTextures.filter { $0.sprite.layer == layer }
+        }
+
+        // NPCs: synthesize positioned sprites, assigned to their foothold's layer.
+        let footholdLayers = Dictionary(map.footholds.map { ($0.id, $0.layer) }, uniquingKeysWith: { first, _ in first })
+        let npcSprites = npcs.compactMap { npc -> WzMapSprite? in
+            guard npc.life.hidden == false, npc.frames.isEmpty == false, let first = npc.frames.first else { return nil }
+            return WzMapSprite(
+                rgba: first.rgba, width: first.width, height: first.height,
+                x: npc.life.x, y: npc.life.y,
+                originX: first.originX, originY: first.originY,
+                layer: footholdLayers[npc.life.footholdID] ?? 7,
+                z: 0, flipped: npc.life.flipped,
+                frames: npc.frames
+            )
+        }
+        let npcTextures = MapScene.animatedSprites(for: npcSprites)
+        layerNpcs = (0 ... 7).map { layer in
+            npcTextures.filter { $0.sprite.layer == layer }
         }
         if let character {
             standFrames = MapScene.characterTextures(for: character.stand)
@@ -281,6 +310,10 @@ public final class MapScene: Scene {
         }
         for (layer, sprites) in layerSprites.enumerated() {
             for animated in sprites {
+                let (texture, frame) = animated.frame(at: sceneTime)
+                drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
+            }
+            for animated in layerNpcs[layer] {
                 let (texture, frame) = animated.frame(at: sceneTime)
                 drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
             }
