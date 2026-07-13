@@ -70,6 +70,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Frames to render before capturing the screenshot.")
     var captureFrames: Int = 30
 
+    @Option(name: .long, help: "Debug: continuously hold a direction (left/right/up/down).")
+    var walk: String?
+
     func run() throws {
         let version: WzMapleVersion
         switch region.lowercased() {
@@ -136,6 +139,13 @@ struct MapCommand: ParsableCommand {
         var playerStart: (x: Int, y: Int)?
         if let startX, let startY { playerStart = (startX, startY) }
         let scene = try environment.makeScene(mapID: id, playerStart: playerStart)
+        switch walk?.lowercased() {
+        case "left": scene.debugHeldKeys = [.left]
+        case "right": scene.debugHeldKeys = [.right]
+        case "up": scene.debugHeldKeys = [.up]
+        case "down": scene.debugHeldKeys = [.down]
+        default: break
+        }
         game.setScene(scene)
         if let screenshot {
             game.capturePath = screenshot
