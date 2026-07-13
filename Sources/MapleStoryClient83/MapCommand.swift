@@ -76,6 +76,9 @@ struct MapCommand: ParsableCommand {
     @Flag(name: .long, help: "Debug: continuously attack (for capturing combat).")
     var attack: Bool = false
 
+    @Flag(name: .long, help: "Show a frames-per-second counter in the corner.")
+    var showFps: Bool = false
+
     func run() throws {
         let version: WzMapleVersion
         switch region.lowercased() {
@@ -128,6 +131,7 @@ struct MapCommand: ParsableCommand {
         }
 
         let game = try Game(title: "MapleStory", width: 1024, height: 768)
+        game.showFPS = showFps
         let environment = MapEnvironment(
             mapLoader: WzMapLoader(archive: mapArchive),
             character: character,

@@ -36,6 +36,12 @@ public final class Game {
     public var captureAfterFrames: Int = 3
     private var frameCount = 0
 
+    /// Draw a frames-per-second counter in the top-left corner.
+    public var showFPS = false
+    private var fpsAccumulatedTime: Double = 0
+    private var fpsAccumulatedFrames = 0
+    private var fpsDisplayed: Double = 0
+
     public init(title: String, width: Int = 1024, height: Int = 768) throws {
         try SDL.initialize(subSystems: [.video])
         try SDL.glSetAttribute(.contextProfileMask, GLAttribute.Profile.core.rawValue)
@@ -74,7 +80,8 @@ public final class Game {
                 translate(event)
             }
             let now = SDL.ticks
-            let deltaTime = Double(now &- last) / 1000
+            // SDL3 ticks are nanoseconds.
+            let deltaTime = Double(now &- last) / 1_000_000_000
             last = now
 
             scene?.updateInput(held: Game.heldMovementKeys())
@@ -88,6 +95,9 @@ public final class Game {
             if let scene {
                 scene.render(RenderContext(renderer: renderer, text: text, width: pointWidth, height: pointHeight))
             }
+            if showFPS {
+                drawFPS(deltaTime: deltaTime)
+            }
             renderer.end()
             try window.glSwap()
 
@@ -98,6 +108,41 @@ public final class Game {
             }
         }
         SDL.quit()
+    }
+
+    /// Draw the FPS counter (top-left), averaged over half-second windows so
+    /// the number is readable instead of flickering per frame.
+    private func drawFPS(deltaTime: Double) {
+        if deltaTime > 0.25 {
+            // A hitch (texture build, map load), not a rendered-frame cadence:
+            // restart the window so it doesn't poison the average.
+            fpsAccumulatedTime = 0
+            fpsAccumulatedFrames = 0
+        } else {
+            fpsAccumulatedTime += deltaTime
+            fpsAccumulatedFrames += 1
+        }
+        // Refresh every half second; before the first window closes (or when
+        // frames outpace the millisecond tick clock), show a provisional reading.
+        let windowClosed = fpsAccumulatedTime >= 0.5
+        if windowClosed || (fpsDisplayed == 0 && fpsAccumulatedFrames >= 30) {
+            fpsDisplayed = Double(fpsAccumulatedFrames) / max(fpsAccumulatedTime, 0.001)
+            if windowClosed {
+                fpsAccumulatedTime = 0
+                fpsAccumulatedFrames = 0
+            }
+        }
+        let label = String(format: "%.0f FPS", fpsDisplayed)
+        let scale: Float = 0.5
+        let padding: Float = 4
+        let width = text.width(of: label, scale: scale)
+        let height = text.lineHeight * scale
+        renderer.fill(
+            Rectangle(x: 6, y: 6, width: width + padding * 2, height: height + padding * 2),
+            color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 0.5)
+        )
+        text.draw(label, x: 6 + padding, y: 6 + padding, scale: scale,
+                  color: RGBAColor(red: 0.4, green: 1, blue: 0.4, alpha: 1), using: renderer)
     }
 
     /// Read the GL framebuffer and write it to a PNG (rows flipped to top-left origin).
