@@ -88,6 +88,7 @@ public final class Game {
             if let scene {
                 scene.render(RenderContext(renderer: renderer, text: text, width: pointWidth, height: pointHeight))
             }
+            renderer.end()
             try window.glSwap()
 
             frameCount += 1
