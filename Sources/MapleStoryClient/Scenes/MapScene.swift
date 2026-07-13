@@ -21,7 +21,7 @@ public final class MapScene: Scene {
 
     private let map: WzLoadedMap
     private let character: WzLoadedCharacter?
-    private let lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)]
+    private let lifeSprites: [WzLifeSprite]
     private var built = false
     /// Uploaded animation frames with precomputed timing.
     private struct FrameAnimation {
@@ -83,6 +83,36 @@ public final class MapScene: Scene {
     /// Per map layer: NPCs standing on that layer's footholds, drawn after the
     /// layer's tiles/objects (the reference client's per-layer draw order).
     private var layerNpcs: [[AnimatedSprite]] = []
+
+    /// A mob that patrols its foothold chain between its spawn bounds.
+    private struct MobEntity {
+        var x: Float
+        var y: Float
+        var facingRight = false
+        var walking = true
+        /// Seconds until the next walk/pause decision.
+        var decisionTimer: Double
+        var frameIndex = 0
+        var frameTimer: Double = 0
+        var speed: Float
+        var minX: Float
+        var maxX: Float
+        var layer: Int
+        var name: String?
+        var stand: FrameAnimation?
+        var move: FrameAnimation?
+
+        var currentAnimation: FrameAnimation? {
+            walking ? (move ?? stand) : (stand ?? move)
+        }
+    }
+
+    private var mobs: [MobEntity] = []
+    private var mobRandom = SystemRandomNumberGenerator()
+
+    /// Base mob walking speed in world units per second (scaled by each mob's
+    /// `info/speed` percent modifier).
+    public var mobBaseSpeed: Float = 100
 
     /// Scene clock driving map animations.
     private var sceneTime: Double = 0
@@ -162,7 +192,7 @@ public final class MapScene: Scene {
     public init(
         map: WzLoadedMap,
         character: WzLoadedCharacter? = nil,
-        lifeSprites: [(life: WzMapLife, frames: [WzSpriteFrame], name: String?)] = [],
+        lifeSprites: [WzLifeSprite] = [],
         portalFrames: [WzSpriteFrame] = [],
         playerStart: (x: Int, y: Int)? = nil
     ) {
@@ -207,22 +237,45 @@ public final class MapScene: Scene {
         // NPCs: synthesize positioned sprites, assigned to their foothold's layer.
         let footholdLayers = Dictionary(map.footholds.map { ($0.id, $0.layer) }, uniquingKeysWith: { first, _ in first })
         let npcSprites = lifeSprites.compactMap { npc -> WzMapSprite? in
-            guard npc.life.hidden == false, npc.frames.isEmpty == false, let first = npc.frames.first else { return nil }
+            guard npc.life.type == "n", npc.life.hidden == false,
+                  let first = npc.standFrames.first else { return nil }
             return WzMapSprite(
                 rgba: first.rgba, width: first.width, height: first.height,
                 x: npc.life.x, y: npc.life.y,
                 originX: first.originX, originY: first.originY,
                 layer: footholdLayers[npc.life.footholdID] ?? 7,
                 z: 0, flipped: npc.life.flipped,
-                frames: npc.frames
+                frames: npc.standFrames
             )
         }
         let npcTextures = MapScene.animatedSprites(for: npcSprites)
         layerNpcs = (0 ... 7).map { layer in
             npcTextures.filter { $0.sprite.layer == layer }
         }
+
+        // Mobs: dynamic entities that patrol their spawn bounds.
+        mobs = lifeSprites.compactMap { entry -> MobEntity? in
+            guard entry.life.type == "m", entry.life.hidden == false,
+                  entry.standFrames.isEmpty == false || entry.moveFrames.isEmpty == false else { return nil }
+            let speedScale = Float(max(100 + entry.speedPercent, 10)) / 100
+            return MobEntity(
+                x: Float(entry.life.x),
+                y: Float(entry.life.y),
+                facingRight: Bool.random(using: &mobRandom),
+                walking: true,
+                decisionTimer: Double.random(in: 1 ... 4, using: &mobRandom),
+                speed: mobBaseSpeed * speedScale,
+                minX: Float(entry.life.patrolMinX ?? (entry.life.x - 150)),
+                maxX: Float(entry.life.patrolMaxX ?? (entry.life.x + 150)),
+                layer: footholdLayers[entry.life.footholdID] ?? 7,
+                name: entry.name,
+                stand: FrameAnimation(entry.standFrames),
+                move: FrameAnimation(entry.moveFrames)
+            )
+        }
         nameTags = lifeSprites.compactMap { entry in
-            guard let name = entry.name, name.isEmpty == false, entry.life.hidden == false else { return nil }
+            guard entry.life.type == "n", let name = entry.name, name.isEmpty == false,
+                  entry.life.hidden == false else { return nil }
             return (Float(entry.life.x), Float(entry.life.y), name)
         }
 
@@ -293,6 +346,7 @@ public final class MapScene: Scene {
         // which uploads every texture) can't teleport the player or break the
         // ground-crossing check.
         let deltaTime = min(deltaTime, 0.05)
+        updateMobs(deltaTime: deltaTime)
         guard character != nil else {
             // No player: arrows pan the camera directly.
             let step = walkSpeed * Float(deltaTime)
@@ -348,6 +402,48 @@ public final class MapScene: Scene {
         if frameTimer >= delay {
             frameTimer -= delay
             frameIndex = (frameIndex + 1) % frames.count
+        }
+    }
+
+    /// Patrol AI: walk along the foothold chain, reversing at patrol bounds or
+    /// edges, pausing at random intervals.
+    private func updateMobs(deltaTime: Double) {
+        for index in mobs.indices {
+            var mob = mobs[index]
+            mob.decisionTimer -= deltaTime
+            if mob.decisionTimer <= 0 {
+                mob.decisionTimer = Double.random(in: 1.5 ... 4, using: &mobRandom)
+                mob.walking.toggle()
+                if mob.walking {
+                    mob.facingRight = Bool.random(using: &mobRandom)
+                }
+                mob.frameIndex = 0
+                mob.frameTimer = 0
+            }
+            if mob.walking {
+                let step = mob.speed * Float(deltaTime)
+                let newX = mob.x + (mob.facingRight ? step : -step)
+                if newX < mob.minX || newX > mob.maxX {
+                    mob.facingRight.toggle()
+                } else if let ground = map.ground(atX: newX, below: mob.y, tolerance: 40),
+                          abs(ground.y - mob.y) <= 40 {
+                    mob.x = newX
+                    mob.y = ground.y
+                    mob.layer = ground.foothold.layer
+                } else {
+                    // Edge of the platform: turn around.
+                    mob.facingRight.toggle()
+                }
+            }
+            if let animation = mob.currentAnimation, animation.frames.count > 1 {
+                mob.frameTimer += deltaTime * 1000
+                let delay = Double(max(animation.frames[mob.frameIndex % animation.frames.count].frame.delayMilliseconds, 1))
+                if mob.frameTimer >= delay {
+                    mob.frameTimer -= delay
+                    mob.frameIndex = (mob.frameIndex + 1) % animation.frames.count
+                }
+            }
+            mobs[index] = mob
         }
     }
 
@@ -470,6 +566,9 @@ public final class MapScene: Scene {
                 let (texture, frame) = animated.frame(at: sceneTime)
                 drawWorldSprite(animated.sprite, frame: frame, texture: texture, camera: camera, context: context)
             }
+            for mob in mobs where mob.layer == layer {
+                drawMob(mob, camera: camera, context: context)
+            }
             // The player belongs to its foothold's layer.
             if character != nil && layer == min(playerLayer, layerSprites.count - 1) {
                 drawPlayer(camera: camera, context: context)
@@ -497,22 +596,43 @@ public final class MapScene: Scene {
         }
     }
 
+    /// A mob at its current patrol position (mob art faces left by default).
+    private func drawMob(_ mob: MobEntity, camera: Camera, context: RenderContext) {
+        guard let animation = mob.currentAnimation, animation.frames.isEmpty == false else { return }
+        let (texture, frame) = animation.frames[mob.frameIndex % animation.frames.count]
+        let flip = mob.facingRight
+        let effectiveOriginX = flip ? (frame.width - frame.originX) : frame.originX
+        let screen = camera.screen(forWorldX: mob.x - Float(effectiveOriginX), worldY: mob.y - Float(frame.originY))
+        let rect = Rectangle(x: screen.x, y: screen.y, width: Float(frame.width), height: Float(frame.height))
+        let uv = flip ? Rectangle(x: 1, y: 0, width: -1, height: 1) : Rectangle(x: 0, y: 0, width: 1, height: 1)
+        context.renderer.draw(texture, in: rect, uv: uv)
+    }
+
     /// Name tags: a dark pill under each named life sprite's feet, like the
-    /// real client's NPC/mob labels.
+    /// real client's NPC/mob labels. NPC tags are static; mob tags follow.
     private func drawNameTags(camera: Camera, context: RenderContext) {
         for tag in nameTags {
-            let screen = camera.screen(forWorldX: tag.x, worldY: tag.y)
-            let textWidth = context.text.width(of: tag.name, scale: nameTagScale)
-            let textHeight = context.text.lineHeight * nameTagScale
-            let padding: Float = 3
-            let rect = Rectangle(x: screen.x - textWidth / 2 - padding,
-                                 y: screen.y + 3,
-                                 width: textWidth + padding * 2,
-                                 height: textHeight + padding * 2)
-            context.renderer.fill(rect, color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 0.6))
-            context.text.draw(tag.name, x: screen.x - textWidth / 2, y: screen.y + 3 + padding,
-                              scale: nameTagScale, color: .white, using: context.renderer)
+            drawNameTag(tag.name, x: tag.x, y: tag.y, camera: camera, context: context)
         }
+        for mob in mobs {
+            if let name = mob.name {
+                drawNameTag(name, x: mob.x, y: mob.y, camera: camera, context: context)
+            }
+        }
+    }
+
+    private func drawNameTag(_ name: String, x: Float, y: Float, camera: Camera, context: RenderContext) {
+        let screen = camera.screen(forWorldX: x, worldY: y)
+        let textWidth = context.text.width(of: name, scale: nameTagScale)
+        let textHeight = context.text.lineHeight * nameTagScale
+        let padding: Float = 3
+        let rect = Rectangle(x: screen.x - textWidth / 2 - padding,
+                             y: screen.y + 3,
+                             width: textWidth + padding * 2,
+                             height: textHeight + padding * 2)
+        context.renderer.fill(rect, color: RGBAColor(red: 0, green: 0, blue: 0, alpha: 0.6))
+        context.text.draw(name, x: screen.x - textWidth / 2, y: screen.y + 3 + padding,
+                          scale: nameTagScale, color: .white, using: context.renderer)
     }
 
     /// Debug overlay: each foothold as a dotted line (red = ground, blue = wall).

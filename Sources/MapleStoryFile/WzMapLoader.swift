@@ -199,6 +199,9 @@ public struct WzMapLife: Sendable {
     public var footholdID: Int
     public var flipped: Bool
     public var hidden: Bool
+    /// Patrol bounds for mobs (`rx0`/`rx1`), when present.
+    public var patrolMinX: Int?
+    public var patrolMaxX: Int?
 }
 
 public extension WzLoadedMap {
@@ -346,7 +349,9 @@ public final class WzMapLoader {
                 y: c.int("cy") ?? c.int("y") ?? 0,
                 footholdID: c.int("fh") ?? 0,
                 flipped: (c.int("f") ?? 0) != 0,
-                hidden: (c.int("hide") ?? 0) != 0
+                hidden: (c.int("hide") ?? 0) != 0,
+                patrolMinX: c.int("rx0"),
+                patrolMaxX: c.int("rx1")
             ))
         }
 
