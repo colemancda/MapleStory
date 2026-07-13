@@ -1,0 +1,314 @@
+//
+//  MapCommand.swift
+//  MapleStoryClient83
+//
+
+import Foundation
+import ArgumentParser
+import MapleStoryClient
+import MapleStoryFile
+
+struct MapCommand: ParsableCommand {
+
+    static let configuration = CommandConfiguration(
+        commandName: "map",
+        abstract: "Load and render a map from a WZ file."
+    )
+
+    @Option(name: .long, help: "Directory containing the game's .wz files (Map.wz required; Character/Base/Npc/Mob/String/Sound.wz used when present).")
+    var wz: String
+
+    @Option(name: .long, help: "Hair item id (0 = none).")
+    var hair: Int = 30030
+    @Option(name: .long, help: "Coat item id (0 = none).")
+    var coat: Int = 1040002
+    @Option(name: .long, help: "Pants item id (0 = none).")
+    var pants: Int = 1060002
+    @Option(name: .long, help: "Shoes item id (0 = none).")
+    var shoes: Int = 1072001
+    @Option(name: .long, help: "Cap item id (0 = none).")
+    var cap: Int = 0
+    @Option(name: .long, help: "Weapon item id (0 = none).")
+    var weapon: Int = 0
+    @Option(name: .long, help: "Cape item id (0 = none).")
+    var cape: Int = 0
+    @Option(name: .long, help: "Glove item id (0 = none).")
+    var glove: Int = 0
+
+    @Option(name: .long, help: "Map ID to render.")
+    var id: Int = 100000000
+
+    @Option(name: .long, help: "WZ region: gms, ems, or bms.")
+    var region: String = "gms"
+
+    @Option(name: .long, help: "Capture a screenshot to this PNG path and exit.")
+    var screenshot: String?
+
+    @Flag(name: .long, help: "Overlay foothold (ground/wall) geometry for debugging.")
+    var showFootholds = false
+
+    @Option(name: .long, help: "Player start X (defaults to the map's spawn portal).")
+    var startX: Int?
+
+    @Option(name: .long, help: "Player start Y (defaults to the map's spawn portal).")
+    var startY: Int?
+
+    @Option(name: .long, help: "Frames to render before capturing the screenshot.")
+    var captureFrames: Int = 30
+
+    @Option(name: .long, help: "Debug: continuously hold a direction (left/right/up/down).")
+    var walk: String?
+
+    @Flag(name: .long, help: "Debug: continuously attack (for capturing combat).")
+    var attack: Bool = false
+
+    @Flag(name: .long, help: "Show a frames-per-second counter in the corner.")
+    var showFps: Bool = false
+
+    func run() throws {
+        let assets = WzAssets(directory: wz, region: region)
+        let mapArchive = try assets.requireArchive("Map")
+        print("Parsed WZ (version \(mapArchive.version))")
+
+        var character: WzLoadedCharacter?
+        if let characterArchive = try assets.archive("Character") {
+            var zmap = WzZmap(order: [:])
+            if let baseArchive = try assets.archive("Base") {
+                zmap = try WzZmap.load(from: baseArchive)
+            }
+            var equipment: [WzEquipItem] = []
+            if hair != 0 { equipment.append(WzEquipItem(category: "Hair", id: hair)) }
+            if coat != 0 { equipment.append(WzEquipItem(category: "Coat", id: coat)) }
+            if pants != 0 { equipment.append(WzEquipItem(category: "Pants", id: pants)) }
+            if shoes != 0 { equipment.append(WzEquipItem(category: "Shoes", id: shoes)) }
+            if cap != 0 { equipment.append(WzEquipItem(category: "Cap", id: cap)) }
+            if weapon != 0 { equipment.append(WzEquipItem(category: "Weapon", id: weapon)) }
+            if cape != 0 { equipment.append(WzEquipItem(category: "Cape", id: cape)) }
+            if glove != 0 { equipment.append(WzEquipItem(category: "Glove", id: glove)) }
+            character = try WzCharacterLoader(archive: characterArchive, zmap: zmap).load(equipment: equipment)
+        }
+
+        let game = try Game(title: "MapleStory", width: 1024, height: 768)
+        game.showFPS = showFps
+        let environment = MapEnvironment(
+            mapLoader: WzMapLoader(archive: mapArchive),
+            character: character,
+            npcLoader: try assets.archive("Npc").map { WzLifeSpriteLoader(archive: $0) },
+            mobLoader: try assets.archive("Mob").map { WzLifeSpriteLoader(archive: $0) },
+            stringLoader: try assets.archive("String").map { WzStringLoader(archive: $0) },
+            soundArchive: try assets.archive("Sound"),
+            showFootholds: showFootholds,
+            game: game
+        )
+
+        var playerStart: (x: Int, y: Int)?
+        if let startX, let startY { playerStart = (startX, startY) }
+        let scene = try environment.makeScene(mapID: id, playerStart: playerStart)
+        switch walk?.lowercased() {
+        case "left": scene.debugHeldKeys = [.left]
+        case "right": scene.debugHeldKeys = [.right]
+        case "up": scene.debugHeldKeys = [.up]
+        case "down": scene.debugHeldKeys = [.down]
+        default: break
+        }
+        scene.debugAttack = attack
+        game.setScene(scene)
+        if let screenshot {
+            game.capturePath = screenshot
+            // Default gives physics (falling to ground) time to settle first.
+            game.captureAfterFrames = captureFrames
+        }
+        try game.run()
+        if let screenshot {
+            print("Saved screenshot to \(screenshot)")
+        }
+    }
+}
+
+/// Keeps the WZ archives/loaders alive across map transitions and builds a
+/// scene per map, wiring portal entry to load the target map.
+/// `@unchecked Sendable`: reached from network-handler tasks (login hand-off)
+/// but never concurrently - scene builds happen one at a time.
+final class MapEnvironment: @unchecked Sendable {
+
+    private let mapLoader: WzMapLoader
+    private var character: WzLoadedCharacter?
+    private let npcLoader: WzLifeSpriteLoader?
+    private let mobLoader: WzLifeSpriteLoader?
+    private let stringLoader: WzStringLoader?
+    private let soundArchive: WzArchive?
+    private let audioPlayer: AudioPlayer
+    private let showFootholds: Bool
+    private weak var game: Game?
+    private lazy var portalFrames: [WzSpriteFrame] = (try? mapLoader.loadPortalAnimation()) ?? []
+
+    // One-shot sound effects, decoded once from Sound.wz.
+    private lazy var jumpSound: Data? = soundEffectData(image: "Game.img", path: ["Jump"])
+    private lazy var portalSound: Data? = soundEffectData(image: "Game.img", path: ["Portal"])
+    private lazy var attackSound: Data? = soundEffectData(image: "Weapon.img", path: ["swordL", "Attack"])
+
+    init(
+        mapLoader: WzMapLoader,
+        character: WzLoadedCharacter?,
+        npcLoader: WzLifeSpriteLoader?,
+        mobLoader: WzLifeSpriteLoader?,
+        stringLoader: WzStringLoader?,
+        soundArchive: WzArchive?,
+        showFootholds: Bool,
+        game: Game,
+        audioPlayer: AudioPlayer = AudioPlayer()
+    ) {
+        self.mapLoader = mapLoader
+        self.character = character
+        self.npcLoader = npcLoader
+        self.mobLoader = mobLoader
+        self.stringLoader = stringLoader
+        self.soundArchive = soundArchive
+        self.showFootholds = showFootholds
+        self.game = game
+        self.audioPlayer = audioPlayer
+    }
+
+    /// Replace the rendered player (e.g. with the look of the character the
+    /// user actually selected) before the next scene build.
+    func setCharacter(_ newCharacter: WzLoadedCharacter?) {
+        character = newCharacter
+    }
+
+    func makeScene(mapID: Int, spawnPortal: String? = nil, spawnPoint: Int? = nil,
+                   playerStart: (x: Int, y: Int)? = nil) throws -> MapScene {
+        let map = try mapLoader.load(mapID: mapID)
+        print("Map \(mapID): \(map.backgrounds.count) backgrounds, \(map.tiles.count) tiles, \(map.objects.count) objects, \(map.portals.count) portals")
+
+        var lifeSprites: [WzLifeSprite] = []
+        appendLife(type: "n", loader: npcLoader, map: map, into: &lifeSprites)
+        appendLife(type: "m", loader: mobLoader, map: map, into: &lifeSprites)
+
+        // Spawn at the named arrival portal (map transitions) or the numbered
+        // spawn point (the server's SetField warp).
+        var start = playerStart
+        if start == nil, let spawnPortal,
+           let arrival = map.portals.first(where: { $0.name == spawnPortal }) {
+            start = (arrival.x, arrival.y)
+        }
+        if start == nil, let spawnPoint,
+           let arrival = map.portals.first(where: { $0.id == spawnPoint }) {
+            start = (arrival.x, arrival.y)
+        }
+
+        // Prime the effect decodes so missing paths are reported at load, not
+        // on first use mid-game.
+        _ = jumpSound
+        _ = portalSound
+        _ = attackSound
+
+        let scene = MapScene(map: map, character: character, lifeSprites: lifeSprites,
+                             portalFrames: portalFrames, playerStart: start)
+        scene.showFootholds = showFootholds
+        scene.onEnterPortal = { [weak self] portal in
+            self?.transition(through: portal)
+        }
+        scene.onSoundEvent = { [weak self] event in
+            guard let self else { return }
+            switch event {
+            case .jump: self.playEffect(self.jumpSound)
+            case .attack: self.playEffect(self.attackSound)
+            }
+        }
+        playBackgroundMusic(for: map)
+        return scene
+    }
+
+    private func playEffect(_ data: Data?) {
+        if let data { audioPlayer.playEffect(data) }
+    }
+
+    /// Decode a sound property at `path` inside `image` in Sound.wz.
+    private func soundEffectData(image: String, path: [String]) -> Data? {
+        guard let soundArchive,
+              let node = soundArchive.root[image],
+              let props = try? soundArchive.properties(of: node) else { return nil }
+        var current = props
+        var property: WzProperty?
+        for component in path {
+            guard let value = current[component] else { return nil }
+            property = value
+            current = value.children
+        }
+        guard let sound = property?.soundValue,
+              let data = soundArchive.soundData(sound) else {
+            print("Sound effect \(image)/\(path.joined(separator: "/")) not found")
+            return nil
+        }
+        return data
+    }
+
+    /// Play the map's BGM (info/bgm = "{image}/{track}" in Sound.wz).
+    private func playBackgroundMusic(for map: WzLoadedMap) {
+        guard let soundArchive, let bgm = map.bgm else { return }
+        let components = bgm.split(separator: "/").map(String.init)
+        guard components.count == 2,
+              let image = soundArchive.root["\(components[0]).img"],
+              let props = try? soundArchive.properties(of: image),
+              let sound = props[components[1]]?.soundValue,
+              let data = soundArchive.soundData(sound) else {
+            print("BGM \(bgm) not found")
+            return
+        }
+        print("Playing BGM \(bgm) (\(sound.durationMilliseconds / 1000)s loop)")
+        audioPlayer.playMusic(data, track: bgm)
+    }
+
+    private func transition(through portal: WzMapPortal) {
+        print("Entering portal \(portal.name) -> map \(portal.targetMap) (\(portal.targetName))")
+        playEffect(portalSound)
+        do {
+            let scene = try makeScene(mapID: portal.targetMap, spawnPortal: portal.targetName)
+            game?.setScene(scene)
+        } catch {
+            print("Failed to load map \(portal.targetMap): \(error)")
+        }
+    }
+
+    private func appendLife(
+        type: String,
+        loader: WzLifeSpriteLoader?,
+        map: WzLoadedMap,
+        into lifeSprites: inout [WzLifeSprite]
+    ) {
+        guard let loader else { return }
+        struct Loaded { var stand: [WzSpriteFrame]; var move: [WzSpriteFrame]; var hit: [WzSpriteFrame]; var die: [WzSpriteFrame]; var speed: Int; var maxHP: Int; var touchDamage: Int }
+        var cache: [Int: Loaded] = [:]
+        var count = 0
+        for life in map.life where life.type == type && life.hidden == false {
+            let loaded: Loaded
+            if let cached = cache[life.id] {
+                loaded = cached
+            } else {
+                let stand = (try? loader.loadStandFrames(id: life.id)) ?? []
+                let isMob = type == "m"
+                let move = isMob ? ((try? loader.loadFrames(action: "move", id: life.id)) ?? []) : []
+                let hit = isMob ? ((try? loader.loadFrames(action: "hit1", id: life.id)) ?? []) : []
+                let die = isMob ? ((try? loader.loadFrames(action: "die1", id: life.id)) ?? []) : []
+                loaded = Loaded(stand: stand, move: move, hit: hit, die: die,
+                                speed: loader.speedPercent(id: life.id),
+                                maxHP: isMob ? loader.maxHP(id: life.id) : 1,
+                                touchDamage: isMob ? loader.touchDamage(id: life.id) : 0)
+                cache[life.id] = loaded
+            }
+            if loaded.stand.isEmpty == false || loaded.move.isEmpty == false {
+                let name = type == "n" ? stringLoader?.npcName(id: life.id) : stringLoader?.mobName(id: life.id)
+                lifeSprites.append(WzLifeSprite(life: life, standFrames: loaded.stand,
+                                                moveFrames: loaded.move, hitFrames: loaded.hit,
+                                                dieFrames: loaded.die, name: name,
+                                                speedPercent: loaded.speed, maxHP: loaded.maxHP,
+                                                touchDamage: loaded.touchDamage))
+                count += 1
+            }
+        }
+        let total = map.life.filter { $0.type == type }.count
+        if total > 0 {
+            print("\(type == "n" ? "NPCs" : "Mobs") loaded: \(count) of \(total)")
+        }
+    }
+}

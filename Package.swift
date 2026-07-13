@@ -31,6 +31,18 @@ let package = Package(
             name: "MapleStory83",
             targets: ["MapleStory83"]
         ),
+        .library(
+            name: "MapleStoryFile",
+            targets: ["MapleStoryFile"]
+        ),
+        .library(
+            name: "MapleStoryClient",
+            targets: ["MapleStoryClient"]
+        ),
+        .executable(
+            name: "MapleStoryClient83",
+            targets: ["MapleStoryClient83"]
+        ),
         .executable(
             name: "MapleStoryServer28",
             targets: ["MapleStoryServer28"]
@@ -64,6 +76,10 @@ let package = Package(
         .package(
             url: "https://github.com/apple/swift-binary-parsing.git",
             .upToNextMinor(from: "0.0.2")
+        ),
+        .package(
+            url: "https://github.com/PureSwift/SDL",
+            branch: "master"
         ),
         .package(
             url: "https://github.com/apple/swift-argument-parser",
@@ -110,6 +126,42 @@ let package = Package(
                 .product(
                     name: "CoreModel",
                     package: "CoreModel"
+                )
+            ]
+        ),
+        .target(
+            name: "CZlibShim",
+            linkerSettings: [
+                .linkedLibrary("z")
+            ]
+        ),
+        .target(
+            name: "MapleStoryFile",
+            dependencies: [
+                "CryptoSwift",
+                "CZlibShim"
+            ]
+        ),
+        .target(
+            name: "MapleStoryClient",
+            dependencies: [
+                "MapleStory",
+                "MapleStoryFile",
+                .product(
+                    name: "SDL3Swift",
+                    package: "SDL"
+                )
+            ]
+        ),
+        .executableTarget(
+            name: "MapleStoryClient83",
+            dependencies: [
+                "MapleStoryClient",
+                "MapleStory83",
+                "MapleStoryFile",
+                .product(
+                    name: "ArgumentParser",
+                    package: "swift-argument-parser"
                 )
             ]
         ),
@@ -232,6 +284,21 @@ let package = Package(
             dependencies: [
                 "MapleStory",
                 "MapleStory83"
+            ]
+        ),
+        .testTarget(
+            name: "MapleStoryClientTests",
+            dependencies: [
+                "MapleStory",
+                "MapleStory83",
+                "MapleStoryClient",
+                "MapleStoryFile"
+            ]
+        ),
+        .testTarget(
+            name: "MapleStoryFileTests",
+            dependencies: [
+                "MapleStoryFile"
             ]
         ),
     ]

@@ -199,9 +199,17 @@ public extension CharacterListResponse {
 }
 
 internal extension CharacterListResponse.Equipment {
-    
+
     var dictionary: [UInt8: UInt32] {
         [UInt8: UInt32].init(value)
+    }
+}
+
+public extension CharacterListResponse.Equipment {
+
+    /// The equipped items by slot.
+    var items: [UInt8: UInt32] {
+        dictionary
     }
 }
 
