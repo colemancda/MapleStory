@@ -93,6 +93,14 @@ public final class WzArchive {
         return try WzProperty.parseList(reader: reader, base: Int(image.offset))
     }
 
+    /// The raw audio payload (usually MP3) of an embedded sound.
+    public func soundData(_ sound: WzSound) -> Data? {
+        let start = sound.dataOffset
+        let end = start + sound.dataLength
+        guard start >= 0, sound.dataLength > 0, end <= reader.data.count else { return nil }
+        return Data(reader.data[start ..< end])
+    }
+
     /// Decode a canvas's bitmap to RGBA8.
     public func decodeCanvas(_ canvas: WzCanvas) throws -> WzDecodedBitmap {
         let data = reader.data

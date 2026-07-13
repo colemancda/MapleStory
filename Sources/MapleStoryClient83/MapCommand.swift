@@ -30,6 +30,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Path to String.wz. If provided, shows NPC/mob name tags.")
     var stringWz: String?
 
+    @Option(name: .long, help: "Path to Sound.wz. If provided, plays each map's background music.")
+    var soundWz: String?
+
     @Option(name: .long, help: "Map ID to render.")
     var id: Int = 100000000
 
@@ -84,6 +87,11 @@ struct MapCommand: ParsableCommand {
             print("Loading \(stringWz) ...")
             stringLoader = WzStringLoader(archive: try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: stringWz)), mapleVersion: version))
         }
+        var soundArchive: WzArchive?
+        if let soundWz {
+            print("Loading \(soundWz) ...")
+            soundArchive = try WzArchive(data: try Data(contentsOf: URL(fileURLWithPath: soundWz)), mapleVersion: version)
+        }
 
         let game = try Game(title: "MapleStory", width: 1024, height: 768)
         let environment = MapEnvironment(
@@ -92,6 +100,7 @@ struct MapCommand: ParsableCommand {
             npcLoader: npcLoader,
             mobLoader: mobLoader,
             stringLoader: stringLoader,
+            soundArchive: soundArchive,
             showFootholds: showFootholds,
             game: game
         )
@@ -121,6 +130,8 @@ final class MapEnvironment {
     private let npcLoader: WzLifeSpriteLoader?
     private let mobLoader: WzLifeSpriteLoader?
     private let stringLoader: WzStringLoader?
+    private let soundArchive: WzArchive?
+    private let audioPlayer = AudioPlayer()
     private let showFootholds: Bool
     private weak var game: Game?
     private lazy var portalFrames: [WzSpriteFrame] = (try? mapLoader.loadPortalAnimation()) ?? []
@@ -131,6 +142,7 @@ final class MapEnvironment {
         npcLoader: WzLifeSpriteLoader?,
         mobLoader: WzLifeSpriteLoader?,
         stringLoader: WzStringLoader?,
+        soundArchive: WzArchive?,
         showFootholds: Bool,
         game: Game
     ) {
@@ -139,6 +151,7 @@ final class MapEnvironment {
         self.npcLoader = npcLoader
         self.mobLoader = mobLoader
         self.stringLoader = stringLoader
+        self.soundArchive = soundArchive
         self.showFootholds = showFootholds
         self.game = game
     }
@@ -164,7 +177,24 @@ final class MapEnvironment {
         scene.onEnterPortal = { [weak self] portal in
             self?.transition(through: portal)
         }
+        playBackgroundMusic(for: map)
         return scene
+    }
+
+    /// Play the map's BGM (info/bgm = "{image}/{track}" in Sound.wz).
+    private func playBackgroundMusic(for map: WzLoadedMap) {
+        guard let soundArchive, let bgm = map.bgm else { return }
+        let components = bgm.split(separator: "/").map(String.init)
+        guard components.count == 2,
+              let image = soundArchive.root["\(components[0]).img"],
+              let props = try? soundArchive.properties(of: image),
+              let sound = props[components[1]]?.soundValue,
+              let data = soundArchive.soundData(sound) else {
+            print("BGM \(bgm) not found")
+            return
+        }
+        print("Playing BGM \(bgm) (\(sound.durationMilliseconds / 1000)s loop)")
+        audioPlayer.playMusic(data, track: bgm)
     }
 
     private func transition(through portal: WzMapPortal) {

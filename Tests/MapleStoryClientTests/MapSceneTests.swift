@@ -17,7 +17,7 @@ final class MapSceneTests: XCTestCase {
         return WzLoadedMap(id: 1, backgrounds: [], foregrounds: [], tiles: [], objects: [],
                            left: -500, top: -500, right: 500, bottom: 500,
                            spawnX: 0, spawnY: 100, footholds: [ground], life: [],
-                           portals: portals, ladders: [])
+                           portals: portals, ladders: [], bgm: nil)
     }
 
     func testUpArrowEntersOverlappingPortal() {
@@ -40,7 +40,7 @@ final class MapSceneTests: XCTestCase {
         let map = WzLoadedMap(id: 1, backgrounds: [], foregrounds: [], tiles: [], objects: [],
                               left: -500, top: -500, right: 500, bottom: 500,
                               spawnX: 10, spawnY: 150, footholds: [ground, upper], life: [],
-                              portals: [], ladders: [ladder])
+                              portals: [], ladders: [ladder], bgm: nil)
         let empty = WzCharacterAnimation(frames: [])
         let character = WzLoadedCharacter(stand: empty, walk: empty, jump: empty, ladder: empty, rope: empty)
         let scene = MapScene(map: map, character: character, playerStart: (10, 150))

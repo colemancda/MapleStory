@@ -29,7 +29,15 @@ public indirect enum WzProperty: Sendable {
     case convex([WzProperty])
     case uol(String)
     case canvas(WzCanvas)
-    case sound
+    case sound(WzSound)
+}
+
+/// An embedded sound (usually MP3): the location of its audio payload.
+public struct WzSound: Sendable {
+    /// Absolute offset of the audio payload within the archive.
+    public let dataOffset: Int
+    public let dataLength: Int
+    public let durationMilliseconds: Int
 }
 
 /// Canvas metadata plus the location of its (still-compressed) bitmap.
@@ -76,6 +84,11 @@ public extension WzProperty {
 
     var canvasValue: WzCanvas? {
         if case let .canvas(canvas) = self { return canvas }
+        return nil
+    }
+
+    var soundValue: WzSound? {
+        if case let .sound(sound) = self { return sound }
         return nil
     }
 
@@ -152,7 +165,7 @@ extension WzProperty {
         case 9:
             let blockSize = Int(try reader.readUInt32())
             let endOfBlock = reader.position + blockSize
-            let value = try parseExtended(reader: reader, base: base)
+            let value = try parseExtended(reader: reader, base: base, endOfBlock: endOfBlock)
             if reader.position != endOfBlock {
                 reader.seek(to: endOfBlock)
             }
@@ -162,7 +175,7 @@ extension WzProperty {
         }
     }
 
-    private static func parseExtended(reader: WzReader, base: Int) throws -> WzProperty {
+    private static func parseExtended(reader: WzReader, base: Int, endOfBlock: Int = 0) throws -> WzProperty {
         let tag = try reader.readUInt8()
         let identifier: String
         switch tag {
@@ -173,10 +186,10 @@ extension WzProperty {
         default:
             throw WzReaderError.invalidStringBlock(tag)
         }
-        return try extract(identifier: identifier, reader: reader, base: base)
+        return try extract(identifier: identifier, reader: reader, base: base, endOfBlock: endOfBlock)
     }
 
-    private static func extract(identifier: String, reader: WzReader, base: Int) throws -> WzProperty {
+    private static func extract(identifier: String, reader: WzReader, base: Int, endOfBlock: Int) throws -> WzProperty {
         switch identifier {
         case "Property":
             reader.skip(2) // reserved
@@ -193,7 +206,19 @@ extension WzProperty {
             }
             return .convex(items)
         case "Sound_DX8":
-            return .sound
+            // Layout (MapleLib WzBinaryProperty): 1 unknown byte, compressed
+            // payload length, compressed duration (ms), then a wave-format
+            // header, then the audio payload (usually MP3). The payload is the
+            // last `length` bytes of the enclosing block, so we avoid parsing
+            // the header.
+            reader.skip(1)
+            let length = Int(try reader.readCompressedInt())
+            let duration = Int(try reader.readCompressedInt())
+            guard length > 0, endOfBlock > 0, endOfBlock - length >= reader.position else {
+                return .sound(WzSound(dataOffset: 0, dataLength: 0, durationMilliseconds: max(duration, 0)))
+            }
+            return .sound(WzSound(dataOffset: endOfBlock - length, dataLength: length,
+                                  durationMilliseconds: duration))
         case "UOL":
             reader.skip(1)
             switch try reader.readUInt8() {
