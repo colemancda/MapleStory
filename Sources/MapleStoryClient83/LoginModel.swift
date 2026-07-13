@@ -27,6 +27,14 @@ final class LoginModel: @unchecked Sendable {
         case inGame
     }
 
+    /// A character's visual identity, for rendering its select-screen avatar.
+    struct CharacterLook: Equatable, Sendable {
+        var skin: Int
+        var face: Int
+        var hair: Int
+        var equipment: [Int]
+    }
+
     struct Snapshot {
         var status: Status
         var phase: Phase
@@ -37,6 +45,7 @@ final class LoginModel: @unchecked Sendable {
         var worlds: [String]
         var selectedWorld: Int
         var characters: [String]
+        var characterLooks: [CharacterLook?]
         var selectedCharacter: Int
         var avatarX: Float
         var avatarY: Float
@@ -53,6 +62,7 @@ final class LoginModel: @unchecked Sendable {
     private var selectedWorld = 0
     private var characters: [String] = []
     private var characterIDs: [UInt32] = []
+    private var characterLooks: [CharacterLook?] = []
     private var selectedCharacter = 0
     private var avatarX: Float = 0
     private var avatarY: Float = 0
@@ -70,6 +80,7 @@ final class LoginModel: @unchecked Sendable {
             worlds: worlds,
             selectedWorld: selectedWorld,
             characters: characters,
+            characterLooks: characterLooks,
             selectedCharacter: selectedCharacter,
             avatarX: avatarX,
             avatarY: avatarY
@@ -110,10 +121,11 @@ final class LoginModel: @unchecked Sendable {
         return selectedWorld
     }
 
-    func setCharacters(_ list: [(id: UInt32, name: String)]) {
+    func setCharacters(_ list: [(id: UInt32, name: String)], looks: [CharacterLook?] = []) {
         lock.lock(); defer { lock.unlock() }
         characters = list.map(\.name)
         characterIDs = list.map(\.id)
+        characterLooks = list.indices.map { looks.indices.contains($0) ? looks[$0] : nil }
         selectedCharacter = 0
     }
 
