@@ -42,6 +42,22 @@ public struct WzMapSprite: Sendable {
     public var flipped: Bool
     /// All animation frames (a single entry for static sprites).
     public var frames: [WzSpriteFrame]
+
+    public init(rgba: [UInt8], width: Int, height: Int, x: Int, y: Int,
+                originX: Int, originY: Int, layer: Int, z: Int, flipped: Bool,
+                frames: [WzSpriteFrame]) {
+        self.rgba = rgba
+        self.width = width
+        self.height = height
+        self.x = x
+        self.y = y
+        self.originX = originX
+        self.originY = originY
+        self.layer = layer
+        self.z = z
+        self.flipped = flipped
+        self.frames = frames
+    }
 }
 
 /// A decoded background/foreground layer, carrying the parallax + tiling
@@ -116,6 +132,22 @@ public struct WzLoadedMap: Sendable {
     public var spawnY: Int
     /// Walkable ground / wall geometry.
     public var footholds: [WzFoothold]
+    /// NPC / mob placements from the map's `life` node.
+    public var life: [WzMapLife]
+}
+
+/// An NPC or mob placement from the map's `life` node.
+public struct WzMapLife: Sendable {
+    /// "n" = NPC, "m" = mob.
+    public var type: String
+    public var id: Int
+    public var x: Int
+    /// The foothold-snapped foot y (the `cy` field).
+    public var y: Int
+    /// The foothold this life stands on (its layer decides draw order).
+    public var footholdID: Int
+    public var flipped: Bool
+    public var hidden: Bool
 }
 
 public extension WzLoadedMap {
@@ -249,6 +281,22 @@ public final class WzMapLoader {
             }
         }
 
+        // Life (NPCs / mobs)
+        var life: [WzMapLife] = []
+        for entry in props["life"]?.children ?? [] {
+            let c = entry.value.children
+            guard let type = c.string("type"),
+                  let id = c.string("id").flatMap(Int.init) else { continue }
+            life.append(WzMapLife(
+                type: type, id: id,
+                x: c.int("x") ?? 0,
+                y: c.int("cy") ?? c.int("y") ?? 0,
+                footholdID: c.int("fh") ?? 0,
+                flipped: (c.int("f") ?? 0) != 0,
+                hidden: (c.int("hide") ?? 0) != 0
+            ))
+        }
+
         let bounds = computeBounds(props: props, tiles: tiles, objects: objects)
         let spawn = props.property(at: "portal/0")?.children
         let spawnX = spawn?.int("x") ?? (bounds.left + bounds.right) / 2
@@ -257,7 +305,7 @@ public final class WzMapLoader {
         return WzLoadedMap(id: mapID, backgrounds: backgrounds, foregrounds: foregrounds,
                            tiles: tiles, objects: objects,
                            left: bounds.left, top: bounds.top, right: bounds.right, bottom: bounds.bottom,
-                           spawnX: spawnX, spawnY: spawnY, footholds: footholds)
+                           spawnX: spawnX, spawnY: spawnY, footholds: footholds, life: life)
     }
 
     // MARK: - Sprite resolution

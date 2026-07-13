@@ -21,6 +21,9 @@ struct MapCommand: ParsableCommand {
     @Option(name: .long, help: "Path to Character.wz. If provided, spawns a walking player (arrow keys move; camera follows).")
     var characterWz: String?
 
+    @Option(name: .long, help: "Path to Npc.wz. If provided, renders the map's NPCs.")
+    var npcWz: String?
+
     @Option(name: .long, help: "Map ID to render.")
     var id: Int = 100000000
 
@@ -68,9 +71,24 @@ struct MapCommand: ParsableCommand {
         }
 
         let game = try Game(title: "MapleStory Map \(id)", width: 1024, height: 768)
+        var npcs: [(life: WzMapLife, frames: [WzSpriteFrame])] = []
+        if let npcWz {
+            print("Loading \(npcWz) ...")
+            let npcData = try Data(contentsOf: URL(fileURLWithPath: npcWz))
+            let npcArchive = try WzArchive(data: npcData, mapleVersion: version)
+            let npcLoader = WzNpcLoader(archive: npcArchive)
+            for life in map.life where life.type == "n" && life.hidden == false {
+                let frames = (try? npcLoader.loadStandFrames(npcID: life.id)) ?? []
+                if frames.isEmpty == false {
+                    npcs.append((life, frames))
+                }
+            }
+            print("NPCs loaded: \(npcs.count) of \(map.life.filter { $0.type == "n" }.count)")
+        }
+
         var playerStart: (x: Int, y: Int)?
         if let startX, let startY { playerStart = (startX, startY) }
-        let scene = MapScene(map: map, character: character, playerStart: playerStart)
+        let scene = MapScene(map: map, character: character, npcs: npcs, playerStart: playerStart)
         scene.showFootholds = showFootholds
         game.setScene(scene)
         if let screenshot {
