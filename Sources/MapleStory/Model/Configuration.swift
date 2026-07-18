@@ -171,9 +171,29 @@ internal extension Configuration {
 }
 
 extension Configuration.ElementEntity: Entity {
-    
+
     static var entityName: EntityName { "Configuration" }
-    
+
+    init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.value = try container.decode(Configuration.Value.self, forKey: CodingKeys.value)
+    }
+
+    func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.value, forKey: CodingKeys.value)
+        return container
+    }
+
     static var attributes: [CodingKeys: AttributeType] {
         [
             .value: .string
