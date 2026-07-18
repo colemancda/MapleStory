@@ -69,6 +69,36 @@ extension GuildMemberEntity: Entity {
 
     public static var entityName: EntityName { "GuildMember" }
 
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.characterName = try container.decode(CharacterName.self, forKey: GuildMemberEntity.CodingKeys.characterName)
+        self.rank = try container.decode(GuildRank.self, forKey: GuildMemberEntity.CodingKeys.rank)
+        self.online = try container.decode(Bool.self, forKey: GuildMemberEntity.CodingKeys.online)
+        self.joinedAt = try container.decode(Date?.self, forKey: GuildMemberEntity.CodingKeys.joinedAt)
+        self.guild = try container.decodeRelationship(GuildEntity.ID.self, forKey: GuildMemberEntity.CodingKeys.guild)
+        self.characterID = try container.decodeRelationship(Character.ID.self, forKey: GuildMemberEntity.CodingKeys.characterID)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.characterName, forKey: GuildMemberEntity.CodingKeys.characterName)
+        container.encode(self.rank, forKey: GuildMemberEntity.CodingKeys.rank)
+        container.encode(self.online, forKey: GuildMemberEntity.CodingKeys.online)
+        container.encode(self.joinedAt, forKey: GuildMemberEntity.CodingKeys.joinedAt)
+        container.encodeRelationship(self.guild, forKey: GuildMemberEntity.CodingKeys.guild)
+        container.encodeRelationship(self.characterID, forKey: GuildMemberEntity.CodingKeys.characterID)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .characterName: .string,
