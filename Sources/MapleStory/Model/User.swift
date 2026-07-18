@@ -110,7 +110,55 @@ public struct User: Codable, Equatable, Hashable, Identifiable, Sendable {
 // MARK: - Entity
 
 extension User: Entity {
-    
+
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.index = try container.decode(Index.self, forKey: User.CodingKeys.index)
+        self.username = try container.decode(Username.self, forKey: User.CodingKeys.username)
+        self.password = try container.decode(Data.self, forKey: User.CodingKeys.password)
+        self.created = try container.decode(Date.self, forKey: User.CodingKeys.created)
+        self.gender = try container.decode(Gender?.self, forKey: User.CodingKeys.gender)
+        self.ipAddress = try container.decode(String?.self, forKey: User.CodingKeys.ipAddress)
+        self.pinCode = try container.decode(String?.self, forKey: User.CodingKeys.pinCode)
+        self.picCode = try container.decode(String?.self, forKey: User.CodingKeys.picCode)
+        self.birthday = try container.decode(Date.self, forKey: User.CodingKeys.birthday)
+        self.email = try container.decode(String?.self, forKey: User.CodingKeys.email)
+        self.termsAccepted = try container.decode(Bool.self, forKey: User.CodingKeys.termsAccepted)
+        self.isAdmin = try container.decode(Bool.self, forKey: User.CodingKeys.isAdmin)
+        self.isGuest = try container.decode(Bool.self, forKey: User.CodingKeys.isGuest)
+        self.characters = try container.decodeRelationship([Character.ID].self, forKey: User.CodingKeys.characters)
+        self.storage = try container.decodeRelationship(Storage.ID?.self, forKey: User.CodingKeys.storage)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.index, forKey: User.CodingKeys.index)
+        container.encode(self.username, forKey: User.CodingKeys.username)
+        container.encode(self.password, forKey: User.CodingKeys.password)
+        container.encode(self.created, forKey: User.CodingKeys.created)
+        container.encode(self.gender, forKey: User.CodingKeys.gender)
+        container.encode(self.ipAddress, forKey: User.CodingKeys.ipAddress)
+        container.encode(self.pinCode, forKey: User.CodingKeys.pinCode)
+        container.encode(self.picCode, forKey: User.CodingKeys.picCode)
+        container.encode(self.birthday, forKey: User.CodingKeys.birthday)
+        container.encode(self.email, forKey: User.CodingKeys.email)
+        container.encode(self.termsAccepted, forKey: User.CodingKeys.termsAccepted)
+        container.encode(self.isAdmin, forKey: User.CodingKeys.isAdmin)
+        container.encode(self.isGuest, forKey: User.CodingKeys.isGuest)
+        container.encodeRelationship(self.characters, forKey: User.CodingKeys.characters)
+        container.encodeRelationship(self.storage, forKey: User.CodingKeys.storage)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .index: .int64,
