@@ -55,7 +55,34 @@ public struct Buddy: Codable, Equatable, Hashable, Identifiable, Sendable {
 // MARK: - Entity
 
 extension Buddy: Entity {
-    
+
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        // `character` is a required foreign key that is intentionally not declared as a
+        // relationship (managed by BuddyListRegistry) and has no default; persist it as an
+        // attribute so it round-trips and the stored `let` is initialized.
+        self.character = try container.decode(Character.ID.self, forKey: Buddy.CodingKeys.character)
+        self.buddyID = try container.decode(Character.Index.self, forKey: Buddy.CodingKeys.buddyID)
+        self.pending = try container.decode(Bool.self, forKey: Buddy.CodingKeys.pending)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.character, forKey: Buddy.CodingKeys.character)
+        container.encode(self.buddyID, forKey: Buddy.CodingKeys.buddyID)
+        container.encode(self.pending, forKey: Buddy.CodingKeys.pending)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .buddyID: .int64,
