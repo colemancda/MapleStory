@@ -315,7 +315,101 @@ public struct Character: Codable, Equatable, Hashable, Identifiable, Sendable {
 // MARK: - Entity
 
 extension Character: Entity {
-    
+
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.index = try container.decode(Index.self, forKey: Character.CodingKeys.index)
+        self.created = try container.decode(Date.self, forKey: Character.CodingKeys.created)
+        self.name = try container.decode(CharacterName.self, forKey: Character.CodingKeys.name)
+        self.gender = try container.decode(Gender.self, forKey: Character.CodingKeys.gender)
+        self.skinColor = try container.decode(SkinColor.self, forKey: Character.CodingKeys.skinColor)
+        self.face = try container.decode(UInt32.self, forKey: Character.CodingKeys.face)
+        self.hair = try container.decode(Hair.self, forKey: Character.CodingKeys.hair)
+        self.level = try container.decode(UInt16.self, forKey: Character.CodingKeys.level)
+        self.job = try container.decode(Job.self, forKey: Character.CodingKeys.job)
+        self.str = try container.decode(UInt16.self, forKey: Character.CodingKeys.str)
+        self.dex = try container.decode(UInt16.self, forKey: Character.CodingKeys.dex)
+        self.int = try container.decode(UInt16.self, forKey: Character.CodingKeys.int)
+        self.luk = try container.decode(UInt16.self, forKey: Character.CodingKeys.luk)
+        self.hp = try container.decode(UInt16.self, forKey: Character.CodingKeys.hp)
+        self.maxHp = try container.decode(UInt16.self, forKey: Character.CodingKeys.maxHp)
+        self.mp = try container.decode(UInt16.self, forKey: Character.CodingKeys.mp)
+        self.maxMp = try container.decode(UInt16.self, forKey: Character.CodingKeys.maxMp)
+        self.ap = try container.decode(UInt16.self, forKey: Character.CodingKeys.ap)
+        self.sp = try container.decode(UInt16.self, forKey: Character.CodingKeys.sp)
+        self.exp = try container.decode(Experience.self, forKey: Character.CodingKeys.exp)
+        self.fame = try container.decode(UInt16.self, forKey: Character.CodingKeys.fame)
+        self.meso = try container.decode(UInt32.self, forKey: Character.CodingKeys.meso)
+        self.isMarried = try container.decode(Bool.self, forKey: Character.CodingKeys.isMarried)
+        self.currentMap = try container.decode(Map.ID.self, forKey: Character.CodingKeys.currentMap)
+        self.spawnPoint = try container.decode(UInt8.self, forKey: Character.CodingKeys.spawnPoint)
+        self.isMega = try container.decode(Bool.self, forKey: Character.CodingKeys.isMega)
+        self.cashWeapon = try container.decode(UInt32.self, forKey: Character.CodingKeys.cashWeapon)
+        self.equipment = try container.decode(Character.Equipment.self, forKey: Character.CodingKeys.equipment)
+        self.maskedEquipment = try container.decode(Character.Equipment.self, forKey: Character.CodingKeys.maskedEquipment)
+        self.isRankEnabled = try container.decode(Bool.self, forKey: Character.CodingKeys.isRankEnabled)
+        self.worldRank = try container.decode(UInt32.self, forKey: Character.CodingKeys.worldRank)
+        self.rankMove = try container.decode(UInt32.self, forKey: Character.CodingKeys.rankMove)
+        self.jobRank = try container.decode(UInt32.self, forKey: Character.CodingKeys.jobRank)
+        self.jobRankMove = try container.decode(UInt32.self, forKey: Character.CodingKeys.jobRankMove)
+        self.buddyCapacity = try container.decode(UInt8.self, forKey: Character.CodingKeys.buddyCapacity)
+        self.user = try container.decodeRelationship(User.ID.self, forKey: Character.CodingKeys.user)
+        self.world = try container.decodeRelationship(World.ID.self, forKey: Character.CodingKeys.world)
+        self.session = try container.decodeRelationship(Session.ID?.self, forKey: Character.CodingKeys.session)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.index, forKey: Character.CodingKeys.index)
+        container.encode(self.created, forKey: Character.CodingKeys.created)
+        container.encode(self.name, forKey: Character.CodingKeys.name)
+        container.encode(self.gender, forKey: Character.CodingKeys.gender)
+        container.encode(self.skinColor, forKey: Character.CodingKeys.skinColor)
+        container.encode(self.face, forKey: Character.CodingKeys.face)
+        container.encode(self.hair, forKey: Character.CodingKeys.hair)
+        container.encode(self.level, forKey: Character.CodingKeys.level)
+        container.encode(self.job, forKey: Character.CodingKeys.job)
+        container.encode(self.str, forKey: Character.CodingKeys.str)
+        container.encode(self.dex, forKey: Character.CodingKeys.dex)
+        container.encode(self.int, forKey: Character.CodingKeys.int)
+        container.encode(self.luk, forKey: Character.CodingKeys.luk)
+        container.encode(self.hp, forKey: Character.CodingKeys.hp)
+        container.encode(self.maxHp, forKey: Character.CodingKeys.maxHp)
+        container.encode(self.mp, forKey: Character.CodingKeys.mp)
+        container.encode(self.maxMp, forKey: Character.CodingKeys.maxMp)
+        container.encode(self.ap, forKey: Character.CodingKeys.ap)
+        container.encode(self.sp, forKey: Character.CodingKeys.sp)
+        container.encode(self.exp, forKey: Character.CodingKeys.exp)
+        container.encode(self.fame, forKey: Character.CodingKeys.fame)
+        container.encode(self.meso, forKey: Character.CodingKeys.meso)
+        container.encode(self.isMarried, forKey: Character.CodingKeys.isMarried)
+        container.encode(self.currentMap, forKey: Character.CodingKeys.currentMap)
+        container.encode(self.spawnPoint, forKey: Character.CodingKeys.spawnPoint)
+        container.encode(self.isMega, forKey: Character.CodingKeys.isMega)
+        container.encode(self.cashWeapon, forKey: Character.CodingKeys.cashWeapon)
+        container.encode(self.equipment, forKey: Character.CodingKeys.equipment)
+        container.encode(self.maskedEquipment, forKey: Character.CodingKeys.maskedEquipment)
+        container.encode(self.isRankEnabled, forKey: Character.CodingKeys.isRankEnabled)
+        container.encode(self.worldRank, forKey: Character.CodingKeys.worldRank)
+        container.encode(self.rankMove, forKey: Character.CodingKeys.rankMove)
+        container.encode(self.jobRank, forKey: Character.CodingKeys.jobRank)
+        container.encode(self.jobRankMove, forKey: Character.CodingKeys.jobRankMove)
+        container.encode(self.buddyCapacity, forKey: Character.CodingKeys.buddyCapacity)
+        container.encodeRelationship(self.user, forKey: Character.CodingKeys.user)
+        container.encodeRelationship(self.world, forKey: Character.CodingKeys.world)
+        container.encodeRelationship(self.session, forKey: Character.CodingKeys.session)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .index: .int64,

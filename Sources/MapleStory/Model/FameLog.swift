@@ -47,6 +47,30 @@ public struct FameLog: Codable, Equatable, Hashable, Identifiable, Sendable {
 
 extension FameLog: Entity {
 
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.characterID = try container.decode(Character.ID.self, forKey: FameLog.CodingKeys.characterID)
+        self.characterIDTo = try container.decode(Character.ID.self, forKey: FameLog.CodingKeys.characterIDTo)
+        self.timestamp = try container.decode(Date.self, forKey: FameLog.CodingKeys.timestamp)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.characterID, forKey: FameLog.CodingKeys.characterID)
+        container.encode(self.characterIDTo, forKey: FameLog.CodingKeys.characterIDTo)
+        container.encode(self.timestamp, forKey: FameLog.CodingKeys.timestamp)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .characterID: .string,

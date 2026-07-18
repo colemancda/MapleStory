@@ -95,6 +95,44 @@ extension GuildEntity: Entity {
 
     public static var entityName: EntityName { "Guild" }
 
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.guildID = try container.decode(GuildID.self, forKey: GuildEntity.CodingKeys.guildID)
+        self.name = try container.decode(String.self, forKey: GuildEntity.CodingKeys.name)
+        self.capacity = try container.decode(Int.self, forKey: GuildEntity.CodingKeys.capacity)
+        self.points = try container.decode(UInt32.self, forKey: GuildEntity.CodingKeys.points)
+        self.logoBackground = try container.decode(UInt8.self, forKey: GuildEntity.CodingKeys.logoBackground)
+        self.logoBackgroundColor = try container.decode(UInt8.self, forKey: GuildEntity.CodingKeys.logoBackgroundColor)
+        self.logo = try container.decode(UInt8.self, forKey: GuildEntity.CodingKeys.logo)
+        self.logoColor = try container.decode(UInt8.self, forKey: GuildEntity.CodingKeys.logoColor)
+        self.notice = try container.decode(String?.self, forKey: GuildEntity.CodingKeys.notice)
+        self.leaderID = try container.decodeRelationship(Character.ID.self, forKey: GuildEntity.CodingKeys.leaderID)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.guildID, forKey: GuildEntity.CodingKeys.guildID)
+        container.encode(self.name, forKey: GuildEntity.CodingKeys.name)
+        container.encode(self.capacity, forKey: GuildEntity.CodingKeys.capacity)
+        container.encode(self.points, forKey: GuildEntity.CodingKeys.points)
+        container.encode(self.logoBackground, forKey: GuildEntity.CodingKeys.logoBackground)
+        container.encode(self.logoBackgroundColor, forKey: GuildEntity.CodingKeys.logoBackgroundColor)
+        container.encode(self.logo, forKey: GuildEntity.CodingKeys.logo)
+        container.encode(self.logoColor, forKey: GuildEntity.CodingKeys.logoColor)
+        container.encode(self.notice, forKey: GuildEntity.CodingKeys.notice)
+        container.encodeRelationship(self.leaderID, forKey: GuildEntity.CodingKeys.leaderID)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .guildID: .int64,

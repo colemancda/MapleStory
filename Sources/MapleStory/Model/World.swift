@@ -107,7 +107,51 @@ public extension World {
 // MARK: - Entity
 
 extension World: Entity {
-    
+
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.index = try container.decode(Index.self, forKey: World.CodingKeys.index)
+        self.region = try container.decode(Region.self, forKey: World.CodingKeys.region)
+        self.version = try container.decode(Version.self, forKey: World.CodingKeys.version)
+        self.name = try container.decode(String.self, forKey: World.CodingKeys.name)
+        self.isEnabled = try container.decode(Bool.self, forKey: World.CodingKeys.isEnabled)
+        self.ribbon = try container.decode(World.Ribbon.self, forKey: World.CodingKeys.ribbon)
+        self.eventMessage = try container.decode(String.self, forKey: World.CodingKeys.eventMessage)
+        self.rateModifier = try container.decode(UInt8.self, forKey: World.CodingKeys.rateModifier)
+        self.eventXP = try container.decode(UInt8.self, forKey: World.CodingKeys.eventXP)
+        self.dropRate = try container.decode(UInt8.self, forKey: World.CodingKeys.dropRate)
+        self.lastCharacter = try container.decode(Character.Index?.self, forKey: World.CodingKeys.lastCharacter)
+        self.channels = try container.decodeRelationship([Channel.ID].self, forKey: World.CodingKeys.channels)
+        self.characters = try container.decodeRelationship([Character.ID].self, forKey: World.CodingKeys.characters)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.index, forKey: World.CodingKeys.index)
+        container.encode(self.region, forKey: World.CodingKeys.region)
+        container.encode(self.version, forKey: World.CodingKeys.version)
+        container.encode(self.name, forKey: World.CodingKeys.name)
+        container.encode(self.isEnabled, forKey: World.CodingKeys.isEnabled)
+        container.encode(self.ribbon, forKey: World.CodingKeys.ribbon)
+        container.encode(self.eventMessage, forKey: World.CodingKeys.eventMessage)
+        container.encode(self.rateModifier, forKey: World.CodingKeys.rateModifier)
+        container.encode(self.eventXP, forKey: World.CodingKeys.eventXP)
+        container.encode(self.dropRate, forKey: World.CodingKeys.dropRate)
+        container.encode(self.lastCharacter, forKey: World.CodingKeys.lastCharacter)
+        container.encodeRelationship(self.channels, forKey: World.CodingKeys.channels)
+        container.encodeRelationship(self.characters, forKey: World.CodingKeys.characters)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .name: .string,

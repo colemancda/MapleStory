@@ -69,7 +69,39 @@ public struct Session: Codable, Equatable, Hashable, Identifiable, Sendable {
 // MARK: - Entity
 
 extension Session: Entity {
-        
+
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.requestTime = try container.decode(Date.self, forKey: Session.CodingKeys.requestTime)
+        self.loginTime = try container.decode(Date?.self, forKey: Session.CodingKeys.loginTime)
+        self.sendNonce = try container.decode(Nonce.self, forKey: Session.CodingKeys.sendNonce)
+        self.recieveNonce = try container.decode(Nonce.self, forKey: Session.CodingKeys.recieveNonce)
+        self.address = try container.decode(String.self, forKey: Session.CodingKeys.address)
+        self.channel = try container.decodeRelationship(Channel.ID.self, forKey: Session.CodingKeys.channel)
+        self.character = try container.decodeRelationship(Character.ID.self, forKey: Session.CodingKeys.character)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.requestTime, forKey: Session.CodingKeys.requestTime)
+        container.encode(self.loginTime, forKey: Session.CodingKeys.loginTime)
+        container.encode(self.sendNonce, forKey: Session.CodingKeys.sendNonce)
+        container.encode(self.recieveNonce, forKey: Session.CodingKeys.recieveNonce)
+        container.encode(self.address, forKey: Session.CodingKeys.address)
+        container.encodeRelationship(self.channel, forKey: Session.CodingKeys.channel)
+        container.encodeRelationship(self.character, forKey: Session.CodingKeys.character)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .requestTime: .date,

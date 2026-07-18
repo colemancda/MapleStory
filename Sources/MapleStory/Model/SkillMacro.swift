@@ -78,6 +78,38 @@ public struct SkillMacro: Codable, Equatable, Hashable, Identifiable, Sendable {
 
 extension SkillMacro: Entity {
 
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.slot = try container.decode(UInt8.self, forKey: SkillMacro.CodingKeys.slot)
+        self.name = try container.decode(String.self, forKey: SkillMacro.CodingKeys.name)
+        self.shout = try container.decode(UInt8.self, forKey: SkillMacro.CodingKeys.shout)
+        self.skill1 = try container.decode(UInt32.self, forKey: SkillMacro.CodingKeys.skill1)
+        self.skill2 = try container.decode(UInt32.self, forKey: SkillMacro.CodingKeys.skill2)
+        self.skill3 = try container.decode(UInt32.self, forKey: SkillMacro.CodingKeys.skill3)
+        self.character = try container.decodeRelationship(Character.ID.self, forKey: SkillMacro.CodingKeys.character)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.slot, forKey: SkillMacro.CodingKeys.slot)
+        container.encode(self.name, forKey: SkillMacro.CodingKeys.name)
+        container.encode(self.shout, forKey: SkillMacro.CodingKeys.shout)
+        container.encode(self.skill1, forKey: SkillMacro.CodingKeys.skill1)
+        container.encode(self.skill2, forKey: SkillMacro.CodingKeys.skill2)
+        container.encode(self.skill3, forKey: SkillMacro.CodingKeys.skill3)
+        container.encodeRelationship(self.character, forKey: SkillMacro.CodingKeys.character)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .slot: .int32,

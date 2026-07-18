@@ -60,3 +60,66 @@ jobs:
 
     - name: Test (Debug)
       run: swift test -c debug
+
+  coverage:
+    name: Code Coverage
+    runs-on: macos-15
+    permissions:
+      contents: read
+      code-quality: write # required by actions/upload-code-coverage
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v4
+
+    - name: Select Xcode (macOS SDK)
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: latest-stable
+
+    - name: Install Swift 6.3.3
+      run: |
+        curl -fsSL -o swiftly.pkg https://download.swift.org/swiftly/darwin/swiftly.pkg
+        installer -pkg swiftly.pkg -target CurrentUserHomeDirectory
+        ~/.swiftly/bin/swiftly init --assume-yes --skip-install --quiet-shell-followup
+        ~/.swiftly/bin/swiftly install --use 6.3.3
+        echo "$HOME/.swiftly/bin" >> "$GITHUB_PATH"
+
+    - name: Install SDL3
+      run: brew install sdl3
+
+    - name: Exclude broken server executables
+      # The MapleStoryServer28/62/83 executables share version-specific handler
+      # sources and fail to link (a pre-existing issue unrelated to the game
+      # client). Drop those three products so the package builds and tests.
+      run: |
+        python3 - <<'PY'
+        import re
+        src = open('Package.swift').read()
+        src = re.sub(r'\s*\.executable\(\s*name:\s*"MapleStoryServer\d+",\s*targets:\s*\["MapleStoryServer\d+"\]\s*\),', '', src)
+        def strip_target(src, name):
+            return re.sub(r'\n        \.executableTarget\(\n            name: "' + re.escape(name) + r'",.*?\n        \),', '', src, flags=re.DOTALL)
+        for n in ['MapleStoryServer28', 'MapleStoryServer62', 'MapleStoryServer83']:
+            src = strip_target(src, n)
+        open('Package.swift', 'w').write(src)
+        PY
+
+    - name: Export coverage and enforce threshold
+      run: Scripts/coverage.sh
+
+    - name: Upload coverage to GitHub Code Quality
+      uses: actions/upload-code-coverage@v1
+      with:
+        file: .build/coverage/coverage.xml
+        language: Swift
+        label: code-coverage/llvm-cov
+        # Code Quality was in public preview until 2026-07-20; keep this so a
+        # failed upload on a repo without the feature doesn't break CI.
+        fail-on-error: false
+
+    - name: Upload coverage artifacts
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: code-coverage
+        path: .build/coverage/
+        if-no-files-found: error
