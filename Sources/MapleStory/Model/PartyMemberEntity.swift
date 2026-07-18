@@ -78,9 +78,43 @@ public struct PartyMemberEntity: Codable, Equatable, Hashable, Identifiable, Sen
 // MARK: - Entity
 
 extension PartyMemberEntity: Entity {
-    
+
     public static var entityName: EntityName { "PartyMember" }
-    
+
+    public init(from container: ModelData) throws {
+        guard container.entity.rawValue == Self.entityName.rawValue else {
+            throw CoreModel.CoreModelError.invalidEntity(container.entity)
+        }
+        guard let id = Self.ID(objectID: container.id) else {
+            throw DecodingError.dataCorrupted(DecodingError.Context(codingPath: [], debugDescription: "Cannot decode identifier from \(container.id)"))
+        }
+        self.id = id
+        self.characterName = try container.decode(CharacterName.self, forKey: PartyMemberEntity.CodingKeys.characterName)
+        self.job = try container.decode(Job.self, forKey: PartyMemberEntity.CodingKeys.job)
+        self.level = try container.decode(UInt16.self, forKey: PartyMemberEntity.CodingKeys.level)
+        self.channel = try container.decode(UInt8.self, forKey: PartyMemberEntity.CodingKeys.channel)
+        self.map = try container.decode(Map.ID.self, forKey: PartyMemberEntity.CodingKeys.map)
+        self.status = try container.decode(PartyMemberStatus.self, forKey: PartyMemberEntity.CodingKeys.status)
+        self.party = try container.decodeRelationship(PartyEntity.ID.self, forKey: PartyMemberEntity.CodingKeys.party)
+        self.characterID = try container.decodeRelationship(Character.ID.self, forKey: PartyMemberEntity.CodingKeys.characterID)
+    }
+
+    public func encode() -> ModelData {
+        var container = ModelData(
+            entity: Self.entityName,
+            id: ObjectID(self.id)
+        )
+        container.encode(self.characterName, forKey: PartyMemberEntity.CodingKeys.characterName)
+        container.encode(self.job, forKey: PartyMemberEntity.CodingKeys.job)
+        container.encode(self.level, forKey: PartyMemberEntity.CodingKeys.level)
+        container.encode(self.channel, forKey: PartyMemberEntity.CodingKeys.channel)
+        container.encode(self.map, forKey: PartyMemberEntity.CodingKeys.map)
+        container.encode(self.status, forKey: PartyMemberEntity.CodingKeys.status)
+        container.encodeRelationship(self.party, forKey: PartyMemberEntity.CodingKeys.party)
+        container.encodeRelationship(self.characterID, forKey: PartyMemberEntity.CodingKeys.characterID)
+        return container
+    }
+
     public static var attributes: [CodingKeys: AttributeType] {
         [
             .characterName: .string,
